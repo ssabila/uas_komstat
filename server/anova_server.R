@@ -38,6 +38,7 @@ observeEvent(input$run_anova, {
 })
 
 # --- 3. TAMPILKAN HASIL ---
+# --- 3. TAMPILKAN HASIL ---
 output$anova_summary_table <- renderPrint({
   req(analysis_results$anova)
   analysis_results$anova
@@ -48,8 +49,92 @@ output$anova_interpretation <- renderText({
   summary_aov <- analysis_results$anova
   p_values <- summary_aov[[1]]$`Pr(>F)`
   
-  "Interpretasi Tabel ANOVA:\n
-  Perhatikan kolom 'Pr(>F)' (p-value). Jika p-value untuk suatu variabel atau interaksi < 0.05, maka variabel tersebut memiliki pengaruh yang signifikan secara statistik terhadap variabel dependen."
+  # Membuat interpretasi berdasarkan tipe ANOVA
+  if (input$anova_type == "one_way") {
+    # ANOVA Satu Arah
+    main_p_value <- p_values[1]
+    
+    if (!is.na(main_p_value)) {
+      if (main_p_value < 0.05) {
+        interpretation <- paste0(
+          "Berdasarkan uji ANOVA satu arah yang dilakukan, didapatkan p-value = ", 
+          round(main_p_value, 4), 
+          " sehingga p-value lebih kecil dari tingkat signifikansi 0.05. ",
+          "Oleh karena itu, cukup bukti untuk menolak hipotesis nol yang menyatakan bahwa rata-rata semua kelompok sama. ",
+          "Dengan demikian, dapat disimpulkan bahwa terdapat setidaknya satu kelompok yang memiliki rata-rata yang berbeda secara signifikan dibandingkan kelompok lainnya."
+        )
+      } else {
+        interpretation <- paste0(
+          "Berdasarkan uji ANOVA satu arah yang dilakukan, didapatkan p-value = ", 
+          round(main_p_value, 4), 
+          " sehingga p-value lebih besar dari tingkat signifikansi 0.05. ",
+          "Oleh karena itu, tidak cukup bukti untuk menolak hipotesis nul yang menyatakan bahwa rata-rata semua kelompok sama. ",
+          "Dengan demikian, dapat disimpulkan bahwa tidak ada perbedaan rata-rata yang signifikan antar kelompok."
+        )
+      }
+    } else {
+      interpretation <- "Tidak dapat menghitung p-value untuk analisis ini."
+    }
+    
+  } else if (input$anova_type == "two_way") {
+    # ANOVA Dua Arah
+    var1_p_value <- p_values[1]
+    var2_p_value <- p_values[2]
+    
+    interpretation <- "Berdasarkan uji ANOVA dua arah yang dilakukan:\n\n"
+    
+    # Interpretasi untuk variabel independen 1
+    if (!is.na(var1_p_value)) {
+      if (var1_p_value < 0.05) {
+        interpretation <- paste0(interpretation,
+          "1. Variabel '", input$anova_indep_var1, "': p-value = ", round(var1_p_value, 4), 
+          " (< 0.05). Terdapat pengaruh yang signifikan dari variabel ", input$anova_indep_var1, 
+          " terhadap ", input$anova_dep_var, ".\n\n")
+      } else {
+        interpretation <- paste0(interpretation,
+          "1. Variabel '", input$anova_indep_var1, "': p-value = ", round(var1_p_value, 4), 
+          " (≥ 0.05). Tidak terdapat pengaruh yang signifikan dari variabel ", input$anova_indep_var1, 
+          " terhadap ", input$anova_dep_var, ".\n\n")
+      }
+    }
+    
+    # Interpretasi untuk variabel independen 2
+    if (!is.na(var2_p_value)) {
+      if (var2_p_value < 0.05) {
+        interpretation <- paste0(interpretation,
+          "2. Variabel '", input$anova_indep_var2, "': p-value = ", round(var2_p_value, 4), 
+          " (< 0.05). Terdapat pengaruh yang signifikan dari variabel ", input$anova_indep_var2, 
+          " terhadap ", input$anova_dep_var, ".\n\n")
+      } else {
+        interpretation <- paste0(interpretation,
+          "2. Variabel '", input$anova_indep_var2, "': p-value = ", round(var2_p_value, 4), 
+          " (≥ 0.05). Tidak terdapat pengaruh yang signifikan dari variabel ", input$anova_indep_var2, 
+          " terhadap ", input$anova_dep_var, ".\n\n")
+      }
+    }
+    
+    # Interpretasi untuk interaksi (jika ada)
+    if (input$anova_interaction && length(p_values) >= 3) {
+      interaction_p_value <- p_values[3]
+      if (!is.na(interaction_p_value)) {
+        if (interaction_p_value < 0.05) {
+          interpretation <- paste0(interpretation,
+            "3. Interaksi '", input$anova_indep_var1, ":", input$anova_indep_var2, "': p-value = ", 
+            round(interaction_p_value, 4), 
+            " (< 0.05). Terdapat efek interaksi yang signifikan antara ", input$anova_indep_var1, 
+            " dan ", input$anova_indep_var2, " terhadap ", input$anova_dep_var, ".")
+        } else {
+          interpretation <- paste0(interpretation,
+            "3. Interaksi '", input$anova_indep_var1, ":", input$anova_indep_var2, "': p-value = ", 
+            round(interaction_p_value, 4), 
+            " (≥ 0.05). Tidak terdapat efek interaksi yang signifikan antara ", input$anova_indep_var1, 
+            " dan ", input$anova_indep_var2, " terhadap ", input$anova_dep_var, ".")
+        }
+      }
+    }
+  }
+  
+  return(interpretation)
 })
 
 output$anova_plot <- renderPlotly({

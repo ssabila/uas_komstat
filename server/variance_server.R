@@ -219,35 +219,74 @@ output$variance_interpretation <- renderText({
   req(variance_results())
   result <- variance_results()
   
+  # Format p-value dengan 3 desimal
+  p_value_formatted <- sprintf("%.3f", result$p_value)
+  alpha_formatted <- sprintf("%.3f", result$alpha)
+  
+  # Tentukan perbandingan p-value dengan alpha
+  comparison <- ifelse(result$p_value < result$alpha, "lebih kecil", "lebih besar")
+  
+  # Mulai interpretasi dengan line breaks yang tepat
   interpretation <- paste0(
     "=== INTERPRETASI HASIL ===\n\n",
-    "Tingkat signifikansi: α = ", result$alpha, "\n",
-    "P-value: ", round(result$p_value, 6), "\n\n"
+    "Berdasarkan uji yang dilakukan didapatkan p-value = ", p_value_formatted, 
+    " sehingga p-value ", comparison, " dari \n",
+    "tingkat signifikansi yang digunakan (", alpha_formatted, "). "
   )
   
-  if (result$p_value < result$alpha) {
-    interpretation <- paste0(interpretation,
-                             "KEPUTUSAN: Tolak H₀\n",
-                             "KESIMPULAN: Terdapat perbedaan variance yang signifikan secara statistik.\n\n"
-    )
-  } else {
-    interpretation <- paste0(interpretation,
-                             "KEPUTUSAN: Gagal tolak H₀\n", 
-                             "KESIMPULAN: Tidak terdapat cukup bukti untuk menyatakan adanya perbedaan variance yang signifikan.\n\n"
-    )
-  }
-  
   if (result$test_type == "Chi-square test for variance") {
+    # Interpretasi untuk uji satu populasi
+    if (result$p_value < result$alpha) {
+      interpretation <- paste0(interpretation,
+                               "Oleh karena itu, cukup bukti untuk menolak \n",
+                               "hipotesis nol yang menyatakan bahwa varians populasi sama denganvarians yang diharapkan, yaitu ", result$hypothesized_var, ".\n",
+                               "Dengan demikian, dapat disimpulkan bahwa varians populasi berbeda secara signifikan\n",
+                               "dari nilai yang telah ditetapkan sebelumnya.\n\n"
+      )
+    } else {
+      interpretation <- paste0(interpretation,
+                               "Oleh karena itu, tidak cukup bukti untuk menolak \n",
+                               "hipotesis nol yang menyatakan bahwa varians populasi sama dengan varians yang diharapkan, yaitu", result$hypothesized_var, ". \n",
+                               "Dengan demikian,dapat disimpulkan bahwa tidak terdapat perbedaan varians yang signifikan\n",
+                               "dari nilai yang telah ditetapkan sebelumnya.\n\n"
+      )
+    }
+    
+    # Tambahan informasi untuk uji satu populasi
     interpretation <- paste0(interpretation,
-                             "Confidence interval untuk variance populasi: [", 
-                             round(result$conf_int[1], 4), ", ", round(result$conf_int[2], 4), "]\n",
-                             "Sample variance: ", round(result$sample_var, 4), "\n"
+                             "Informasi tambahan:\n",
+                             "- Varians sampel yang diperoleh: ", round(result$sample_var, 4), "\n",
+                             "- Varians populasi yang diharapkan: ", result$hypothesized_var, "\n",
+                             "- Confidence interval untuk varians populasi:\n",
+                             "  [", round(result$conf_int[1], 4), ", ", round(result$conf_int[2], 4), "]\n"
     )
+    
   } else {
+    # Interpretasi untuk uji dua populasi
+    if (result$p_value < result$alpha) {
+      interpretation <- paste0(interpretation,
+                               "Oleh karena itu, cukup bukti untuk menolak hipotesis nol \n",
+                               "yang menyatakan bahwa kedua populasi memiliki varians yang sama.\n",
+                               "Dengan demikian, dapat disimpulkan bahwa terdapat perbedaan varians yang \n",
+                               "signifikan antara kedua populasi yang dibandingkan.\n\n"
+      )
+    } else {
+      interpretation <- paste0(interpretation,
+                               "Oleh karena itu, tidak cukup bukti untuk menolak hipotesis nol\n",
+                               "yang menyatakan bahwa kedua populasi memiliki varians yang sama.\n",
+                               "Dengan demikian, dapat disimpulkan bahwa tidak terdapat perbedaan varians yang\n",
+                               "signifikan antarakedua populasi yang dibandingkan.\n\n"
+      )
+    }
+    
+    # Tambahan informasi untuk uji dua populasi
     interpretation <- paste0(interpretation,
-                             "Confidence interval untuk ratio variance (σ₁²/σ₂²): [", 
-                             round(result$conf_int[1], 4), ", ", round(result$conf_int[2], 4), "]\n",
-                             "Observed ratio: ", round(result$statistic, 4), "\n"
+                             "Informasi tambahan:\n",
+                             "- Varians grup ", result$group1, ": ", round(result$var1, 4), "\n",
+                             "- Varians grup ", result$group2, ": ", round(result$var2, 4), "\n",
+                             "- Rasio varians (σ₁²/σ₂²): ", round(result$statistic, 4), "\n",
+                             "- Confidence interval untuk rasio varians:\n",
+                             "  [", round(result$conf_int[1], 4), ", ", round(result$conf_int[2], 4), "]\n"
     )
   }
   
@@ -365,6 +404,11 @@ output$download_variance_result <- downloadHandler(
     req(analysis_results$variance)
     
     result <- analysis_results$variance
+    
+    # Format p-value dengan 3 desimal untuk download
+    p_value_formatted <- sprintf("%.3f", result$p_value)
+    alpha_formatted <- sprintf("%.3f", result$alpha)
+    
     text_content <- capture.output({
       cat("=== HASIL UJI VARIANCE ===\n\n")
       cat("Uji:", result$test_type, "\n")
@@ -380,12 +424,22 @@ output$download_variance_result <- downloadHandler(
         cat("Variance", result$group2, ":", round(result$var2, 4), "\n")
       }
       
-      cat("P-value:", round(result$p_value, 6), "\n")
+      cat("P-value:", p_value_formatted, "\n")
+      cat("Tingkat signifikansi:", alpha_formatted, "\n")
       
-      if (result$p_value < result$alpha) {
-        cat("Kesimpulan: Tolak H₀ - Terdapat perbedaan variance yang signifikan\n")
+      # Interpretasi untuk download
+      if (result$test_type == "Chi-square test for variance") {
+        if (result$p_value < result$alpha) {
+          cat("Kesimpulan: Varians populasi berbeda secara signifikan dari nilai yang ditetapkan\n")
+        } else {
+          cat("Kesimpulan: Tidak terdapat perbedaan varians yang signifikan dari nilai yang ditetapkan\n")
+        }
       } else {
-        cat("Kesimpulan: Gagal tolak H₀ - Tidak ada perbedaan variance yang signifikan\n")
+        if (result$p_value < result$alpha) {
+          cat("Kesimpulan: Terdapat perbedaan varians yang signifikan antara kedua populasi\n")
+        } else {
+          cat("Kesimpulan: Tidak terdapat perbedaan varians yang signifikan antara kedua populasi\n")
+        }
       }
     })
     
