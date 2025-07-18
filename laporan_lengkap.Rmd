@@ -1,0 +1,82 @@
+
+---
+title: "Laporan Analisis Komprehensif"
+output:
+  word_document: default
+  pdf_document:
+    latex_engine: xelatex
+params:
+  results: NA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+```
+
+**Tanggal Laporan Dibuat:** `r format(Sys.time(), '%d %B %Y')`
+
+
+```{r descriptive,  results='asis',  eval=is.data.frame(params$results$descriptive)}
+if (!is.null(params$results$descriptive)) {
+  cat("## Statistik Deskriptif\n\n")
+  print(knitr::kable(params$results$descriptive, caption = "Tabel Statistik Deskriptif."))
+  cat("\n\n")
+}
+```
+
+````{r normality, results='asis', eval=!is.null(params$results$normality)}
+if (!is.null(params$results$normality)) {
+  cat("## Hasil Uji Normalitas (Shapiro-Wilk)\n\n")
+  cat("```\n")
+  print(params$results$normality)
+  cat("```\n\n")
+}
+````
+
+````{r homogeneity, results='asis', eval=!is.null(params$results$homogeneity)}
+if (!is.null(params$results$homogeneity)) {
+  cat("## Hasil Uji Homogenitas Variansi (Levene)\n\n")
+  cat("```\n")
+  print(params$results$homogeneity)
+  cat("```\n\n")
+}
+````
+
+````{r ttest, results='asis', eval=!is.null(params$results$ttest)}
+if (!is.null(params$results$ttest)) {
+  cat("## Hasil Uji-T\n\n")
+  cat("```\n")
+  print(params$results$ttest)
+  cat("```\n\n")
+}
+````
+
+````{r proportion, results='asis', eval=!is.null(params$results$proportion)}
+if (!is.null(params$results$proportion)) {
+  cat("## Hasil Uji Proporsi\n\n")
+  cat("```\n")
+  print(params$results$proportion)
+  cat("```\n\n")
+}
+````
+
+````{r anova, results='asis', eval=!is.null(params$results$anova)}
+if (!is.null(params$results$anova)) {
+  cat("## Hasil Analisis ANOVA\n\n")
+  cat("```\n")
+  print(params$results$anova)
+  cat("```\n\n")
+}
+````
+
+````{r regression, results='asis', eval=!is.null(params$results$regression)}
+if (!is.null(params$results$regression)) {
+  cat("## Hasil Analisis Regresi Linear\n\n")
+  cat("```\n")
+  print(params$results$regression)
+  cat("```\n\n")
+}
+````
+
+-----
