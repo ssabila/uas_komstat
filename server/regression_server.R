@@ -1,197 +1,369 @@
-# --- 1. RENDER UI DINAMIS ---
+# server/regression_server.R - VERSI SEDERHANA DAN AMAN
+
+cat("Loading regression server...\n")
+
+# --- 1. DEPENDENT VARIABLE SELECTOR ---
 output$reg_dependent_selector <- renderUI({
-  req(processed_data$current)
-  numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
-  selectInput("reg_dep_var", "Pilih Variabel Dependen (Y):", choices = numeric_vars)
+  cat("Rendering dependent selector...\n")
+  
+  if (is.null(processed_data$current)) {
+    return(div(
+      style = "padding: 10px; background: #f8d7da; border-radius: 5px;",
+      "Data belum dimuat. Silakan upload data terlebih dahulu."
+    ))
+  }
+  
+  # Get numeric variables
+  tryCatch({
+    numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
+    
+    if (length(numeric_vars) == 0) {
+      return(div(
+        style = "padding: 10px; background: #fff3cd; border-radius: 5px;",
+        "Tidak ada variabel numerik dalam data."
+      ))
+    }
+    
+    return(selectInput(
+      "reg_dep_var",
+      "Pilih Variabel Dependen (Y):",
+      choices = numeric_vars,
+      selected = numeric_vars[1]
+    ))
+    
+  }, error = function(e) {
+    return(div(
+      style = "padding: 10px; background: #f8d7da; border-radius: 5px;",
+      paste("Error:", e$message)
+    ))
+  })
 })
 
+# --- 2. INDEPENDENT VARIABLE SELECTOR ---
 output$reg_independent_selector <- renderUI({
-  req(processed_data$current, input$reg_dep_var)
-  numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
-  choices <- setdiff(numeric_vars, input$reg_dep_var)
-  selectizeInput("reg_indep_vars", "Pilih Variabel Independen (X):", choices = choices, multiple = TRUE)
-})
-
-# --- 2. LOGIKA REGRESI - DIPERBAIKI ---
-regression_model <- eventReactive(input$run_regression, {
-  req(input$reg_dep_var, length(input$reg_indep_vars) > 0)
+  cat("Rendering independent selector...\n")
+  
+  if (is.null(processed_data$current)) {
+    return(div("Data belum dimuat"))
+  }
+  
+  if (is.null(input$reg_dep_var) || input$reg_dep_var == "") {
+    return(div(
+      style = "padding: 10px; background: #d1ecf1; border-radius: 5px;",
+      "Pilih variabel dependen terlebih dahulu"
+    ))
+  }
   
   tryCatch({
+    numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
+    available_vars <- setdiff(numeric_vars, input$reg_dep_var)
+    
+    if (length(available_vars) == 0) {
+      return(div(
+        style = "padding: 10px; background: #fff3cd; border-radius: 5px;",
+        "Tidak ada variabel independen yang tersedia"
+      ))
+    }
+    
+    return(selectizeInput(
+      "reg_indep_vars",
+      "Pilih Variabel Independen (X):",
+      choices = available_vars,
+      multiple = TRUE,
+      options = list(
+        placeholder = "Pilih satu atau lebih variabel...",
+        plugins = list('remove_button')
+      )
+    ))
+    
+  }, error = function(e) {
+    return(div(paste("Error:", e$message)))
+  })
+})
+
+# --- 3. VALIDATION STATUS ---
+output$regression_validation_status <- renderUI({
+  if (is.null(processed_data$current)) {
+    return(div(
+      style = "padding: 10px; background: #f8d7da; border-radius: 5px; margin-top: 10px;",
+      icon("times-circle", style = "color: #dc3545;"),
+      " Data belum dimuat"
+    ))
+  }
+  
+  if (is.null(input$reg_dep_var) || input$reg_dep_var == "") {
+    return(div(
+      style = "padding: 10px; background: #fff3cd; border-radius: 5px; margin-top: 10px;",
+      icon("exclamation-triangle", style = "color: #ffc107;"),
+      " Pilih variabel dependen"
+    ))
+  }
+  
+  if (is.null(input$reg_indep_vars) || length(input$reg_indep_vars) == 0) {
+    return(div(
+      style = "padding: 10px; background: #fff3cd; border-radius: 5px; margin-top: 10px;",
+      icon("exclamation-triangle", style = "color: #ffc107;"),
+      " Pilih variabel independen"
+    ))
+  }
+  
+  return(div(
+    style = "padding: 10px; background: #d4edda; border-radius: 5px; margin-top: 10px;",
+    icon("check-circle", style = "color: #28a745;"),
+    " Siap untuk analisis!"
+  ))
+})
+
+# --- 4. REGRESSION MODEL ---
+regression_model <- eventReactive(input$run_regression, {
+  cat("Running regression analysis...\n")
+  
+  # Validasi input
+  req(processed_data$current, input$reg_dep_var, input$reg_indep_vars)
+  
+  tryCatch({
+    # Buat formula
     formula_str <- paste(input$reg_dep_var, "~", paste(input$reg_indep_vars, collapse = " + "))
+    cat("Formula:", formula_str, "\n")
+    
+    # Fit model
     model <- lm(as.formula(formula_str), data = processed_data$current)
     
-    # Simpan ringkasan model untuk diunduh
-    analysis_results$regression <- summary(model)
+    # Simpan hasil
+    analysis_results$regression <- list(
+      model = model,
+      summary = summary(model),
+      formula = formula_str
+    )
     
-    cat("Regression model created successfully\n")
+    showNotification("Model regresi berhasil dibuat!", type = "success")
     return(model)
     
   }, error = function(e) {
-    showNotification(paste("Error dalam analisis regresi:", e$message), type = "error")
+    cat("Error in regression:", e$message, "\n")
+    showNotification(paste("Error:", e$message), type = "error")
     return(NULL)
   })
 })
 
-# --- 3. TAMPILKAN HASIL - DIPERBAIKI ---
+# --- 5. OUTPUT RESULTS ---
 output$regression_summary <- renderPrint({
   model <- regression_model()
   
-  if (!is.null(model)) {
-    summary(model)
+  if (is.null(model)) {
+    cat("=== STATUS REGRESI ===\n")
+    cat("Model belum dibuat.\n\n")
+    cat("LANGKAH:\n")
+    cat("1. Pilih variabel dependen (Y)\n")
+    cat("2. Pilih variabel independen (X)\n") 
+    cat("3. Klik 'Bangun Model'\n")
   } else {
-    cat("Model regresi belum dibuat. Klik 'Bangun Model' untuk memulai analisis.")
+    cat("=== HASIL REGRESI ===\n\n")
+    summary(model)
   }
 })
 
+# --- 6. DIAGNOSTIC PLOTS ---
 output$regression_qqplot <- renderPlot({
   model <- regression_model()
   
-  if (!is.null(model)) {
+  if (is.null(model)) {
+    plot(1, 1, type = "n", main = "Model belum dibuat", 
+         xlab = "", ylab = "")
+    text(1, 1, "Klik 'Bangun Model'\nterlebih dahulu", cex = 1.2)
+  } else {
     tryCatch({
       plot(model, which = 2, main = "Q-Q Plot Residual")
     }, error = function(e) {
-      plot(1, 1, type = "n", main = "Error membuat Q-Q plot")
+      plot(1, 1, type = "n", main = "Error dalam Q-Q Plot")
       text(1, 1, paste("Error:", e$message))
     })
-  } else {
-    plot(1, 1, type = "n", main = "Model belum dibuat")
-    text(1, 1, "Klik 'Bangun Model' terlebih dahulu")
   }
 })
 
 output$regression_residual_plot <- renderPlot({
   model <- regression_model()
   
-  if (!is.null(model)) {
+  if (is.null(model)) {
+    plot(1, 1, type = "n", main = "Model belum dibuat",
+         xlab = "", ylab = "")
+    text(1, 1, "Klik 'Bangun Model'\nterlebih dahulu", cex = 1.2)
+  } else {
     tryCatch({
       plot(model, which = 1, main = "Residuals vs Fitted")
     }, error = function(e) {
-      plot(1, 1, type = "n", main = "Error membuat residual plot")
+      plot(1, 1, type = "n", main = "Error dalam Residual Plot")
       text(1, 1, paste("Error:", e$message))
     })
-  } else {
-    plot(1, 1, type = "n", main = "Model belum dibuat")
-    text(1, 1, "Klik 'Bangun Model' terlebih dahulu")
   }
 })
 
+# --- 7. VIF TEST ---
 output$regression_vif <- renderPrint({
   model <- regression_model()
   
-  if (!is.null(model)) {
-    if (length(input$reg_indep_vars) > 1) {
-      tryCatch({
-        if (requireNamespace("car", quietly = TRUE)) {
-          car::vif(model)
-        } else {
-          cat("Package 'car' tidak tersedia untuk menghitung VIF")
-        }
-      }, error = function(e) {
-        cat("Error menghitung VIF:", e$message)
-      })
-    } else {
-      cat("VIF (Variance Inflation Factor) memerlukan minimal 2 variabel independen.")
-    }
+  if (is.null(model)) {
+    cat("Model belum dibuat.")
+  } else if (length(input$reg_indep_vars) < 2) {
+    cat("VIF memerlukan minimal 2 variabel independen.")
   } else {
-    cat("Model belum dibuat. Klik 'Bangun Model' terlebih dahulu.")
+    tryCatch({
+      if (requireNamespace("car", quietly = TRUE)) {
+        vif_values <- car::vif(model)
+        cat("=== VARIANCE INFLATION FACTOR (VIF) ===\n\n")
+        print(vif_values)
+        cat("\nInterpretasi:\n")
+        cat("VIF < 5: Tidak ada multikolinearitas\n")
+        cat("VIF 5-10: Multikolinearitas sedang\n") 
+        cat("VIF > 10: Multikolinearitas serius\n")
+      } else {
+        cat("Package 'car' tidak tersedia untuk VIF")
+      }
+    }, error = function(e) {
+      cat("Error:", e$message)
+    })
   }
 })
 
+# --- 8. INTERPRETATION ---
 output$regression_interpretation <- renderText({
   model <- regression_model()
   
-  if (!is.null(model)) {
-    summary_model <- summary(model)
-    
-    interpretation <- paste(
-      "=== INTERPRETASI MODEL REGRESI ===\n\n",
-      "FORMULA MODEL:\n",
-      paste(input$reg_dep_var, "~", paste(input$reg_indep_vars, collapse = " + ")), "\n\n",
-      
-      "KUALITAS MODEL:\n",
-      sprintf("- R-squared: %.4f (%.1f%% variabilitas dijelaskan)", 
-              summary_model$r.squared, summary_model$r.squared * 100), "\n",
-      sprintf("- Adjusted R-squared: %.4f", summary_model$adj.r.squared), "\n",
-      sprintf("- F-statistic: %.4f, p-value: %.6f", 
-              summary_model$fstatistic[1], 
-              pf(summary_model$fstatistic[1], summary_model$fstatistic[2], 
-                 summary_model$fstatistic[3], lower.tail = FALSE)), "\n\n",
-      
-      "INTERPRETASI KOEFISIEN:\n",
-      "- Estimate: Perubahan Y untuk setiap kenaikan 1 unit X (ceteris paribus)\n",
-      "- Pr(>|t|): Jika < 0.05, variabel signifikan mempengaruhi Y\n",
-      "- Signifikansi: *** p<0.001, ** p<0.01, * p<0.05\n\n",
-      
-      "PANDUAN UJI ASUMSI:\n",
-      "1. NORMALITAS: Q-Q plot harus membentuk garis lurus\n",
-      "2. HOMOSKEDASTISITAS: Residual vs Fitted harus tersebar acak\n",
-      "3. MULTIKOLINEARITAS: VIF < 10 (idealnya < 5)\n",
-      "4. LINIERITAS: Hubungan X-Y harus linear\n\n",
-      
-      if (summary_model$r.squared > 0.7) {
-        "✓ Model memiliki daya prediksi yang baik (R² > 70%)"
-      } else if (summary_model$r.squared > 0.5) {
-        "△ Model memiliki daya prediksi sedang (R² 50-70%)"
-      } else {
-        "⚠ Model memiliki daya prediksi rendah (R² < 50%)"
-      }
-    )
-    
-    return(interpretation)
-  } else {
-    return("Model regresi belum dibuat.\n\nLangkah-langkah:\n1. Pilih variabel dependen (Y)\n2. Pilih variabel independen (X)\n3. Klik 'Bangun Model'\n4. Interpretasi hasil dan uji asumsi")
+  if (is.null(model)) {
+    return("Model belum dibuat.\n\nLangkah:\n1. Pilih Y\n2. Pilih X\n3. Klik 'Bangun Model'")
   }
-})
-
-# --- 4. LOGIKA UNDUH - DIPERBAIKI ---
-output$download_regression_summary <- downloadHandler(
-  filename = function() {
-    paste("ringkasan-regresi-", Sys.Date(), ".", input$regression_format, sep = "")
-  },
-  content = function(file) {
-    model <- regression_model()
-    
-    if (!is.null(model)) {
-      text_to_render <- capture.output(summary(model))
-      
-      rmarkdown::render(
-        input = "text_report.Rmd",
-        output_file = file,
-        output_format = if(input$regression_format == "pdf") "pdf_document" else "word_document",
-        params = list(
-          report_title = "Ringkasan Model Regresi",
-          text_output = paste(text_to_render, collapse = "\n")
-        ),
-        envir = new.env(parent = globalenv())
-      )
+  
+  summary_model <- summary(model)
+  r_squared <- summary_model$r.squared
+  
+  interpretation <- paste0(
+    "=== INTERPRETASI MODEL ===\n\n",
+    "Formula: ", input$reg_dep_var, " ~ ", paste(input$reg_indep_vars, collapse = " + "), "\n\n",
+    "R-squared: ", round(r_squared, 4), " (", round(r_squared * 100, 1), "%)\n",
+    "Model menjelaskan ", round(r_squared * 100, 1), "% variasi dalam ", input$reg_dep_var, "\n\n",
+    "Kualitas Model:\n",
+    if (r_squared > 0.7) {
+      "✓ BAIK (R² > 70%)"
+    } else if (r_squared > 0.5) {
+      "○ SEDANG (R² 50-70%)" 
     } else {
-      # Buat file dengan pesan error
-      rmarkdown::render(
-        input = "text_report.Rmd",
-        output_file = file,
-        output_format = if(input$regression_format == "pdf") "pdf_document" else "word_document",
-        params = list(
-          report_title = "Ringkasan Model Regresi",
-          text_output = "Model regresi belum dibuat. Silakan buat model terlebih dahulu."
-        ),
-        envir = new.env(parent = globalenv())
-      )
+      "△ PERLU PERBAIKAN (R² < 50%)"
     }
-  }
-)
-
-# --- 5. TAMBAHAN: OBSERVER UNTUK DEBUGGING ---
-observe({
-  if (!is.null(input$run_regression)) {
-    cat("Run regression button clicked:", input$run_regression, "\n")
-  }
+  )
+  
+  return(interpretation)
 })
 
-observe({
+# --- 9. ADDITIONAL PLOTS ---
+output$cooks_distance_plot <- renderPlot({
   model <- regression_model()
-  if (!is.null(model)) {
-    cat("Regression model available, summary:\n")
-    cat("Formula:", as.character(formula(model)), "\n")
-    cat("R-squared:", summary(model)$r.squared, "\n")
+  
+  if (is.null(model)) {
+    plot(1, 1, type = "n", main = "Model belum dibuat")
+    text(1, 1, "Klik 'Bangun Model'")
+  } else {
+    tryCatch({
+      cooks_d <- cooks.distance(model)
+      plot(cooks_d, type = "h", main = "Cook's Distance",
+           ylab = "Cook's Distance", xlab = "Observation")
+      abline(h = 1, col = "red", lty = 2)
+    }, error = function(e) {
+      plot(1, 1, type = "n", main = "Error Cook's Distance")
+      text(1, 1, paste("Error:", e$message))
+    })
   }
 })
+
+output$leverage_plot <- renderPlot({
+  model <- regression_model()
+  
+  if (is.null(model)) {
+    plot(1, 1, type = "n", main = "Model belum dibuat")
+    text(1, 1, "Klik 'Bangun Model'")
+  } else {
+    tryCatch({
+      leverage <- hatvalues(model)
+      plot(leverage, type = "h", main = "Leverage Values",
+           ylab = "Leverage", xlab = "Observation") 
+      abline(h = 2 * length(coef(model)) / length(leverage), col = "red", lty = 2)
+    }, error = function(e) {
+      plot(1, 1, type = "n", main = "Error Leverage")
+      text(1, 1, paste("Error:", e$message))
+    })
+  }
+})
+
+output$residual_leverage_plot <- renderPlot({
+  model <- regression_model()
+  
+  if (is.null(model)) {
+    plot(1, 1, type = "n", main = "Model belum dibuat")
+    text(1, 1, "Klik 'Bangun Model'")
+  } else {
+    tryCatch({
+      plot(model, which = 5, main = "Residuals vs Leverage")
+    }, error = function(e) {
+      plot(1, 1, type = "n", main = "Error Residual vs Leverage")
+      text(1, 1, paste("Error:", e$message))
+    })
+  }
+})
+
+# --- 10. NORMALITY AND HOMOSCEDASTICITY TESTS ---
+output$normality_residual_interpretation <- renderPrint({
+  model <- regression_model()
+  
+  if (is.null(model)) {
+    cat("Model belum dibuat.")
+  } else {
+    tryCatch({
+      residuals_data <- residuals(model)
+      
+      if (length(residuals_data) <= 5000) {
+        shapiro_test <- shapiro.test(residuals_data)
+        cat("=== UJI NORMALITAS (SHAPIRO-WILK) ===\n")
+        cat("W =", round(shapiro_test$statistic, 6), "\n")
+        cat("p-value =", round(shapiro_test$p.value, 6), "\n\n")
+        
+        if (shapiro_test$p.value < 0.05) {
+          cat("Kesimpulan: Residual TIDAK berdistribusi normal (p < 0.05)")
+        } else {
+          cat("Kesimpulan: Residual berdistribusi normal (p > 0.05)")
+        }
+      } else {
+        cat("Sampel terlalu besar untuk Shapiro-Wilk.\nGunakan Q-Q plot untuk evaluasi visual.")
+      }
+    }, error = function(e) {
+      cat("Error:", e$message)
+    })
+  }
+})
+
+output$homoskedasticity_interpretation <- renderPrint({
+  model <- regression_model()
+  
+  if (is.null(model)) {
+    cat("Model belum dibuat.")
+  } else {
+    tryCatch({
+      if (requireNamespace("lmtest", quietly = TRUE)) {
+        bp_test <- lmtest::bptest(model)
+        cat("=== UJI HOMOSKEDASTISITAS (BREUSCH-PAGAN) ===\n")
+        cat("BP =", round(bp_test$statistic, 6), "\n")
+        cat("p-value =", round(bp_test$p.value, 6), "\n\n")
+        
+        if (bp_test$p.value < 0.05) {
+          cat("Kesimpulan: Ada heteroskedastisitas (p < 0.05)")
+        } else {
+          cat("Kesimpulan: Homoskedastisitas terpenuhi (p > 0.05)")
+        }
+      } else {
+        cat("Package 'lmtest' tidak tersedia.\nGunakan plot Residuals vs Fitted untuk evaluasi visual.")
+      }
+    }, error = function(e) {
+      cat("Error:", e$message)
+    })
+  }
+})
+
+cat("✓ Regression server loaded successfully\n")

@@ -1,34 +1,35 @@
-# ui/regression_ui.R
+# ui/regression_ui.R - COMPATIBLE DENGAN STRUKTUR APP
+
 tagList(
-  # Kotak Header Utama
+  # Header Box - Sesuai dengan struktur yang ada
   box(
-    title = "Regresi Linear Berganda",
+    title = "Analisis Regresi Linear Berganda",
     status = "primary",
     solidHeader = TRUE,
-    width = 12, # Lebar penuh
-    p("Bangun model regresi untuk memprediksi sebuah variabel dependen (Y) berdasarkan beberapa variabel independen (X)."),
+    width = 12,
+    p("Bangun model regresi untuk memprediksi variabel dependen (Y) berdasarkan satu atau lebih variabel independen (X)."),
     div(
       style = "background: #e3f2fd; padding: 10px; border-radius: 5px; border-left: 4px solid #2196f3;",
       icon("info-circle", style = "color: #2196f3;"),
       strong(" Tips: "),
-      "Pastikan hubungan linear antar variabel dan periksa asumsi regresi pada tab 'Uji Asumsi'."
+      "Pastikan data memiliki variabel numerik yang cukup dan periksa asumsi regresi setelah model dibuat."
     )
   ),
   
-  # Kotak Pengaturan Model (Bagian Atas)
+  # Configuration Box - PERBAIKAN: Struktur yang sederhana seperti modul lain
   box(
-    title = "Pengaturan Model Regresi",
+    title = "Pengaturan Model Regresi", 
     status = "info",
     solidHeader = TRUE,
-    width = 12, # Lebar penuh
-    collapsible = TRUE, # Bisa dilipat agar tidak memakan tempat
+    width = 12,
+    collapsible = TRUE,
     
     fluidRow(
       column(4,
              uiOutput("reg_dependent_selector")
       ),
       column(6,
-             uiOutput("reg_independent_selector")
+             uiOutput("reg_independent_selector")  
       ),
       column(2,
              br(),
@@ -38,94 +39,143 @@ tagList(
       )
     ),
     
-    # Status dan validasi
-    div(
-      id = "regression_status",
-      style = "margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #28a745;",
-      icon("check-circle", style = "color: #28a745;"),
-      span(" Status: Siap untuk membangun model regresi", style = "color: #155724;")
-    )
+    # Status validation
+    uiOutput("regression_validation_status")
   ),
   
-  # Kotak Hasil Model (Bagian Bawah)
+  # Results Box - PERBAIKAN: Menggunakan struktur tabsetPanel yang konsisten
   box(
-    title = "Hasil Model Regresi",
+    title = "Hasil Analisis Regresi",
     status = "success",
-    width = 12, # Lebar penuh
+    solidHeader = TRUE,
+    width = 12,
+    
+    # PERBAIKAN: TabsetPanel dengan struktur yang sama seperti modul lain
     tabsetPanel(
-      id = "regression_tabs",
+      id = "regression_results_tabs",
       type = "tabs",
-      selected = "summary_tab", # PERBAIKAN: Set tab default
       
-      tabPanel("Ringkasan Model", 
-               value = "summary_tab", # PERBAIKAN: Tambahkan value
-               icon = icon("list-alt"),
-               br(),
-               div(
-                 style = "background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 15px;",
-                 icon("lightbulb", style = "color: #856404;"),
-                 strong(" Cara Membaca Hasil:"),
-                 tags$ul(
-                   style = "margin-bottom: 0; color: #856404;",
-                   tags$li("R-squared: Persentase variabilitas Y yang dijelaskan model"),
-                   tags$li("P-value koefisien < 0.05: Variabel berpengaruh signifikan"),
-                   tags$li("Estimate: Perubahan Y per unit perubahan X")
-                 )
-               ),
-               verbatimTextOutput("regression_summary"),
-               hr(),
-               h4("Unduh Ringkasan"),
-               fluidRow(
-                 column(8,
-                        radioButtons("regression_format", "Pilih Format:", 
-                                     choices = list("PDF" = "pdf", "Word" = "docx"), 
-                                     inline = TRUE)
-                 ),
-                 column(4,
-                        downloadButton("download_regression_summary", "Unduh", 
-                                       class = "btn-primary")
-                 )
-               )
+      # Tab 1: Model Summary
+      tabPanel(
+        "Ringkasan Model", 
+        icon = icon("list-alt"),
+        
+        br(),
+        # Info box untuk panduan membaca hasil
+        div(
+          style = "background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;",
+          icon("lightbulb", style = "color: #856404;"),
+          strong(" Cara Membaca Hasil:", style = "color: #856404;"),
+          tags$ul(
+            style = "margin-bottom: 0; color: #856404;",
+            tags$li(strong("Estimate:"), " Perubahan Y untuk setiap kenaikan 1 unit X"),
+            tags$li(strong("Pr(>|t|):"), " Jika < 0.05, variabel berpengaruh signifikan"),
+            tags$li(strong("R-squared:"), " Persentase variabilitas Y yang dijelaskan model"),
+            tags$li(strong("F-statistic:"), " Signifikansi model secara keseluruhan")
+          )
+        ),
+        
+        # Output hasil regresi
+        verbatimTextOutput("regression_summary")
       ),
       
-      tabPanel("Uji Asumsi", 
-               value = "assumptions_tab", # PERBAIKAN: Tambahkan value
-               icon = icon("check"),
-               br(),
-               div(
-                 style = "background: #d4edda; padding: 10px; border-radius: 4px; margin-bottom: 15px;",
-                 icon("info-circle", style = "color: #155724;"),
-                 strong(" Pentingnya Uji Asumsi:"),
-                 p("Regresi linear valid hanya jika asumsi terpenuhi. Periksa setiap plot dengan seksama.", 
-                   style = "margin: 5px 0 0 0; color: #155724;")
-               ),
-               
-               h4("1. Normalitas Residual (Plot Q-Q)"),
-               p("Titik-titik harus mengikuti garis diagonal. Jika menyimpang, residual tidak normal."),
-               plotOutput("regression_qqplot", height = "350px"),
-               
-               hr(),
-               h4("2. Homoskedastisitas (Residuals vs Fitted)"),
-               p("Titik-titik harus tersebar acak tanpa pola. Jika membentuk corong, terjadi heteroskedastisitas."),
-               plotOutput("regression_residual_plot", height = "350px"),
-               
-               hr(),
-               h4("3. Multikolinearitas (VIF)"),
-               p("VIF > 10 menunjukkan multikolinearitas serius. VIF > 5 perlu diwaspadai."),
-               verbatimTextOutput("regression_vif")
+      # Tab 2: Model Interpretation
+      tabPanel(
+        "Interpretasi", 
+        icon = icon("comments"),
+        
+        br(),
+        div(
+          style = "background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 15px;",
+          icon("info-circle", style = "color: #155724;"),
+          strong(" Interpretasi Model:", style = "color: #155724;"),
+          p("Penjelasan makna praktis dari hasil analisis regresi dalam konteks data Anda.", 
+            style = "margin-bottom: 0; color: #155724;")
+        ),
+        
+        verbatimTextOutput("regression_interpretation")
       ),
       
-      tabPanel("Interpretasi", 
-               value = "interpretation_tab", # PERBAIKAN: Tambahkan value
-               icon = icon("comment-dots"),
-               br(),
-               div(
-                 style = "background: #d1ecf1; padding: 15px; border-radius: 8px; border-left: 4px solid #bee5eb;",
-                 h4("Panduan Interpretasi Lengkap", style = "color: #0c5460; margin-top: 0;"),
-                 p("Gunakan panduan di bawah untuk memahami dan mengkomunikasikan hasil regresi.", 
-                   style = "color: #0c5460; margin-bottom: 0;")
-               ),
-               verbatimTextOutput("regression_interpretation")
+      # Tab 3: Diagnostic Plots
+      tabPanel(
+        "Uji Asumsi", 
+        icon = icon("chart-line"),
+        
+        br(),
+        div(
+          style = "background: #f8d7da; padding: 15px; border-radius: 8px; margin-bottom: 15px;",
+          icon("exclamation-triangle", style = "color: #721c24;"),
+          strong(" Penting:", style = "color: #721c24;"),
+          p("Hasil regresi hanya valid jika asumsi-asumsi berikut terpenuhi:", 
+            style = "color: #721c24; margin-bottom: 5px;"),
+          tags$ul(
+            style = "margin-bottom: 0; color: #721c24;",
+            tags$li("Normalitas residual (Q-Q Plot mendekati garis lurus)"),
+            tags$li("Homoskedastisitas (Residual vs Fitted tersebar acak)"),
+            tags$li("Tidak ada multikolinearitas (VIF < 10)"),
+            tags$li("Linieritas hubungan antar variabel")
+          )
+        ),
+        
+        fluidRow(
+          column(6,
+                 h4("1. Uji Normalitas Residual"),
+                 plotOutput("regression_qqplot", height = "400px"),
+                 hr(),
+                 verbatimTextOutput("normality_residual_interpretation")
+          ),
+          column(6,
+                 h4("2. Uji Homoskedastisitas"),
+                 plotOutput("regression_residual_plot", height = "400px"),
+                 hr(),
+                 verbatimTextOutput("homoskedasticity_interpretation")
+          )
+        ),
+        
+        hr(),
+        
+        fluidRow(
+          column(6,
+                 h4("3. Uji Multikolinearitas (VIF)"),
+                 verbatimTextOutput("regression_vif")
+          ),
+          column(6,
+                 h4("4. Deteksi Outlier"),
+                 plotOutput("cooks_distance_plot", height = "300px")
+          )
+        )
+      ),
+      
+      # Tab 4: Advanced Diagnostics  
+      tabPanel(
+        "Diagnostik Lanjut",
+        icon = icon("search"),
+        
+        br(),
+        p("Analisis lanjutan untuk mendeteksi outlier dan observasi yang berpengaruh terhadap model."),
+        
+        fluidRow(
+          column(6,
+                 h4("Cook's Distance"),
+                 plotOutput("cooks_distance_plot", height = "350px"),
+                 helpText("Mengidentifikasi observasi yang sangat mempengaruhi model (threshold = 1)")
+          ),
+          column(6,
+                 h4("Leverage Values"),
+                 plotOutput("leverage_plot", height = "350px"),
+                 helpText("Mengidentifikasi observasi dengan nilai X yang ekstrem")
+          )
+        ),
+        
+        hr(),
+        
+        fluidRow(
+          column(12,
+                 h4("Residuals vs Leverage"),
+                 plotOutput("residual_leverage_plot", height = "400px"),
+                 helpText("Kombinasi outlier dan leverage untuk identifikasi data berpengaruh")
+          )
+        )
       )
     )
   )
