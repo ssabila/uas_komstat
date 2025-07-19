@@ -135,143 +135,64 @@ notify_warning <- function(message, duration = 7) {
   safe_notification(message, "warning", duration)
 }
 
-# Function untuk Post Hoc Analysis
-perform_posthoc <- function(model, method = "tukey") {
+# Function untuk Post Hoc Analysis - HANYA TUKEY
+perform_posthoc <- function(model) {
   tryCatch({
-    switch(method,
-           "tukey" = {
-             result <- TukeyHSD(model)
-             return(list(
-               method = "Tukey HSD",
-               result = result,
-               pairwise = result[[1]]
-             ))
-           },
-           "bonferroni" = {
-             # Pairwise t-test dengan Bonferroni correction
-             data_used <- model$model
-             dep_var <- names(data_used)[1]
-             indep_var <- names(data_used)[2]
-             
-             result <- pairwise.t.test(
-               data_used[[dep_var]], 
-               data_used[[indep_var]], 
-               p.adjust.method = "bonferroni"
-             )
-             return(list(
-               method = "Bonferroni",
-               result = result,
-               pairwise = result$p.value
-             ))
-           },
-           "holm" = {
-             # Pairwise t-test dengan Holm correction
-             data_used <- model$model
-             dep_var <- names(data_used)[1]
-             indep_var <- names(data_used)[2]
-             
-             result <- pairwise.t.test(
-               data_used[[dep_var]], 
-               data_used[[indep_var]], 
-               p.adjust.method = "holm"
-             )
-             return(list(
-               method = "Holm",
-               result = result,
-               pairwise = result$p.value
-             ))
-           },
-           "scheffe" = {
-             # Manual Scheffe test
-             result <- TukeyHSD(model)  # Use Tukey as base, adjust interpretation
-             return(list(
-               method = "Scheffe",
-               result = result,
-               pairwise = result[[1]],
-               note = "Menggunakan pendekatan konservatif Scheffe"
-             ))
-           }
-    )
+    result <- TukeyHSD(model)
+    return(list(
+      method = "Tukey HSD",
+      result = result,
+      pairwise = result[[1]]
+    ))
   }, error = function(e) {
     return(list(error = e$message))
   })
 }
 
-# Function untuk interpretasi Post Hoc
+# Function untuk interpretasi Post Hoc - HANYA TUKEY
 interpret_posthoc <- function(posthoc_result, alpha = 0.05) {
   tryCatch({
-    method <- posthoc_result$method
-    
-    interpretation <- paste0("=== INTERPRETASI UJI POST HOC (", method, ") ===\n\n")
+    interpretation <- "=== INTERPRETASI UJI POST HOC TUKEY HSD ===\n\n"
     interpretation <- paste0(interpretation, "Tingkat signifikansi: α = ", alpha, "\n\n")
     
-    if (method == "Tukey HSD") {
-      pairwise <- posthoc_result$pairwise
+    pairwise <- posthoc_result$pairwise
+    
+    interpretation <- paste0(interpretation, "PERBANDINGAN BERPASANGAN:\n")
+    
+    significant_pairs <- c()
+    non_significant_pairs <- c()
+    
+    for (i in 1:nrow(pairwise)) {
+      comparison <- rownames(pairwise)[i]
+      p_adj <- pairwise[i, "p adj"]
+      diff <- pairwise[i, "diff"]
       
-      interpretation <- paste0(interpretation, "PERBANDINGAN BERPASANGAN:\n")
-      
-      significant_pairs <- c()
-      non_significant_pairs <- c()
-      
-      for (i in 1:nrow(pairwise)) {
-        comparison <- rownames(pairwise)[i]
-        p_adj <- pairwise[i, "p adj"]
-        diff <- pairwise[i, "diff"]
-        
-        if (!is.na(p_adj)) {
-          if (p_adj < alpha) {
-            significant_pairs <- c(significant_pairs, comparison)
-            interpretation <- paste0(interpretation,
-                                     sprintf("• %s: p = %.4f < %.2f → BERBEDA SIGNIFIKAN (selisih = %.3f)\n", 
-                                             comparison, p_adj, alpha, diff))
-          } else {
-            non_significant_pairs <- c(non_significant_pairs, comparison)
-            interpretation <- paste0(interpretation,
-                                     sprintf("• %s: p = %.4f ≥ %.2f → TIDAK BERBEDA SIGNIFIKAN\n", 
-                                             comparison, p_adj, alpha))
-          }
+      if (!is.na(p_adj)) {
+        if (p_adj < alpha) {
+          significant_pairs <- c(significant_pairs, comparison)
+          interpretation <- paste0(interpretation,
+                                   sprintf("• %s: p = %.4f < %.2f → BERBEDA SIGNIFIKAN (selisih = %.3f)\n", 
+                                           comparison, p_adj, alpha, diff))
+        } else {
+          non_significant_pairs <- c(non_significant_pairs, comparison)
+          interpretation <- paste0(interpretation,
+                                   sprintf("• %s: p = %.4f ≥ %.2f → TIDAK BERBEDA SIGNIFIKAN\n", 
+                                           comparison, p_adj, alpha))
         }
       }
-      
-      interpretation <- paste0(interpretation, "\nRINGKASAN:\n")
-      interpretation <- paste0(interpretation, sprintf("- Pasangan yang berbeda signifikan: %d\n", length(significant_pairs)))
-      interpretation <- paste0(interpretation, sprintf("- Pasangan yang tidak berbeda: %d\n", length(non_significant_pairs)))
-      
-    } else {
-      # For other methods (Bonferroni, Holm)
-      pairwise_matrix <- posthoc_result$pairwise
-      
-      interpretation <- paste0(interpretation, "PERBANDINGAN BERPASANGAN:\n")
-      
-      significant_count <- 0
-      total_comparisons <- 0
-      
-      for (i in 1:nrow(pairwise_matrix)) {
-        for (j in 1:ncol(pairwise_matrix)) {
-          if (!is.na(pairwise_matrix[i, j])) {
-            total_comparisons <- total_comparisons + 1
-            comparison <- paste(rownames(pairwise_matrix)[i], "vs", colnames(pairwise_matrix)[j])
-            p_value <- pairwise_matrix[i, j]
-            
-            if (p_value < alpha) {
-              significant_count <- significant_count + 1
-              interpretation <- paste0(interpretation,
-                                       sprintf("• %s: p = %.4f < %.2f → BERBEDA SIGNIFIKAN\n", 
-                                               comparison, p_value, alpha))
-            } else {
-              interpretation <- paste0(interpretation,
-                                       sprintf("• %s: p = %.4f ≥ %.2f → TIDAK BERBEDA SIGNIFIKAN\n", 
-                                               comparison, p_value, alpha))
-            }
-          }
-        }
-      }
-      
-      interpretation <- paste0(interpretation, "\nRINGKASAN:\n")
-      interpretation <- paste0(interpretation, sprintf("- Total perbandingan: %d\n", total_comparisons))
-      interpretation <- paste0(interpretation, sprintf("- Berbeda signifikan: %d\n", significant_count))
-      interpretation <- paste0(interpretation, sprintf("- Tidak berbeda: %d\n", total_comparisons - significant_count))
     }
+    
+    interpretation <- paste0(interpretation, "\nRINGKASAN:\n")
+    interpretation <- paste0(interpretation, sprintf("- Pasangan yang berbeda signifikan: %d\n", length(significant_pairs)))
+    interpretation <- paste0(interpretation, sprintf("- Pasangan yang tidak berbeda: %d\n", length(non_significant_pairs)))
+    
+    # Tambahan penjelasan Tukey HSD
+    interpretation <- paste0(interpretation, "\n")
+    interpretation <- paste0(interpretation, "TENTANG TUKEY HSD:\n")
+    interpretation <- paste0(interpretation, "- Metode yang paling umum digunakan untuk uji post hoc\n")
+    interpretation <- paste0(interpretation, "- Mengontrol family-wise error rate pada tingkat α = 0.05\n")
+    interpretation <- paste0(interpretation, "- Cocok untuk semua perbandingan berpasangan antar grup\n")
+    interpretation <- paste0(interpretation, "- P-value sudah disesuaikan untuk multiple comparisons\n")
     
     return(interpretation)
     
@@ -280,41 +201,36 @@ interpret_posthoc <- function(posthoc_result, alpha = 0.05) {
   })
 }
 
-# Function untuk effect size calculation
-calculate_eta_squared <- function(anova_summary) {
+# Post Hoc Analysis - DISEDERHANAKAN
+observeEvent(input$run_posthoc, {
+  req(anova_results$model)
+  
   tryCatch({
-    anova_table <- anova_summary[[1]]
-    ss_total <- sum(anova_table$`Sum Sq`, na.rm = TRUE)
-    
-    result <- list()
-    for(i in 1:(nrow(anova_table)-1)) {  # Exclude residuals
-      effect_name <- rownames(anova_table)[i]
-      ss_effect <- anova_table$`Sum Sq`[i]
-      eta_squared <- ss_effect / ss_total
-      
-      # Interpretation of effect size
-      effect_interpretation <- if(eta_squared < 0.01) {
-        "Sangat Kecil"
-      } else if(eta_squared < 0.06) {
-        "Kecil"
-      } else if(eta_squared < 0.14) {
-        "Sedang"
-      } else {
-        "Besar"
-      }
-      
-      result[[effect_name]] <- list(
-        eta_squared = eta_squared,
-        interpretation = effect_interpretation
-      )
+    # Check if we're dealing with one-way ANOVA only for now
+    if (input$anova_type == "two_way") {
+      notify_warning("Post Hoc untuk Two-Way ANOVA saat ini hanya mendukung main effects. Interpretasi dengan hati-hati.")
     }
     
-    return(result)
+    # Perform post hoc analysis (hanya Tukey)
+    posthoc_result <- perform_posthoc(anova_results$model)
+    
+    if ("error" %in% names(posthoc_result)) {
+      notify_error(paste("Error dalam Post Hoc:", posthoc_result$error))
+      return()
+    }
+    
+    # Store results
+    posthoc_results$result <- posthoc_result
+    posthoc_results$method <- "tukey"
+    posthoc_results$interpretation <- interpret_posthoc(posthoc_result)
+    
+    notify_success("Post Hoc Tukey HSD berhasil dijalankan!")
+    
   }, error = function(e) {
-    cat("Error in calculate_eta_squared:", e$message, "\n")
-    return(NULL)
+    notify_error(paste("Error dalam analisis Post Hoc:", e$message))
+    cat("Post Hoc Error:", e$message, "\n")
   })
-}
+})
 
 # --- 1. RENDER UI DINAMIS ---
 output$anova_dependent_selector <- renderUI({
@@ -462,77 +378,169 @@ output$anova_interpretation <- renderText({
     p_values <- anova_table$`Pr(>F)`
     f_values <- anova_table$`F value`
     
-    interpretation <- "=== INTERPRETASI HASIL ANOVA ===\n\n"
-    
     if (input$anova_type == "one_way") {
       # ANOVA Satu Arah
       main_p_value <- p_values[1]
       main_f_value <- f_values[1]
       
-      interpretation <- paste0(interpretation,
-                               "Jenis Analisis: ANOVA Satu Arah (One-Way ANOVA)\n",
-                               "Variabel Dependen: ", input$anova_dep_var, "\n",
-                               "Variabel Independen: ", input$anova_indep_var1, "\n",
-                               "Jumlah Grup: ", length(unique(anova_results$data[[input$anova_indep_var1]])), "\n\n")
-      
       if (!is.na(main_p_value) && !is.na(main_f_value)) {
-        interpretation <- paste0(interpretation,
-                                 "HASIL PENGUJIAN:\n",
-                                 "F-statistik: ", round(main_f_value, 4), "\n",
-                                 "P-value: ", round(main_p_value, 6), "\n",
-                                 "Tingkat signifikansi: α = 0.05\n\n")
-        
-        interpretation <- paste0(interpretation, "HIPOTESIS:\n",
-                                 "H₀: μ₁ = μ₂ = μ₃ = ... (semua rata-rata grup sama)\n",
-                                 "H₁: Minimal ada satu μᵢ ≠ μⱼ (ada perbedaan rata-rata)\n\n")
+        # Format interpretasi sesuai contoh yang diminta
+        interpretation <- paste0(
+          "Berdasarkan hasil ANOVA satu arah diperoleh nilai signifikansi sebesar **",
+          sprintf("%.3f", main_p_value), "**. "
+        )
         
         if (main_p_value < 0.05) {
           interpretation <- paste0(interpretation,
-                                   "KESIMPULAN:\n",
-                                   "Dengan p-value = ", round(main_p_value, 6), " < 0.05, maka TOLAK H₀.\n",
-                                   "Terdapat perbedaan rata-rata yang signifikan pada variabel '", input$anova_dep_var, 
-                                   "' antar kategori '", input$anova_indep_var1, "'.\n\n",
-                                   "REKOMENDASI:\n",
-                                   "Lakukan uji post-hoc (seperti Tukey HSD) untuk mengetahui grup mana yang berbeda secara spesifik.")
+                                   "Karena nilai p < 0,05, maka dapat disimpulkan bahwa terdapat **perbedaan yang signifikan** ",
+                                   "antara rata-rata ", input$anova_dep_var, " minimal dua kelompok ", input$anova_indep_var1, ". ",
+                                   "Dengan kata lain, ", input$anova_indep_var1, " berpengaruh secara signifikan terhadap ", 
+                                   input$anova_dep_var, ". Untuk mengetahui kelompok mana yang berbeda, perlu dilakukan ",
+                                   "uji lanjut seperti **post hoc Tukey**."
+          )
         } else {
           interpretation <- paste0(interpretation,
-                                   "KESIMPULAN:\n",
-                                   "Dengan p-value = ", round(main_p_value, 6), " ≥ 0.05, maka GAGAL TOLAK H₀.\n",
-                                   "Tidak terdapat perbedaan rata-rata yang signifikan pada variabel '", input$anova_dep_var, 
-                                   "' antar kategori '", input$anova_indep_var1, "'.")
+                                   "Karena nilai p ≥ 0,05, maka dapat disimpulkan bahwa **tidak terdapat perbedaan yang signifikan** ",
+                                   "antara rata-rata ", input$anova_dep_var, " antar kelompok ", input$anova_indep_var1, ". ",
+                                   "Dengan kata lain, ", input$anova_indep_var1, " tidak berpengaruh secara signifikan terhadap ", 
+                                   input$anova_dep_var, "."
+          )
         }
+        
+        # Tambahan informasi statistik
+        interpretation <- paste0(interpretation, "\n\n",
+                                 "**Detail Hasil:**\n",
+                                 "- F-statistik: ", round(main_f_value, 3), "\n",
+                                 "- Derajat bebas: ", anova_table$Df[1], " dan ", anova_table$Df[2], "\n",
+                                 "- Jumlah grup: ", length(unique(anova_results$data[[input$anova_indep_var1]])), "\n",
+                                 "- Total observasi: ", nrow(anova_results$data)
+        )
+        
+      } else {
+        interpretation <- "Error: Tidak dapat menginterpretasi hasil ANOVA karena nilai tidak valid."
       }
       
     } else if (input$anova_type == "two_way") {
       # ANOVA Dua Arah
-      interpretation <- paste0(interpretation,
-                               "Jenis Analisis: ANOVA Dua Arah (Two-Way ANOVA)\n",
-                               "Variabel Dependen: ", input$anova_dep_var, "\n",
-                               "Faktor 1: ", input$anova_indep_var1, "\n",
-                               "Faktor 2: ", input$anova_indep_var2, "\n",
-                               "Efek Interaksi: ", if(input$anova_interaction) "Ya" else "Tidak", "\n\n")
-      
       row_names <- rownames(anova_table)
       
-      for(i in 1:length(p_values)) {
-        if(!is.na(p_values[i]) && !is.na(f_values[i])) {
-          effect_name <- row_names[i]
+      # Cari indeks untuk main effects dan interaction
+      var1_idx <- which(row_names == input$anova_indep_var1)
+      var2_idx <- which(row_names == input$anova_indep_var2)
+      interaction_idx <- which(grepl(":", row_names) | grepl("\\*", row_names))
+      
+      interpretation <- "Berdasarkan hasil ANOVA dua arah, diperoleh bahwa "
+      
+      effects_description <- c()
+      
+      # Main effect 1
+      if (length(var1_idx) > 0 && !is.na(p_values[var1_idx])) {
+        p_val1 <- p_values[var1_idx]
+        if (p_val1 < 0.05) {
+          effects_description <- c(effects_description, 
+                                   paste0("pengaruh ", input$anova_indep_var1, " signifikan (p = **", sprintf("%.3f", p_val1), "**)"))
+        } else {
+          effects_description <- c(effects_description, 
+                                   paste0("pengaruh ", input$anova_indep_var1, " tidak signifikan (p = **", sprintf("%.3f", p_val1), "**)"))
+        }
+      }
+      
+      # Main effect 2
+      if (length(var2_idx) > 0 && !is.na(p_values[var2_idx])) {
+        p_val2 <- p_values[var2_idx]
+        if (p_val2 < 0.05) {
+          effects_description <- c(effects_description, 
+                                   paste0(input$anova_indep_var2, " juga signifikan (p = **", sprintf("%.3f", p_val2), "**)"))
+        } else {
+          effects_description <- c(effects_description, 
+                                   paste0(input$anova_indep_var2, " tidak signifikan (p = **", sprintf("%.3f", p_val2), "**)"))
+        }
+      }
+      
+      # Interaction effect
+      if (input$anova_interaction && length(interaction_idx) > 0 && !is.na(p_values[interaction_idx])) {
+        p_val_int <- p_values[interaction_idx]
+        if (p_val_int < 0.05) {
+          effects_description <- c(effects_description, 
+                                   paste0("interaksi antara ", input$anova_indep_var1, " dan ", input$anova_indep_var2, 
+                                          " signifikan (p = **", sprintf("%.3f", p_val_int), "**)"))
+        } else {
+          effects_description <- c(effects_description, 
+                                   paste0("sedangkan interaksi antara ", input$anova_indep_var1, " dan ", input$anova_indep_var2, 
+                                          " tidak signifikan (p = **", sprintf("%.3f", p_val_int), "**)"))
+        }
+      }
+      
+      # Gabungkan deskripsi effects
+      if (length(effects_description) > 0) {
+        interpretation <- paste0(interpretation, paste(effects_description, collapse = ", "), ". ")
+      }
+      
+      # Interpretasi makna
+      # Hitung berapa main effects yang signifikan
+      significant_main_effects <- 0
+      if (length(var1_idx) > 0 && !is.na(p_values[var1_idx]) && p_values[var1_idx] < 0.05) {
+        significant_main_effects <- significant_main_effects + 1
+      }
+      if (length(var2_idx) > 0 && !is.na(p_values[var2_idx]) && p_values[var2_idx] < 0.05) {
+        significant_main_effects <- significant_main_effects + 1
+      }
+      
+      # Cek interaksi
+      interaction_significant <- FALSE
+      if (input$anova_interaction && length(interaction_idx) > 0 && !is.na(p_values[interaction_idx])) {
+        interaction_significant <- p_values[interaction_idx] < 0.05
+      }
+      
+      # Interpretasi berdasarkan hasil
+      if (significant_main_effects > 0 && !interaction_significant) {
+        if (significant_main_effects == 2) {
           interpretation <- paste0(interpretation,
-                                   "EFEK: ", effect_name, "\n",
-                                   "F-statistik: ", round(f_values[i], 4), "\n",
-                                   "P-value: ", round(p_values[i], 6), "\n")
-          
-          if(p_values[i] < 0.05) {
-            interpretation <- paste0(interpretation,
-                                     "Hasil: SIGNIFIKAN (p < 0.05)\n",
-                                     "Interpretasi: Terdapat pengaruh yang signifikan.\n\n")
-          } else {
-            interpretation <- paste0(interpretation,
-                                     "Hasil: TIDAK SIGNIFIKAN (p ≥ 0.05)\n",
-                                     "Interpretasi: Tidak terdapat pengaruh yang signifikan.\n\n")
+                                   "Artinya, baik ", input$anova_indep_var1, " maupun ", input$anova_indep_var2, 
+                                   " secara **independen** berpengaruh terhadap ", input$anova_dep_var, 
+                                   ", namun **tidak terdapat interaksi** antara keduanya. ",
+                                   "Dengan demikian, pengaruh ", input$anova_indep_var2, " terhadap ", input$anova_dep_var,
+                                   " tidak tergantung pada ", input$anova_indep_var1, ", dan sebaliknya."
+          )
+        } else if (length(var1_idx) > 0 && !is.na(p_values[var1_idx]) && p_values[var1_idx] < 0.05) {
+          interpretation <- paste0(interpretation,
+                                   "Artinya, hanya ", input$anova_indep_var1, " yang berpengaruh secara signifikan terhadap ", 
+                                   input$anova_dep_var, ", sedangkan ", input$anova_indep_var2, " tidak berpengaruh signifikan."
+          )
+        } else if (length(var2_idx) > 0 && !is.na(p_values[var2_idx]) && p_values[var2_idx] < 0.05) {
+          interpretation <- paste0(interpretation,
+                                   "Artinya, hanya ", input$anova_indep_var2, " yang berpengaruh secara signifikan terhadap ", 
+                                   input$anova_dep_var, ", sedangkan ", input$anova_indep_var1, " tidak berpengaruh signifikan."
+          )
+        }
+      } else if (interaction_significant) {
+        interpretation <- paste0(interpretation,
+                                 "Terdapat **efek interaksi yang signifikan** antara ", input$anova_indep_var1, " dan ", 
+                                 input$anova_indep_var2, ". Hal ini berarti pengaruh salah satu faktor terhadap ", 
+                                 input$anova_dep_var, " bergantung pada level faktor lainnya."
+        )
+      } else if (significant_main_effects == 0 && !interaction_significant) {
+        interpretation <- paste0(interpretation,
+                                 "Tidak terdapat pengaruh yang signifikan dari ", input$anova_indep_var1, " maupun ", 
+                                 input$anova_indep_var2, " terhadap ", input$anova_dep_var, 
+                                 ", dan tidak ada efek interaksi yang signifikan."
+        )
+      }
+      
+      # Tambahan detail statistik
+      interpretation <- paste0(interpretation, "\n\n**Detail Hasil:**")
+      for(i in 1:nrow(anova_table)) {
+        if (!is.na(p_values[i]) && !is.na(f_values[i])) {
+          effect_name <- row_names[i]
+          if (effect_name != "Residuals") {
+            interpretation <- paste0(interpretation, "\n- ", effect_name, 
+                                     ": F = ", round(f_values[i], 3), 
+                                     ", p = ", sprintf("%.3f", p_values[i]))
           }
         }
       }
+      
+      interpretation <- paste0(interpretation, "\n- Total observasi: ", nrow(anova_results$data))
     }
     
     return(interpretation)

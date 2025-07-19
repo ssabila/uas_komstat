@@ -240,49 +240,47 @@ tagList(
     )
   ),
   
-  # Post Hoc Section (Conditional)
+  # Post Hoc Section (Conditional) - HANYA TUKEY
   conditionalPanel(
     condition = "output.show_posthoc == true",
     fluidRow(
       column(12,
              box(
-               title = div(icon("search-plus"), "Uji Post Hoc"),
+               title = div(icon("search-plus"), "Uji Post Hoc Tukey HSD"),
                status = "warning",
                solidHeader = TRUE,
                width = 12,
                
                div(
                  style = "background: #d1ecf1; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #bee5eb;",
-                 h4(icon("info-circle"), "Uji Post Hoc Tersedia", style = "margin-top: 0; color: #0c5460;"),
-                 p("Hasil ANOVA menunjukkan perbedaan signifikan antar grup. Uji post hoc diperlukan untuk mengidentifikasi grup mana yang berbeda.", 
+                 h4(icon("info-circle"), "Uji Post Hoc Tukey HSD", style = "margin-top: 0; color: #0c5460;"),
+                 p("Hasil ANOVA menunjukkan perbedaan signifikan antar grup. Uji post hoc Tukey HSD akan mengidentifikasi grup mana yang berbeda secara spesifik.", 
                    style = "margin-bottom: 0; color: #0c5460;")
                ),
                
-               # Post Hoc Method Selection
+               # Post Hoc Control and Results
                fluidRow(
                  column(4,
                         div(
                           style = "background: #f8f9fa; padding: 15px; border-radius: 5px;",
-                          h5("Pilih Metode Post Hoc:", style = "margin-top: 0;"),
-                          selectInput("posthoc_method", "Metode:",
-                                      choices = list(
-                                        "Tukey HSD" = "tukey",
-                                        "Bonferroni" = "bonferroni",
-                                        "Holm" = "holm",
-                                        "Scheffe" = "scheffe"
-                                      ),
-                                      selected = "tukey"
+                          h5("Uji Post Hoc Tukey HSD", style = "margin-top: 0;"),
+                          div(
+                            style = "background: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
+                            h6(icon("check-circle"), "Metode: Tukey HSD", style = "margin: 0; color: #495057;"),
+                            p("Metode paling umum dan andal untuk perbandingan multiple", 
+                              style = "margin: 5px 0 0 0; font-size: 0.9em; color: #6c757d;")
                           ),
                           actionButton("run_posthoc", 
-                                       label = div(icon("play"), "Jalankan Post Hoc"),
-                                       class = "btn-primary btn-block")
+                                       label = div(icon("play"), "Jalankan Tukey HSD"),
+                                       class = "btn-primary btn-block",
+                                       style = "font-weight: bold;")
                         )
                  ),
                  
                  column(8,
                         tabsetPanel(
                           tabPanel(
-                            title = "Hasil",
+                            title = div(icon("table"), "Hasil"),
                             br(),
                             div(
                               style = "background: #f8f9fa; padding: 15px; border-radius: 5px;",
@@ -290,7 +288,7 @@ tagList(
                             )
                           ),
                           tabPanel(
-                            title = "Interpretasi",
+                            title = div(icon("lightbulb"), "Interpretasi"),
                             br(),
                             div(
                               style = "background: #d4edda; padding: 15px; border-radius: 5px;",
@@ -298,7 +296,7 @@ tagList(
                             )
                           ),
                           tabPanel(
-                            title = "Visualisasi",
+                            title = div(icon("chart-bar"), "Visualisasi"),
                             br(),
                             plotlyOutput("posthoc_plot", height = "400px")
                           )
@@ -306,21 +304,21 @@ tagList(
                  )
                ),
                
-               # Method Guide
+               # Tukey HSD Information
                div(
                  style = "background: #fff3cd; padding: 15px; border-radius: 5px; margin-top: 15px;",
-                 h5(icon("question-circle"), "Panduan Metode Post Hoc", style = "margin-top: 0;"),
+                 h5(icon("info-circle"), "Tentang Tukey HSD", style = "margin-top: 0;"),
                  fluidRow(
                    column(6,
                           tags$ul(
-                            tags$li(strong("Tukey HSD:"), " Paling umum, kontrol family-wise error rate"),
-                            tags$li(strong("Bonferroni:"), " Konservatif, cocok untuk sedikit perbandingan")
+                            tags$li(strong("Family-wise error control:"), " Mengontrol tingkat kesalahan tipe I secara keseluruhan"),
+                            tags$li(strong("Perbandingan all-pairwise:"), " Membandingkan semua kemungkinan pasangan grup")
                           )
                    ),
                    column(6,
                           tags$ul(
-                            tags$li(strong("Holm:"), " Lebih powerful dari Bonferroni"),
-                            tags$li(strong("Scheffe:"), " Paling konservatif, untuk banyak perbandingan")
+                            tags$li(strong("Adjustment otomatis:"), " P-value sudah disesuaikan untuk multiple comparisons"),
+                            tags$li(strong("Interpretasi mudah:"), " p < 0.05 = berbeda signifikan")
                           )
                    )
                  )
