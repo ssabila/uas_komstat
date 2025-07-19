@@ -9,7 +9,6 @@ library(ggplot2)
 library(readr)
 library(htmltools)
 library(shinyjs)
-use(shinyjs)
 
 # PERBAIKAN: Cek dan install package yang diperlukan
 required_packages <- c("shiny", "shinydashboard", "DT", "plotly", "leaflet", 
