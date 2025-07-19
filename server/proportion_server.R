@@ -28,16 +28,48 @@ observeEvent(input$run_prop_test, {
     if (input$prop_test_type == "one_prop") {
       req(input$prop_p)
       success_count <- sum(data[[input$prop_var]] == input$prop_success, na.rm = TRUE)
-      total_count <- sum(!is.na(data[[input$prop_var]])) # Hanya hitung non-NA
+      total_count <- sum(!is.na(data[[input$prop_var]]))
+      
+      # Pastikan ada data yang cukup
+      if (total_count == 0) {
+        stop("Tidak ada data yang valid untuk dianalisis")
+      }
+      
       prop.test(x = success_count, n = total_count, p = input$prop_p)
+      
     } else if (input$prop_test_type == "two_prop") {
       req(input$prop_group_var)
-      contingency_table <- table(data[[input$prop_var]], data[[input$prop_group_var]])
-      if (input$prop_success %in% rownames(contingency_table)) {
-        prop.test(contingency_table[input$prop_success, ])
-      } else {
-        stop("Kategori yang dipilih tidak valid untuk uji dua proporsi.")
+      
+      # Hapus missing values
+      clean_data <- data[!is.na(data[[input$prop_var]]) & !is.na(data[[input$prop_group_var]]), ]
+      
+      if (nrow(clean_data) == 0) {
+        stop("Tidak ada data yang valid setelah menghapus missing values")
       }
+      
+      # Buat tabel kontingensi
+      contingency_table <- table(clean_data[[input$prop_var]], clean_data[[input$prop_group_var]])
+      
+      # Periksa apakah kategori yang dipilih ada dalam tabel
+      if (!input$prop_success %in% rownames(contingency_table)) {
+        stop(paste("Kategori '", input$prop_success, "' tidak ditemukan dalam data"))
+      }
+      
+      # Periksa apakah ada minimal 2 grup
+      if (ncol(contingency_table) < 2) {
+        stop("Variabel grup harus memiliki minimal 2 kategori")
+      }
+      
+      # Ambil baris yang sesuai dengan kategori sukses
+      success_row <- contingency_table[input$prop_success, ]
+      
+      # Hitung total untuk setiap grup
+      total_counts <- colSums(contingency_table)
+      
+      # PERBAIKAN UTAMA: Berikan argumen x dan n secara eksplisit
+      prop.test(x = as.vector(success_row), 
+                n = as.vector(total_counts))
+      
     }
   }, error = function(e) {
     showNotification(paste("Error:", e$message), type = "error")
@@ -46,6 +78,7 @@ observeEvent(input$run_prop_test, {
   
   analysis_results$proportion <- result
 })
+
 
 # --- 3. TAMPILKAN HASIL DENGAN INTERPRETASI PROFESIONAL ---
 output$prop_test_result_summary <- renderPrint({

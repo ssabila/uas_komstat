@@ -67,6 +67,7 @@ server <- function(input, output, session) {
 
   source_files <- list(
     "server/beranda_server.R",
+    "server/user_guide_server.R",
     "server/data_management_server.R", 
     "server/descriptive_server.R",
     "server/visualization_server.R",
