@@ -1,4 +1,146 @@
 # server/regression_server.R - VERSI DIPERBAIKI DENGAN INTERPRETASI LENGKAP
+# Fungsi helper untuk generate interpretasi (tambahkan di awal regression_server.R)
+generate_regression_interpretation <- function(model, reg_dep_var, reg_indep_vars) {
+  if (is.null(model)) {
+    return("Model regresi belum dibuat.")
+  }
+  
+  summary_model <- summary(model)
+  coefficients_df <- as.data.frame(summary_model$coefficients)
+  
+  # Ambil informasi dasar model
+  formula_str <- paste(reg_dep_var, "~", paste(reg_indep_vars, collapse = " + "))
+  r_squared <- summary_model$r.squared
+  adj_r_squared <- summary_model$adj.r.squared
+  f_statistic <- summary_model$fstatistic[1]
+  f_p_value <- pf(summary_model$fstatistic[1], summary_model$fstatistic[2], 
+                  summary_model$fstatistic[3], lower.tail = FALSE)
+  
+  # --- BAGIAN 1: INTERPRETASI SIGNIFIKANSI VARIABEL ---
+  signif_interpretation <- ""
+  significant_vars <- c()
+  
+  # Cek variabel yang signifikan (p < 0.05)
+  for (var_name in reg_indep_vars) {
+    if (var_name %in% rownames(coefficients_df)) {
+      p_value <- coefficients_df[var_name, "Pr(>|t|)"]
+      if (p_value < 0.05) {
+        significant_vars <- c(significant_vars, var_name)
+      }
+    }
+  }
+  
+  if (length(significant_vars) > 0) {
+    # Buat daftar p-values untuk variabel signifikan
+    p_values_text <- sapply(significant_vars, function(var) {
+      p_val <- coefficients_df[var, "Pr(>|t|)"]
+      paste("p-value untuk", var, "sebesar", sprintf("%.3f", p_val))
+    })
+    
+    signif_interpretation <- paste(
+      "Dari hasil tersebut, diperoleh", paste(p_values_text, collapse = " dan "), ".",
+      if (length(significant_vars) == 1) {
+        paste("Karena p-value lebih kecil dari 0,05, maka", significant_vars[1], 
+              "berpengaruh signifikan terhadap", reg_dep_var, "pada tingkat signifikansi 5%.")
+      } else {
+        paste("Karena semua p-value lebih kecil dari 0,05, maka", 
+              paste(significant_vars[-length(significant_vars)], collapse = ", "), 
+              "maupun", significant_vars[length(significant_vars)], 
+              "berpengaruh signifikan terhadap", reg_dep_var, "pada tingkat signifikansi 5%.")
+      }
+    )
+  }
+  
+  # --- BAGIAN 2: INTERPRETASI KOEFISIEN ---
+  coeff_interpretation <- ""
+  
+  if (length(significant_vars) > 0) {
+    coeff_texts <- sapply(significant_vars, function(var) {
+      coeff_value <- coefficients_df[var, "Estimate"]
+      
+      # Tentukan satuan berdasarkan nama variabel
+      if (grepl("(?i)(populasi|population)", var)) {
+        # Variabel populasi (satuan: jiwa)
+        paste("Koefisien", var, "sebesar", sprintf("%.6f", coeff_value), 
+              "menunjukkan bahwa setiap tambahan satu jiwa", var, 
+              "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
+              reg_dep_var, "sebesar", sprintf("%.6f", abs(coeff_value)), 
+              "persen, dengan asumsi variabel lain tetap konstan.")
+      } else if (grepl("(?i)(family.*size|familysize|ukuran.*keluarga|size.*family)", var)) {
+        # Variabel family size (satuan: orang)
+        paste("Koefisien", var, "sebesar", sprintf("%.3f", coeff_value), 
+              "menunjukkan bahwa setiap tambahan satu orang dalam", var, 
+              "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
+              reg_dep_var, "sebesar", sprintf("%.3f", abs(coeff_value)), 
+              "persen, dengan asumsi variabel lain tetap konstan.")
+      } else {
+        # Variabel dengan satuan persen (default)
+        paste("Koefisien", var, "sebesar", sprintf("%.3f", coeff_value), 
+              "mengindikasikan bahwa setiap kenaikan satu persen", var, 
+              "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
+              reg_dep_var, "sebesar", sprintf("%.3f", abs(coeff_value)), 
+              "persen, dengan asumsi variabel lain tetap konstan.")
+      }
+    })
+    
+    coeff_interpretation <- paste(coeff_texts, collapse = " Sementara itu, ")
+  }
+  
+  # --- BAGIAN 3: INTERPRETASI R-SQUARED ---
+  r_squared_interpretation <- paste(
+    "Nilai R² sebesar", sprintf("%.3f", r_squared), 
+    "menunjukkan bahwa", sprintf("%.1f", r_squared * 100), 
+    "% variasi", reg_dep_var, 
+    "dapat dijelaskan oleh", paste(reg_indep_vars, collapse = ", "), 
+    ", sementara sisanya", sprintf("%.1f", (1 - r_squared) * 100), 
+    "% dijelaskan oleh faktor lain yang tidak dimasukkan dalam model."
+  )
+  
+  # --- BAGIAN 4: KESIMPULAN ---
+  conclusion <- paste(
+    "Oleh karena itu, terdapat cukup bukti bahwa", 
+    if (length(significant_vars) == 1) {
+      paste("variabel", significant_vars[1], "memiliki")
+    } else if (length(significant_vars) > 1) {
+      paste("variabel-variabel independen tersebut secara bersama-sama memiliki")
+    } else {
+      "model secara keseluruhan memiliki"
+    },
+    "pengaruh yang signifikan terhadap", reg_dep_var, "."
+  )
+  
+  # --- GABUNGKAN SEMUA INTERPRETASI ---
+  full_interpretation <- paste(
+    "=== INFORMASI MODEL ===",
+    paste("Formula Model:", formula_str),
+    sprintf("R-squared: %.4f (%.1f%% variabilitas dijelaskan)", r_squared, r_squared * 100),
+    sprintf("Adjusted R-squared: %.4f", adj_r_squared),
+    sprintf("F-statistic: %.4f, p-value: %.6f", f_statistic, f_p_value),
+    "",
+    "=== INTERPRETASI HASIL ===",
+    "",
+    if (signif_interpretation != "") signif_interpretation else "",
+    "",
+    if (coeff_interpretation != "") coeff_interpretation else "",
+    "",
+    r_squared_interpretation,
+    "",
+    conclusion,
+    "",
+    "=== PENILAIAN KUALITAS MODEL ===",
+    if (r_squared > 0.7) {
+      "Model memiliki daya prediksi yang baik (R² > 70%)"
+    } else if (r_squared > 0.5) {
+      "Model memiliki daya prediksi sedang (R² 50-70%)"
+    } else {
+      "Model memiliki daya prediksi rendah (R² < 50%)"
+    },
+    sep = "\n"
+  )
+  
+  return(full_interpretation)
+}
+
 
 # --- 1. RENDER UI DINAMIS ---
 output$reg_dependent_selector <- renderUI({
@@ -296,43 +438,146 @@ output$regression_interpretation <- renderText({
   
   if (!is.null(model)) {
     summary_model <- summary(model)
+    coefficients_df <- as.data.frame(summary_model$coefficients)
     
-    interpretation <- paste(
-      "=== INTERPRETASI MODEL REGRESI ===\n\n",
-      "FORMULA MODEL:\n",
-      paste(input$reg_dep_var, "~", paste(input$reg_indep_vars, collapse = " + ")), "\n\n",
+    # Ambil informasi dasar model
+    formula_str <- paste(input$reg_dep_var, "~", paste(input$reg_indep_vars, collapse = " + "))
+    r_squared <- summary_model$r.squared
+    adj_r_squared <- summary_model$adj.r.squared
+    f_statistic <- summary_model$fstatistic[1]
+    f_p_value <- pf(summary_model$fstatistic[1], summary_model$fstatistic[2], 
+                    summary_model$fstatistic[3], lower.tail = FALSE)
+    
+    # --- BAGIAN 1: INTERPRETASI SIGNIFIKANSI VARIABEL ---
+    signif_interpretation <- ""
+    significant_vars <- c()
+    
+    # Cek variabel yang signifikan (p < 0.05)
+    for (var_name in input$reg_indep_vars) {
+      if (var_name %in% rownames(coefficients_df)) {
+        p_value <- coefficients_df[var_name, "Pr(>|t|)"]
+        if (p_value < 0.05) {
+          significant_vars <- c(significant_vars, var_name)
+        }
+      }
+    }
+    
+    if (length(significant_vars) > 0) {
+      # Buat daftar p-values untuk variabel signifikan
+      p_values_text <- sapply(significant_vars, function(var) {
+        p_val <- coefficients_df[var, "Pr(>|t|)"]
+        paste("p-value untuk", var, "sebesar", sprintf("%.3f", p_val))
+      })
       
-      "KUALITAS MODEL:\n",
-      sprintf("- R-squared: %.4f (%.1f%% variabilitas dijelaskan)", 
-              summary_model$r.squared, summary_model$r.squared * 100), "\n",
-      sprintf("- Adjusted R-squared: %.4f", summary_model$adj.r.squared), "\n",
-      sprintf("- F-statistic: %.4f, p-value: %.6f", 
-              summary_model$fstatistic[1], 
-              pf(summary_model$fstatistic[1], summary_model$fstatistic[2], 
-                 summary_model$fstatistic[3], lower.tail = FALSE)), "\n\n",
+      signif_interpretation <- paste(
+        "Dari hasil tersebut, diperoleh", paste(p_values_text, collapse = " dan "), ".",
+        if (length(significant_vars) == 1) {
+          paste("Karena p-value lebih kecil dari 0,05, maka", significant_vars[1], 
+                "berpengaruh signifikan terhadap", input$reg_dep_var, "pada tingkat signifikansi 5%.")
+        } else {
+          paste("Karena semua p-value lebih kecil dari 0,05, maka", 
+                paste(significant_vars[-length(significant_vars)], collapse = ", "), 
+                "maupun", significant_vars[length(significant_vars)], 
+                "berpengaruh signifikan terhadap", input$reg_dep_var, "pada tingkat signifikansi 5%.")
+        }
+      )
+    }
+    
+    # --- BAGIAN 2: INTERPRETASI KOEFISIEN ---
+    coeff_interpretation <- ""
+    
+    if (length(significant_vars) > 0) {
+      coeff_texts <- sapply(significant_vars, function(var) {
+        coeff_value <- coefficients_df[var, "Estimate"]
+        
+        # Tentukan satuan berdasarkan nama variabel
+        if (grepl("(?i)(populasi|population)", var)) {
+          # Variabel populasi (satuan: jiwa)
+          paste("Koefisien", var, "sebesar", sprintf("%.6f", coeff_value), 
+                "menunjukkan bahwa setiap tambahan satu jiwa", var, 
+                "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
+                input$reg_dep_var, "sebesar", sprintf("%.6f", abs(coeff_value)), 
+                "persen, dengan asumsi variabel lain tetap konstan.")
+        } else if (grepl("(?i)(family.*size|familysize|ukuran.*keluarga|size.*family)", var)) {
+          # Variabel family size (satuan: orang)
+          paste("Koefisien", var, "sebesar", sprintf("%.3f", coeff_value), 
+                "menunjukkan bahwa setiap tambahan satu orang dalam", var, 
+                "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
+                input$reg_dep_var, "sebesar", sprintf("%.3f", abs(coeff_value)), 
+                "persen, dengan asumsi variabel lain tetap konstan.")
+        } else {
+          # Variabel dengan satuan persen (default)
+          paste("Koefisien", var, "sebesar", sprintf("%.3f", coeff_value), 
+                "mengindikasikan bahwa setiap kenaikan satu persen", var, 
+                "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
+                input$reg_dep_var, "sebesar", sprintf("%.3f", abs(coeff_value)), 
+                "persen, dengan asumsi variabel lain tetap konstan.")
+        }
+      })
       
-      "INTERPRETASI KOEFISIEN:\n",
-      "- Estimate: Perubahan Y untuk setiap kenaikan 1 unit X (ceteris paribus)\n",
-      "- Pr(>|t|): Jika < 0.05, variabel signifikan mempengaruhi Y\n",
-      "- Signifikansi: *** p<0.001, ** p<0.01, * p<0.05\n\n",
+      coeff_interpretation <- paste(coeff_texts, collapse = " Sementara itu, ")
+    }
+    
+    # --- BAGIAN 3: INTERPRETASI R-SQUARED ---
+    r_squared_interpretation <- paste(
+      "Nilai R² sebesar", sprintf("%.3f", r_squared), 
+      "menunjukkan bahwa", sprintf("%.1f", r_squared * 100), 
+      "% variasi", input$reg_dep_var, 
+      "dapat dijelaskan oleh", paste(input$reg_indep_vars, collapse = ", "), 
+      ", sementara sisanya", sprintf("%.1f", (1 - r_squared) * 100), 
+      "% dijelaskan oleh faktor lain yang tidak dimasukkan dalam model."
+    )
+    
+    # --- BAGIAN 4: KESIMPULAN ---
+    conclusion <- paste(
+      "Oleh karena itu, terdapat cukup bukti bahwa", 
+      if (length(significant_vars) == 1) {
+        paste("variabel", significant_vars[1], "memiliki")
+      } else if (length(significant_vars) > 1) {
+        paste("variabel-variabel independen tersebut secara bersama-sama memiliki")
+      } else {
+        "model secara keseluruhan memiliki"
+      },
+      "pengaruh yang signifikan terhadap", input$reg_dep_var, "."
+    )
+    
+    # --- BAGIAN 5: INFORMASI TAMBAHAN MODEL ---
+    model_info <- paste(
+      "=== INFORMASI MODEL ===\n",
+      "Formula Model:", formula_str, "\n",
+      sprintf("R-squared: %.4f (%.1f%% variabilitas dijelaskan)", r_squared, r_squared * 100), "\n",
+      sprintf("Adjusted R-squared: %.4f", adj_r_squared), "\n",
+      sprintf("F-statistic: %.4f, p-value: %.6f", f_statistic, f_p_value), "\n\n"
+    )
+    
+    # --- GABUNGKAN SEMUA INTERPRETASI ---
+    full_interpretation <- paste(
+      model_info,
+      "=== INTERPRETASI HASIL ===\n\n",
+      if (signif_interpretation != "") paste(signif_interpretation, "\n\n") else "",
+      if (coeff_interpretation != "") paste(coeff_interpretation, "\n\n") else "",
+      r_squared_interpretation, "\n\n",
+      conclusion, "\n\n",
       
-      "RINGKASAN UJI ASUMSI:\n",
+      "=== RINGKASAN UJI ASUMSI ===\n",
       "Periksa tab 'Uji Asumsi' untuk interpretasi lengkap mengenai:\n",
       "1. NORMALITAS RESIDUAL: Shapiro-Wilk test dan Q-Q plot\n",
       "2. HOMOSKEDASTISITAS: Breusch-Pagan test dan residual plot\n",
       "3. MULTIKOLINEARITAS: VIF untuk setiap variabel independen\n",
       "4. LINIERITAS: Evaluasi visual melalui scatter plot\n\n",
       
-      if (summary_model$r.squared > 0.7) {
+      # Penilaian kualitas model
+      if (r_squared > 0.7) {
         "✓ Model memiliki daya prediksi yang baik (R² > 70%)"
-      } else if (summary_model$r.squared > 0.5) {
+      } else if (r_squared > 0.5) {
         "△ Model memiliki daya prediksi sedang (R² 50-70%)"
       } else {
         "⚠ Model memiliki daya prediksi rendah (R² < 50%)"
       }
     )
     
-    return(interpretation)
+    return(full_interpretation)
+    
   } else {
     return("Model regresi belum dibuat.\n\nLangkah-langkah:\n1. Pilih variabel dependen (Y)\n2. Pilih variabel independen (X)\n3. Klik 'Bangun Model'\n4. Interpretasi hasil dan uji asumsi")
   }
@@ -341,76 +586,150 @@ output$regression_interpretation <- renderText({
 # --- 6. LOGIKA UNDUH - DIPERBAIKI ---
 output$download_regression_summary <- downloadHandler(
   filename = function() {
-    paste("ringkasan-regresi-", Sys.Date(), ".", input$regression_format, sep = "")
+    paste("laporan-regresi-lengkap-", Sys.Date(), ".", input$regression_format, sep = "")
   },
   content = function(file) {
     model <- regression_model()
     
     if (!is.null(model)) {
-      # Gabungkan semua hasil analisis
+      # --- BAGIAN 1: SUMMARY STATISTIK MODEL ---
       summary_text <- capture.output(summary(model))
       
-      # Tambahkan interpretasi asumsi jika tersedia
-      assumptions_text <- ""
+      # --- BAGIAN 2: INTERPRETASI LENGKAP (SAMA DENGAN DASHBOARD) ---
+      interpretation_text <- generate_regression_interpretation(
+        model, 
+        input$reg_dep_var, 
+        input$reg_indep_vars
+      )
+      
+      # --- BAGIAN 3: UJI ASUMSI LENGKAP ---
+      assumptions_text <- "\n\n=== UJI ASUMSI REGRESI ==="
       
       tryCatch({
-        # Uji normalitas
+        # 1. Uji normalitas residual
         residuals_data <- residuals(model)
         if (length(residuals_data) <= 5000) {
           shapiro_test <- shapiro.test(residuals_data)
           assumptions_text <- paste(assumptions_text, 
-                                    "\n\n=== UJI ASUMSI ===\n",
-                                    "1. Normalitas Residual (Shapiro-Wilk):\n",
-                                    sprintf("   W = %.6f, p-value = %.6f", shapiro_test$statistic, shapiro_test$p.value),
-                                    if (shapiro_test$p.value < 0.05) "\n   Kesimpulan: Residual TIDAK normal" else "\n   Kesimpulan: Residual normal",
-                                    sep = "")
+                                    "\n\n1. UJI NORMALITAS RESIDUAL (SHAPIRO-WILK)",
+                                    "Hipotesis:",
+                                    "H₀: Residual berdistribusi normal",
+                                    "H₁: Residual tidak berdistribusi normal",
+                                    "Tingkat signifikansi (α): 0.05",
+                                    "",
+                                    "Hasil Pengujian:",
+                                    sprintf("Statistik W: %.6f", shapiro_test$statistic),
+                                    sprintf("P-value: %.6f", shapiro_test$p.value),
+                                    "",
+                                    "Interpretasi:",
+                                    if (shapiro_test$p.value < 0.05) {
+                                      sprintf("Berdasarkan uji Shapiro-Wilk yang telah dilakukan, diketahui bahwa residual model regresi TIDAK berdistribusi normal karena nilai p-value (%.6f) < α (0.05), sehingga keputusan yang diambil adalah TOLAK H₀.\n\nKesimpulan: Asumsi normalitas residual TIDAK terpenuhi.", shapiro_test$p.value)
+                                    } else {
+                                      sprintf("Berdasarkan uji Shapiro-Wilk yang telah dilakukan, diketahui bahwa residual model regresi berdistribusi normal karena nilai p-value (%.6f) ≥ α (0.05), sehingga keputusan yang diambil adalah TERIMA H₀.\n\nKesimpulan: Asumsi normalitas residual TERPENUHI.", shapiro_test$p.value)
+                                    },
+                                    sep = "\n")
         }
         
-        # Uji homoskedastisitas
+        # 2. Uji homoskedastisitas
         if (requireNamespace("lmtest", quietly = TRUE)) {
           bp_test <- lmtest::bptest(model)
           assumptions_text <- paste(assumptions_text,
-                                    "\n\n2. Homoskedastisitas (Breusch-Pagan):\n",
-                                    sprintf("   BP = %.6f, p-value = %.6f", bp_test$statistic, bp_test$p.value),
-                                    if (bp_test$p.value < 0.05) "\n   Kesimpulan: Terjadi heteroskedastisitas" else "\n   Kesimpulan: Varians homogen",
-                                    sep = "")
+                                    "\n\n2. UJI HOMOSKEDASTISITAS (BREUSCH-PAGAN)",
+                                    "Hipotesis:",
+                                    "H₀: Varians residual konstan (homoskedastisitas)",
+                                    "H₁: Varians residual tidak konstan (heteroskedastisitas)",
+                                    "Tingkat signifikansi (α): 0.05",
+                                    "",
+                                    "Hasil Pengujian:",
+                                    sprintf("Statistik BP: %.6f", bp_test$statistic),
+                                    sprintf("P-value: %.6f", bp_test$p.value),
+                                    "",
+                                    "Interpretasi:",
+                                    if (bp_test$p.value < 0.05) {
+                                      sprintf("Berdasarkan uji Breusch-Pagan yang telah dilakukan, diketahui bahwa model regresi mengalami masalah heteroskedastisitas karena nilai p-value (%.6f) < α (0.05), sehingga keputusan yang diambil adalah TOLAK H₀.\n\nKesimpulan: Asumsi homoskedastisitas TIDAK terpenuhi.", bp_test$p.value)
+                                    } else {
+                                      sprintf("Berdasarkan uji Breusch-Pagan yang telah dilakukan, diketahui bahwa model regresi TIDAK mengalami masalah heteroskedastisitas karena nilai p-value (%.6f) ≥ α (0.05), sehingga keputusan yang diambil adalah TERIMA H₀.\n\nKesimpulan: Asumsi homoskedastisitas TERPENUHI.", bp_test$p.value)
+                                    },
+                                    sep = "\n")
         }
         
-        # VIF
+        # 3. Uji multikolinearitas (VIF)
         if (length(input$reg_indep_vars) > 1 && requireNamespace("car", quietly = TRUE)) {
           vif_values <- car::vif(model)
+          vif_text <- paste(sapply(names(vif_values), function(x) 
+            sprintf("%s: %.4f", x, vif_values[x])), collapse = "\n")
+          
           assumptions_text <- paste(assumptions_text,
-                                    "\n\n3. Multikolinearitas (VIF):\n",
-                                    paste(sapply(names(vif_values), function(x) 
-                                      sprintf("   %s: %.4f", x, vif_values[x])), collapse = "\n"),
-                                    if (max(vif_values) > 10) "\n   Kesimpulan: Terdapat multikolinearitas serius" else 
-                                      if (max(vif_values) > 5) "\n   Kesimpulan: Multikolinearitas sedang" else "\n   Kesimpulan: Tidak ada masalah multikolinearitas",
-                                    sep = "")
+                                    "\n\n3. UJI MULTIKOLINEARITAS (VIF)",
+                                    "Variance Inflation Factor (VIF) untuk setiap variabel:",
+                                    vif_text,
+                                    "",
+                                    "Interpretasi:",
+                                    if (max(vif_values) > 10) {
+                                      "Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi mengalami masalah multikolinearitas SERIUS karena terdapat variabel dengan VIF > 10.\n\nKesimpulan: Asumsi tidak adanya multikolinearitas TIDAK terpenuhi."
+                                    } else if (max(vif_values) > 5) {
+                                      "Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi mengalami masalah multikolinearitas SEDANG karena terdapat variabel dengan VIF > 5.\n\nKesimpulan: Asumsi tidak adanya multikolinearitas TIDAK terpenuhi sepenuhnya."
+                                    } else {
+                                      "Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi TIDAK mengalami masalah multikolinearitas karena semua variabel memiliki VIF < 5.\n\nKesimpulan: Asumsi tidak adanya multikolinearitas TERPENUHI."
+                                    },
+                                    sep = "\n")
+        } else if (length(input$reg_indep_vars) == 1) {
+          assumptions_text <- paste(assumptions_text,
+                                    "\n\n3. UJI MULTIKOLINEARITAS (VIF)",
+                                    "Model hanya memiliki 1 variabel independen, sehingga tidak ada masalah multikolinearitas.",
+                                    "Kesimpulan: Asumsi tidak adanya multikolinearitas TERPENUHI.",
+                                    sep = "\n")
         }
+        
       }, error = function(e) {
         assumptions_text <- paste(assumptions_text, "\n\nError dalam uji asumsi:", e$message)
       })
       
-      full_text <- paste(paste(summary_text, collapse = "\n"), assumptions_text, sep = "")
-      
-      rmarkdown::render(
-        input = "text_report.Rmd",
-        output_file = file,
-        output_format = if(input$regression_format == "pdf") "pdf_document" else "word_document",
-        params = list(
-          report_title = "Ringkasan Model Regresi dengan Uji Asumsi",
-          text_output = full_text
-        ),
-        envir = new.env(parent = globalenv())
+      # --- GABUNGKAN SEMUA KONTEN ---
+      full_content <- paste(
+        "LAPORAN ANALISIS REGRESI LINEAR BERGANDA",
+        paste("Tanggal:", Sys.Date()),
+        "",
+        "=== SUMMARY STATISTIK MODEL ===",
+        paste(summary_text, collapse = "\n"),
+        "",
+        interpretation_text,
+        "",
+        assumptions_text,
+        "",
+        "=== REKOMENDASI ===",
+        "1. Periksa plot residual untuk validasi visual asumsi",
+        "2. Pertimbangkan transformasi variabel jika asumsi dilanggar",
+        "3. Gunakan robust standard errors jika terjadi heteroskedastisitas",
+        "4. Evaluasi outlier dan data berpengaruh menggunakan Cook's distance",
+        sep = "\n"
       )
+      
+      # --- RENDER KE FILE ---
+      tryCatch({
+        rmarkdown::render(
+          input = "text_report.Rmd",
+          output_file = file,
+          output_format = if(input$regression_format == "pdf") "pdf_document" else "word_document",
+          params = list(
+            report_title = "Laporan Analisis Regresi Linear Berganda",
+            text_output = full_content
+          ),
+          envir = new.env(parent = globalenv())
+        )
+      }, error = function(e) {
+        # Fallback: buat file teks sederhana
+        writeLines(full_content, file)
+      })
+      
     } else {
-      # Buat file dengan pesan error
+      # Jika model belum dibuat
       rmarkdown::render(
         input = "text_report.Rmd",
         output_file = file,
         output_format = if(input$regression_format == "pdf") "pdf_document" else "word_document",
         params = list(
-          report_title = "Ringkasan Model Regresi",
+          report_title = "Laporan Regresi",
           text_output = "Model regresi belum dibuat. Silakan buat model terlebih dahulu."
         ),
         envir = new.env(parent = globalenv())

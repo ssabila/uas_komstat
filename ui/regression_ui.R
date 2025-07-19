@@ -185,7 +185,15 @@ tagList(
                # Area interpretasi
                div(
                  style = "background: #ffffff; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; margin-top: 15px;",
-                 verbatimTextOutput("regression_interpretation")
+                 verbatimTextOutput("regression_interpretation", 
+                                    placeholder = FALSE) %>% 
+                   tagAppendAttributes(style = "
+                    white-space: pre-wrap !important; 
+                    word-wrap: break-word !important; 
+                    overflow-wrap: break-word !important;
+                    max-width: 100% !important;
+                    overflow-x: auto !important;
+                  ")
                ),
                
                # Panduan tambahan
