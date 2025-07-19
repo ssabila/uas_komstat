@@ -222,24 +222,6 @@ output$prop_test_interpretation <- renderText({
     }
   }
   
-  # Tambahkan implikasi praktis
-  interpretation <- paste0(interpretation, "\n\n=== Ringkasan ===\n")
-  if (p_value < 0.05) {
-    interpretation <- paste0(interpretation,
-                             "1. Perbedaan proporsi yang ditemukan signifikan secara statistik\n",
-                             "2. Evaluasi apakah perbedaan ini juga bermakna secara praktis\n",
-                             "3. Pertimbangkan faktor-faktor yang mungkin menyebabkan perbedaan\n",
-                             "4. Gunakan temuan ini untuk pengambilan keputusan atau intervensi"
-    )
-  } else {
-    interpretation <- paste0(interpretation,
-                             "1. Tidak ada perbedaan proporsi yang signifikan secara statistik\n",
-                             "2. Periksa apakah ukuran sampel sudah memadai untuk mendeteksi perbedaan\n",
-                             "3. Evaluasi apakah kategori yang dipilih sudah tepat\n",
-                             "4. Pertimbangkan analisis lanjutan dengan variabel kontrol"
-    )
-  }
-  
   return(interpretation)
 })
 

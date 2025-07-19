@@ -135,7 +135,7 @@ notify_warning <- function(message, duration = 7) {
   safe_notification(message, "warning", duration)
 }
 
-# Function untuk Post Hoc Analysis - HANYA TUKEY
+# Function untuk Post Hoc Analysis
 perform_posthoc <- function(model) {
   tryCatch({
     result <- TukeyHSD(model)
@@ -186,13 +186,6 @@ interpret_posthoc <- function(posthoc_result, alpha = 0.05) {
     interpretation <- paste0(interpretation, sprintf("- Pasangan yang berbeda signifikan: %d\n", length(significant_pairs)))
     interpretation <- paste0(interpretation, sprintf("- Pasangan yang tidak berbeda: %d\n", length(non_significant_pairs)))
     
-    # Tambahan penjelasan Tukey HSD
-    interpretation <- paste0(interpretation, "\n")
-    interpretation <- paste0(interpretation, "TENTANG TUKEY HSD:\n")
-    interpretation <- paste0(interpretation, "- Metode yang paling umum digunakan untuk uji post hoc\n")
-    interpretation <- paste0(interpretation, "- Mengontrol family-wise error rate pada tingkat α = 0.05\n")
-    interpretation <- paste0(interpretation, "- Cocok untuk semua perbandingan berpasangan antar grup\n")
-    interpretation <- paste0(interpretation, "- P-value sudah disesuaikan untuk multiple comparisons\n")
     
     return(interpretation)
     
@@ -201,7 +194,7 @@ interpret_posthoc <- function(posthoc_result, alpha = 0.05) {
   })
 }
 
-# Post Hoc Analysis - DISEDERHANAKAN
+# Post Hoc Analysis - 
 observeEvent(input$run_posthoc, {
   req(anova_results$model)
   

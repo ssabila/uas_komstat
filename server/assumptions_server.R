@@ -14,7 +14,6 @@ output$homogeneity_variable_selector <- renderUI({
 output$homogeneity_group_selector <- renderUI({
   req(processed_data$current)
   
-  # PERBAIKAN LOGIKA FILTER YANG LEBIH KETAT
   data <- processed_data$current
   
   valid_group_vars <- sapply(names(data), function(col_name) {
@@ -195,12 +194,7 @@ output$normality_test_result <- renderPrint({
 sehingga keputusan yang diambil adalah TOLAK H₀. 
 
 Kesimpulan: Dengan tingkat kepercayaan 95%%, terdapat cukup bukti untuk menyatakan bahwa 
-variabel %s TIDAK berdistribusi normal. 
-
-Rekomendasi: 
-1. Pertimbangkan transformasi data (log, sqrt, atau Box-Cox)
-2. Gunakan metode statistik non-parametrik untuk analisis lanjutan
-3. Periksa keberadaan outlier yang mungkin mempengaruhi distribusi", 
+variabel %s TIDAK berdistribusi normal.", 
                   result$p_value, input$normality_var))
     } else {
       cat(sprintf("Berdasarkan hasil pengujian Shapiro-Wilk, diperoleh nilai p-value sebesar %.6f (≥ 0.05), 

@@ -250,11 +250,6 @@ output$normality_residual_interpretation <- renderPrint({
           cat(sprintf("Berdasarkan uji Shapiro-Wilk yang telah dilakukan, diketahui bahwa residual model regresi \nTIDAK berdistribusi normal karena nilai p-value (%.6f) < α (0.05), \nsehingga keputusan yang diambil adalah TOLAK H₀.\n\n", 
                       shapiro_test$p.value))
           cat("Kesimpulan: Asumsi normalitas residual TIDAK terpenuhi.\n\n")
-          cat("Rekomendasi:\n")
-          cat("1. Periksa keberadaan outlier dalam data\n")
-          cat("2. Pertimbangkan transformasi variabel dependen (log, sqrt, Box-Cox)\n")
-          cat("3. Gunakan regresi robust atau metode non-parametrik\n")
-          cat("4. Tambahkan variabel independen yang relevan\n")
         } else {
           cat(sprintf("Berdasarkan uji Shapiro-Wilk yang telah dilakukan, diketahui bahwa residual model regresi \nberdistribusi normal karena nilai p-value (%.6f) > α (0.05), \nsehingga keputusan yang diambil adalah GAGAL TOLAK H₀.\n\n", 
                       shapiro_test$p.value))
@@ -329,11 +324,6 @@ output$homoskedasticity_interpretation <- renderPrint({
           cat(sprintf("Berdasarkan uji Breusch-Pagan yang telah dilakukan, diketahui bahwa model regresi \nmengalami masalah heteroskedastisitas karena nilai p-value (%.6f) < α (0.05), \nsehingga keputusan yang diambil adalah TOLAK H₀.\n\n", 
                       bp_test$p.value))
           cat("Kesimpulan: Asumsi homoskedastisitas TIDAK terpenuhi.\n\n")
-          cat("Rekomendasi:\n")
-          cat("1. Gunakan standard error yang robust (HC, HAC)\n")
-          cat("2. Transformasi variabel (log, sqrt)\n")
-          cat("3. Weighted Least Squares (WLS)\n")
-          cat("4. Periksa spesifikasi model yang mungkin salah\n")
         } else {
           cat(sprintf("Berdasarkan uji Breusch-Pagan yang telah dilakukan, diketahui bahwa model regresi \nTIDAK mengalami masalah heteroskedastisitas karena nilai p-value (%.6f) > α (0.05), \nsehingga keputusan yang diambil adalah GAGAL TOLAK H₀.\n\n", 
                       bp_test$p.value))
@@ -397,19 +387,10 @@ output$regression_vif <- renderPrint({
             cat(sprintf("Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi \nmengalami masalah multikolinearitas SERIUS karena terdapat variabel dengan VIF > 10.\n\n"))
             cat("Variabel bermasalah:", paste(problematic_vars, collapse = ", "), "\n\n")
             cat("Kesimpulan: Asumsi tidak adanya multikolinearitas TIDAK terpenuhi.\n\n")
-            cat("Rekomendasi:\n")
-            cat("1. Hapus salah satu variabel yang berkorelasi tinggi\n")
-            cat("2. Gabungkan variabel yang mirip menjadi indeks komposit\n")
-            cat("3. Gunakan Principal Component Analysis (PCA)\n")
-            cat("4. Gunakan Ridge Regression atau Lasso Regression\n")
           } else if (max_vif > 5) {
             cat(sprintf("Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi \nmengalami multikolinearitas SEDANG karena terdapat variabel dengan VIF antara 5-10.\n\n"))
             cat("Variabel yang perlu diwaspadai:", paste(warning_vars, collapse = ", "), "\n\n")
             cat("Kesimpulan: Asumsi tidak adanya multikolinearitas CUKUP terpenuhi dengan catatan.\n\n")
-            cat("Rekomendasi:\n")
-            cat("1. Monitor stabilitas koefisien regresi\n")
-            cat("2. Pertimbangkan untuk menghapus variabel dengan VIF tertinggi\n")
-            cat("3. Interpretasi koefisien dengan hati-hati\n")
           } else {
             cat(sprintf("Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi \nTIDAK mengalami masalah multikolinearitas karena semua variabel memiliki VIF < 5.\n\n"))
             cat("Kesimpulan: Asumsi tidak adanya multikolinearitas TERPENUHI.\n\n")
@@ -559,12 +540,6 @@ output$regression_interpretation <- renderText({
       r_squared_interpretation, "\n\n",
       conclusion, "\n\n",
       
-      "=== RINGKASAN UJI ASUMSI ===\n",
-      "Periksa tab 'Uji Asumsi' untuk interpretasi lengkap mengenai:\n",
-      "1. NORMALITAS RESIDUAL: Shapiro-Wilk test dan Q-Q plot\n",
-      "2. HOMOSKEDASTISITAS: Breusch-Pagan test dan residual plot\n",
-      "3. MULTIKOLINEARITAS: VIF untuk setiap variabel independen\n",
-      "4. LINIERITAS: Evaluasi visual melalui scatter plot\n\n",
       
       # Penilaian kualitas model
       if (r_squared > 0.7) {
