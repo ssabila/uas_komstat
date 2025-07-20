@@ -672,11 +672,9 @@ output$download_regression_summary <- downloadHandler(
         "",
         assumptions_text,
         "",
-        "=== REKOMENDASI ===",
+        "=== CATATAN ===",
         "1. Periksa plot residual untuk validasi visual asumsi",
         "2. Pertimbangkan transformasi variabel jika asumsi dilanggar",
-        "3. Gunakan robust standard errors jika terjadi heteroskedastisitas",
-        "4. Evaluasi outlier dan data berpengaruh menggunakan Cook's distance",
         sep = "\n"
       )
       
@@ -712,105 +710,6 @@ output$download_regression_summary <- downloadHandler(
     }
   }
 )
-
-# --- 7. DIAGNOSTIK LANJUTAN ---
-
-# 7.1 Cook's Distance Plot
-output$cooks_distance_plot <- renderPlot({
-  model <- regression_model()
-  
-  if (!is.null(model)) {
-    tryCatch({
-      cooks_d <- cooks.distance(model)
-      n <- length(cooks_d)
-      
-      plot(1:n, cooks_d, 
-           type = "h", 
-           main = "Cook's Distance",
-           xlab = "Observasi", 
-           ylab = "Cook's Distance",
-           col = ifelse(cooks_d > 1, "red", "blue"))
-      abline(h = 1, col = "red", lty = 2, lwd = 2)
-      abline(h = 4/n, col = "orange", lty = 2, lwd = 1)
-      
-      # Tambahkan label untuk outlier
-      outliers <- which(cooks_d > 1)
-      if (length(outliers) > 0) {
-        text(outliers, cooks_d[outliers], labels = outliers, pos = 3, col = "red")
-      }
-      
-      legend("topright", 
-             legend = c("Normal", "Berpengaruh (>1)", "Waspada (>4/n)"),
-             col = c("blue", "red", "orange"),
-             lty = c(1, 1, 2),
-             cex = 0.8)
-    }, error = function(e) {
-      plot(1, 1, type = "n", main = "Error membuat Cook's Distance plot")
-      text(1, 1, paste("Error:", e$message))
-    })
-  } else {
-    plot(1, 1, type = "n", main = "Model belum dibuat")
-    text(1, 1, "Klik 'Bangun Model' terlebih dahulu")
-  }
-})
-
-# 7.2 Leverage Plot
-output$leverage_plot <- renderPlot({
-  model <- regression_model()
-  
-  if (!is.null(model)) {
-    tryCatch({
-      leverage <- hatvalues(model)
-      n <- length(leverage)
-      p <- length(coef(model))
-      threshold <- 2 * p / n
-      
-      plot(1:n, leverage, 
-           type = "h", 
-           main = "Leverage Values",
-           xlab = "Observasi", 
-           ylab = "Leverage",
-           col = ifelse(leverage > threshold, "red", "blue"))
-      abline(h = threshold, col = "red", lty = 2, lwd = 2)
-      
-      # Tambahkan label untuk high leverage
-      high_lev <- which(leverage > threshold)
-      if (length(high_lev) > 0) {
-        text(high_lev, leverage[high_lev], labels = high_lev, pos = 3, col = "red")
-      }
-      
-      legend("topright", 
-             legend = c("Normal", paste("High Leverage (>", round(threshold, 3), ")")),
-             col = c("blue", "red"),
-             lty = c(1, 2),
-             cex = 0.8)
-    }, error = function(e) {
-      plot(1, 1, type = "n", main = "Error membuat Leverage plot")
-      text(1, 1, paste("Error:", e$message))
-    })
-  } else {
-    plot(1, 1, type = "n", main = "Model belum dibuat")
-    text(1, 1, "Klik 'Bangun Model' terlebih dahulu")
-  }
-})
-
-# 7.3 Residual vs Leverage Plot
-output$residual_leverage_plot <- renderPlot({
-  model <- regression_model()
-  
-  if (!is.null(model)) {
-    tryCatch({
-      plot(model, which = 5, main = "Residuals vs Leverage", 
-           sub = "Identifikasi outlier dan data berpengaruh")
-    }, error = function(e) {
-      plot(1, 1, type = "n", main = "Error membuat Residual vs Leverage plot")
-      text(1, 1, paste("Error:", e$message))
-    })
-  } else {
-    plot(1, 1, type = "n", main = "Model belum dibuat")
-    text(1, 1, "Klik 'Bangun Model' terlebih dahulu")
-  }
-})
 
 # --- 8. TAMBAHAN: OBSERVER UNTUK DEBUGGING ---
 observe({
