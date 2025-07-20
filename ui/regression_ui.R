@@ -152,22 +152,6 @@ tagList(
                    style = "background: #ffffff; padding: 12px; border: 1px solid #dee2e6; border-radius: 4px;",
                    verbatimTextOutput("regression_vif")
                  )
-               ),
-               
-               # === RINGKASAN ASUMSI ===
-               div(
-                 style = "background: #e9ecef; padding: 15px; border-radius: 8px; border-left: 4px solid #6c757d;",
-                 h4("Ringkasan Evaluasi Asumsi", style = "color: #495057; margin-top: 0;"),
-                 div(
-                   style = "background: #ffffff; padding: 15px; border-radius: 4px;",
-                   tags$ul(
-                     style = "margin-bottom: 0;",
-                     tags$li("✅ ", strong("Hijau"), ": Asumsi terpenuhi - lanjutkan dengan interpretasi model"),
-                     tags$li("⚠️ ", strong("Kuning"), ": Perlu perhatian - model masih dapat digunakan dengan catatan"),
-                     tags$li("❌ ", strong("Merah"), ": Asumsi dilanggar - pertimbangkan perbaikan model"),
-                     tags$li("📋 ", strong("Rekomendasi"), " diberikan untuk setiap pelanggaran asumsi yang ditemukan")
-                   )
-                 )
                )
       ),
       
@@ -209,55 +193,6 @@ tagList(
                  )
                )
       ),
-      
-      tabPanel("Diagnostik Lanjutan", 
-               value = "diagnostics_tab",
-               icon = icon("search"),
-               br(),
-               div(
-                 style = "background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;",
-                 icon("exclamation-triangle", style = "color: #856404;"),
-                 strong(" Diagnostik Tambahan:", style = "color: #856404;"),
-                 p("Plot diagnostik untuk identifikasi outlier dan data berpengaruh.", 
-                   style = "margin: 8px 0 0 0; color: #856404;")
-               ),
-               
-               fluidRow(
-                 column(6,
-                        h4("Cook's Distance"),
-                        p("Mengidentifikasi observasi yang berpengaruh terhadap koefisien regresi."),
-                        plotOutput("cooks_distance_plot", height = "300px")
-                 ),
-                 column(6,
-                        h4("Leverage Plot"),
-                        p("Mengidentifikasi observasi dengan nilai X yang ekstrem."),
-                        plotOutput("leverage_plot", height = "300px")
-                 )
-               ),
-               
-               hr(),
-               
-               fluidRow(
-                 column(12,
-                        h4("Residual vs Leverage"),
-                        p("Kombinasi Cook's distance dan leverage untuk identifikasi data berpengaruh."),
-                        plotOutput("residual_leverage_plot", height = "350px")
-                 )
-               ),
-               
-               hr(),
-               
-               div(
-                 style = "background: #e7f3ff; padding: 15px; border-radius: 8px;",
-                 h5("Interpretasi Plot Diagnostik:"),
-                 tags$ul(
-                   tags$li(strong("Cook's Distance > 1:"), " Observasi sangat berpengaruh"),
-                   tags$li(strong("Leverage > 2p/n:"), " Observasi dengan X ekstrem (p = jumlah parameter)"),
-                   tags$li(strong("Outlier:"), " Titik jauh dari pola umum dalam residual plot"),
-                   tags$li(strong("Tindakan:"), " Periksa data, pertimbangkan transformasi atau penghapusan")
-                 )
-               )
-      )
     )
   )
 )

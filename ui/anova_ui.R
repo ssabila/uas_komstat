@@ -326,48 +326,5 @@ tagList(
              )
       )
     )
-  ),
-  
-  # Information Footer
-  div(
-    style = "margin-top: 20px;",
-    box(
-      title = "Informasi Penting",
-      status = "info",
-      solidHeader = TRUE,
-      width = 12,
-      collapsible = TRUE,
-      collapsed = TRUE,
-      
-      fluidRow(
-        column(4,
-               h5("🎯 Kapan Menggunakan ANOVA"),
-               tags$ul(
-                 tags$li("Membandingkan rata-rata 3+ grup"),
-                 tags$li("Data numerik (variabel dependen)"),
-                 tags$li("Grup independen (variabel independen)"),
-                 tags$li("Asumsi terpenuhi")
-               )
-        ),
-        column(4,
-               h5("⚠️ Hal yang Perlu Diperhatikan"),
-               tags$ul(
-                 tags$li("Cek normalitas data terlebih dahulu"),
-                 tags$li("Pastikan homogenitas variansi"),
-                 tags$li("Jika signifikan, lakukan uji post-hoc"),
-                 tags$li("Perhatikan ukuran sampel per grup")
-               )
-        ),
-        column(4,
-               h5("📚 Alternatif Jika Asumsi Dilanggar"),
-               tags$ul(
-                 tags$li("Kruskal-Wallis (non-parametrik)"),
-                 tags$li("Welch ANOVA (variansi tidak homogen)"),
-                 tags$li("Transformasi data"),
-                 tags$li("Bootstrap methods")
-               )
-        )
-      )
-    )
   )
 )

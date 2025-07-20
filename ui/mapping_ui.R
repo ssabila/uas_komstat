@@ -39,31 +39,5 @@ fluidPage(
         uiOutput("district_info_panel")
       )
     )
-  ),
-  
-  # Box informasi tambahan
-  box(
-    title = "Interpretasi Peta",
-    status = "warning",
-    solidHeader = TRUE,
-    width = 12,
-    collapsible = TRUE,
-    collapsed = TRUE,
-    div(
-      h4("Cara Membaca Peta:"),
-      tags$ul(
-        tags$li(strong("Warna Merah/Gelap:"), " Nilai tinggi untuk variabel yang dipilih"),
-        tags$li(strong("Warna Kuning/Terang:"), " Nilai rendah untuk variabel yang dipilih"),
-        tags$li(strong("Area Abu-abu:"), " Data tidak tersedia"),
-        tags$li(strong("Klik pada area:"), " Untuk melihat statistik detail kabupaten/kota")
-      ),
-      h4("Analisis Statistik:"),
-      tags$ul(
-        tags$li(strong("Persentil:"), " Menunjukkan posisi relatif dibanding daerah lain"),
-        tags$li(strong("Status Tinggi (>75%):"), " Daerah berisiko tinggi"),
-        tags$li(strong("Status Sedang (50-75%):"), " Daerah berisiko menengah"),
-        tags$li(strong("Status Rendah (<50%):"), " Daerah berisiko rendah")
-      )
-    )
   )
 )

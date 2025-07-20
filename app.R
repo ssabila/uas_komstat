@@ -1,14 +1,15 @@
 # Load required libraries
-library(shiny)
-library(shinydashboard)
-library(DT)
-library(plotly)
-library(leaflet)
-library(dplyr)
-library(ggplot2)
-library(readr)
-library(htmltools)
-library(shinyjs)
+  library(shiny)
+  library(shinydashboard)
+  library(DT)
+  library(plotly)
+  library(leaflet)
+  library(dplyr)
+  library(ggplot2)
+  library(readr)
+  library(htmltools)
+  library(shinyjs)
+  library(here)
 
 # PERBAIKAN: Cek dan install package yang diperlukan
 required_packages <- c("shiny", "shinydashboard", "DT", "plotly", "leaflet", 

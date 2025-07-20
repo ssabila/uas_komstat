@@ -1,6 +1,6 @@
 
 ---
-title: "Laporan Analisis Komprehensif"
+title: "Laporan Analisis"
 output:
   word_document: default
   pdf_document:
