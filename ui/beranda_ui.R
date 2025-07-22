@@ -32,7 +32,7 @@ fluidRow(
            value = textOutput("total_districts"),
            subtitle = "Wilayah yang dianalisis",
            icon = icon("map"),
-           color = "lightblue",
+           color = "navy",
            width = 12,
            fill = TRUE
          )

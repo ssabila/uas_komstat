@@ -1,6 +1,6 @@
 # Load required libraries
 library(shiny)
-library(shinydashboard)
+#library(shinydashboard)
 library(DT)
 library(plotly)
 library(leaflet)
@@ -12,6 +12,7 @@ library(shinyjs)
 library(here)
 library(e1071)
 library(reshape2)
+library(bs4Dash)
 
 source("requirements.R")
 
