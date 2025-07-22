@@ -80,7 +80,7 @@ tagList(
         
         div(
           style = "background: #e9ecef; padding: 15px; border-radius: 5px;",
-          h4("📥 Unduh Hasil Regresi"),
+          h4("Unduh Hasil Regresi"),
           fluidRow(
             column(8,
                    radioButtons("regression_format", 
@@ -91,7 +91,7 @@ tagList(
             column(4,
                    # PENYESUAIAN ID: Mengubah ID agar lebih sesuai
                    downloadButton("download_regression_summary", 
-                                  "📄 Unduh Laporan", 
+                                  "Unduh Laporan", 
                                   class = "btn-primary",
                                   style = "width: 100%;")
             )

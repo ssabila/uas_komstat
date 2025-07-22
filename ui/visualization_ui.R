@@ -1,4 +1,4 @@
-# ui/visualization_ui.R - Versi yang Diperbaiki
+# ui/visualization_ui.R
 fluidPage(
   # Kontrol Visualisasi
   bs4Card(

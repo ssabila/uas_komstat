@@ -32,15 +32,6 @@ for(data_file in data_files) {
   }
 }
 
-cat("\n=== Checking Template Files ===\n")
-template_files <- c("text_report.Rmd", "laporan_lengkap.Rmd")
-for(template in template_files) {
-  if(file.exists(template)) {
-    cat("✓ Found:", template, "\n")
-  } else {
-    cat("✗ Missing:", template, "\n")
-  }
-}
 
 server <- function(input, output, session) {
   useShinyjs()

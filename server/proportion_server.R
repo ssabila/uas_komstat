@@ -1,6 +1,6 @@
 # server/proportion_server.R
 
-# --- 1. RENDER UI DINAMIS ---
+#    1. RENDER UI DINAMIS   
 output$prop_variable_selector <- renderUI({
   req(processed_data$current)
   cat_vars <- names(processed_data$current)[sapply(processed_data$current, function(x) is.character(x) || is.factor(x))]
@@ -21,7 +21,7 @@ output$prop_group_selector <- renderUI({
   selectInput("prop_group_var", "Pilih Variabel Grup (dengan 2 kategori):", choices = valid_groups)
 })
 
-# --- 2. LOGIKA UJI PROPORSI ---
+#    2. LOGIKA UJI PROPORSI   
 observeEvent(input$run_prop_test, {
   req(processed_data$current, input$prop_var, input$prop_success)
   data <- processed_data$current
@@ -55,7 +55,7 @@ observeEvent(input$run_prop_test, {
   analysis_results$proportion <- result
 })
 
-# --- 3. TAMPILKAN HASIL DENGAN INTERPRETASI PROFESIONAL ---
+#    3. TAMPILKAN HASIL DENGAN INTERPRETASI PROFESIONAL   
 
 # Fungsi untuk menghasilkan teks interpretasi
 generate_prop_interpretation <- function(result, inputs, data) {
@@ -76,7 +76,7 @@ generate_prop_interpretation <- function(result, inputs, data) {
   
   # Tingkat Signifikansi
   interpretation <- paste0(interpretation, " • Tingkat Signifikansi (α) = 0.05\n\n")
-  interpretation <- paste0(interpretation, "------------------------------------------\n")
+  interpretation <- paste0(interpretation, "                            \n")
   interpretation <- paste0(interpretation, "Keputusan dan Kesimpulan:\n")
   
   # Kesimpulan
@@ -112,7 +112,7 @@ output$prop_test_interpretation <- renderText({
   generate_prop_interpretation(analysis_results$proportion, input, processed_data$current)
 })
 
-# --- 4. LOGIKA UNDUH BARU ---
+#    4. LOGIKA UNDUH BARU   
 output$download_proportion_result <- downloadHandler(
   filename = function() {
     paste("laporan-uji-proporsi-", Sys.Date(), ".", input$proportion_format, sep = "")
@@ -131,9 +131,9 @@ output$download_proportion_result <- downloadHandler(
     )
     
     full_report_text <- paste(
-      "=== Ringkasan Uji Statistik ===\n",
+      "  Ringkasan Uji Statistik  \n",
       paste(summary_output, collapse = "\n"),
-      "\n\n=== Interpretasi Hasil Analisis ===\n",
+      "\n\n  Interpretasi Hasil Analisis  \n",
       interpretation_text,
       sep = "\n"
     )

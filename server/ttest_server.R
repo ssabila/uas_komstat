@@ -1,6 +1,6 @@
 # server/ttest_server.R
 
-# --- 1. RENDER UI DINAMIS ---
+#   1. RENDER UI DINAMIS  
 output$ttest_variable_selector <- renderUI({
   req(processed_data$current)
   numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
@@ -22,7 +22,7 @@ output$ttest_group_selector <- renderUI({
   selectInput("ttest_group_var", "Pilih Variabel Grup (2 Kategori):", choices = valid_groups)
 })
 
-# --- 2. LOGIKA UJI T-TEST ---
+#   2. LOGIKA UJI T-TEST  
 observeEvent(input$run_ttest, {
   req(processed_data$current, input$ttest_var, input$ttest_type, input$ttest_alternative)
   data <- processed_data$current
@@ -40,7 +40,7 @@ observeEvent(input$run_ttest, {
   analysis_results$ttest <- test_result
 })
 
-# --- 3. TAMPILKAN HASIL DENGAN INTERPRETASI  ---
+#   3. TAMPILKAN HASIL DENGAN INTERPRETASI   
 output$ttest_result_summary <- renderPrint({
   req(analysis_results$ttest)
   if (analysis_results$ttest$method == "One Sample t-test" && input$ttest_type != "one_sample") return()
@@ -48,22 +48,22 @@ output$ttest_result_summary <- renderPrint({
   
   result <- analysis_results$ttest
   
-  cat("=== Ringkasan Uji Statistik ===\n")
+  cat("  Ringkasan Uji Statistik  \n")
   if (input$ttest_type == "one_sample") {
     cat(sprintf("Jenis Uji: One-Sample t-test\n"))
   } else {
     cat(sprintf("Jenis Uji: Independent Two-Sample t-test (Student's)\n"))
   }
-  cat("----------------------------------------------------\n")
+  cat("                 -\n")
   print(result)
 })
 
-# --- FUNGSI INTERPRETASI  ---
+#   FUNGSI INTERPRETASI   
 generate_ttest_interpretation <- function(result, inputs, data) {
   req(result)
   p_value <- result$p.value
   
-  interpretation <- "=== INTERPRETASI HASIL UJI T-TEST ===\n\n"
+  interpretation <- "  INTERPRETASI HASIL UJI T-TEST  \n\n"
   interpretation <- paste0(interpretation, "Dasar Pengujian:\n")
   
   if (inputs$ttest_type == "one_sample") {
@@ -80,11 +80,11 @@ generate_ttest_interpretation <- function(result, inputs, data) {
   }
   
   interpretation <- paste0(interpretation, sprintf(" • Tingkat Signifikansi (α) = 0.05\n\n"))
-  interpretation <- paste0(interpretation, "------------------------------------------\n")
+  interpretation <- paste0(interpretation, "              \n")
   interpretation <- paste0(interpretation, "Keputusan dan Kesimpulan:\n")
   
   if (inputs$ttest_type == "one_sample") {
-    # --- PERBAIKAN WRAPPING TEXT ---
+    #   PERBAIKAN WRAPPING TEXT  
     if (p_value < 0.05) {
       decision <- " • Keputusan: TOLAK H₀.\n • Kesimpulan: Dengan tingkat kepercayaan 95%%, terdapat cukup bukti statistik\nuntuk menyatakan bahwa rata-rata populasi variabel '%s' berbeda secara signifikan\ndari nilai hipotesis (%g), karena nilai p-value (%.4f) lebih kecil dari α (0.05)."
       interpretation <- paste0(interpretation, sprintf(decision, inputs$ttest_var, inputs$ttest_mu, p_value))
@@ -93,7 +93,7 @@ generate_ttest_interpretation <- function(result, inputs, data) {
       interpretation <- paste0(interpretation, sprintf(decision, inputs$ttest_var, inputs$ttest_mu, p_value))
     }
   } else {
-    # --- PERBAIKAN WRAPPING TEXT ---
+    #   PERBAIKAN WRAPPING TEXT  
     groups <- unique(na.omit(data[[inputs$ttest_group_var]]))
     if (p_value < 0.05) {
       decision <- " • Keputusan: TOLAK H₀.\n • Kesimpulan: Dengan tingkat kepercayaan 95%%, terdapat perbedaan rata-rata\nyang signifikan secara statistik untuk variabel '%s' antara grup '%s' dan '%s',\nkarena nilai p-value (%.4f) lebih kecil dari α (0.05)."
@@ -113,7 +113,7 @@ output$ttest_interpretation <- renderText({
   generate_ttest_interpretation(analysis_results$ttest, input, processed_data$current)
 })
 
-# --- LOGIKA UNDUH ---
+#   LOGIKA UNDUH  
 output$download_ttest_result <- downloadHandler(
   filename = function() {
     paste("laporan-uji-t-", Sys.Date(), ".", input$ttest_format, sep = "")
@@ -130,7 +130,7 @@ output$download_ttest_result <- downloadHandler(
     )
     
     full_report_text <- paste(
-      "=== Ringkasan Uji Statistik ===\n",
+      "  Ringkasan Uji Statistik  \n",
       paste(summary_output, collapse = "\n"),
       "\n\n",
       interpretation_text,

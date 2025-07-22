@@ -1,4 +1,4 @@
-# server/beranda_server.R - Versi yang Diperbaiki
+# server/beranda_server.R
 
 # Output untuk total districts
 output$total_districts <- renderText({

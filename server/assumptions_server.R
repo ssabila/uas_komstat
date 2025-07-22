@@ -13,7 +13,7 @@ check_and_load_packages <- function() {
   }
 }
 
-# --- 1. UI DINAMIS ---
+#   1. UI DINAMIS  
 output$normality_variable_selector <- renderUI({
   req(processed_data$current)
   numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
@@ -52,7 +52,7 @@ output$homogeneity_group_selector <- renderUI({
   selectInput("homogeneity_group", "Pilih Variabel Grup (Kategorik):", choices = cat_vars)
 })
 
-# --- 2. LOGIKA UJI ---
+#   2. LOGIKA UJI  
 normality_results <- eventReactive(input$run_normality_test, {
   req(processed_data$current, input$normality_var)
   
@@ -102,12 +102,12 @@ homogeneity_results <- eventReactive(input$run_homogeneity_test, {
   return(result)
 })
 
-# --- 3. TAMPILKAN HASIL ---
+#   3. TAMPILKAN HASIL  
 output$normality_test_result <- renderPrint({
   req(normality_results())
   result <- normality_results()
   
-  cat("=== HASIL UJI NORMALITAS SHAPIRO-WILK ===\n")
+  cat("  HASIL UJI NORMALITAS SHAPIRO-WILK  \n")
   cat("Variabel yang diuji:", input$normality_var, "\n")
   cat("\nHipotesis:\n")
   cat("H₀: Data berdistribusi normal\n")
@@ -118,7 +118,7 @@ output$normality_test_result <- renderPrint({
     cat("Hasil Pengujian:\n")
     cat("Statistik W:", round(result$statistic, 6), "\n")
     cat("P-value:", format.pval(result$p_value, eps = 1e-6, digits = 6), "\n\n")
-    cat("=== INTERPRETASI ===\n")
+    cat("  INTERPRETASI  \n")
     if (result$p_value < 0.05) {
       cat(sprintf("Dengan p-value = %s (< 0.05), H₀ ditolak. Terdapat cukup bukti untuk menyatakan bahwa data variabel '%s' TIDAK berdistribusi normal.", 
                   format.pval(result$p_value, eps = 1e-6, digits = 6), input$normality_var))
@@ -146,7 +146,7 @@ output$homogeneity_test_result <- renderPrint({
   req(homogeneity_results())
   result <- homogeneity_results()
   
-  cat("=== HASIL UJI HOMOGENITAS VARIANSI (LEVENE TEST) ===\n")
+  cat("  HASIL UJI HOMOGENITAS VARIANSI (LEVENE TEST)  \n")
   cat("Variabel dependen:", input$homogeneity_var, "\n")
   cat("Variabel grup:", input$homogeneity_group, "\n")
   cat("\nHipotesis:\n")
@@ -158,7 +158,7 @@ output$homogeneity_test_result <- renderPrint({
     cat("Hasil Pengujian:\n")
     cat("Statistik F:", round(result$statistic, 6), "\n")
     cat("P-value:", format.pval(result$p_value, eps = 1e-6, digits = 6), "\n\n")
-    cat("=== INTERPRETASI ===\n")
+    cat("  INTERPRETASI  \n")
     if (result$p_value < 0.05) {
       cat(sprintf("Dengan p-value = %s (< 0.05), H₀ ditolak. Terdapat cukup bukti untuk menyatakan bahwa variansi variabel '%s' TIDAK HOMOGEN antar grup '%s'.", 
                   format.pval(result$p_value, eps = 1e-6, digits = 6), input$homogeneity_var, input$homogeneity_group))
@@ -171,9 +171,9 @@ output$homogeneity_test_result <- renderPrint({
   }
 })
 
-# --- 4. LOGIKA UNDUH ---
+#   4. LOGIKA UNDUH  
 
-# ## --- UJI NORMALITAS --- ##
+# ##   UJI NORMALITAS   ##
 output$download_normality_result <- downloadHandler(
   filename = function() { 
     ext <- switch(input$normality_format, "pdf" = "pdf", "docx" = "docx", "html" = "html")
@@ -204,7 +204,7 @@ output$download_normality_result <- downloadHandler(
     temp_rmd <- tempfile(fileext = ".Rmd")
     
     rmd_content <- paste(
-      "---",
+      " ",
       "title: 'Laporan Hasil Uji Normalitas Shapiro-Wilk'",
       paste0("date: '", format(Sys.time(), "%A, %d %B %Y %H:%M:%S"), "'"),
       "output:",
@@ -213,7 +213,7 @@ output$download_normality_result <- downloadHandler(
       } else if(input$normality_format == "docx") {
         "  word_document:\n    toc: true"
       },
-      "---",
+      " ",
       "",
       "## 1. Ringkasan Analisis",
       paste("- **Variabel yang diuji:**", input$normality_var),
@@ -247,7 +247,7 @@ output$download_normality_result <- downloadHandler(
                "")
       },
       "",
-      "---",
+      " ",
       paste0("*Laporan ini dibuat secara otomatis pada ", format(Sys.time(), "%d %B %Y, %H:%M:%S"), ".*"),
       sep = "\n"
     )
@@ -271,7 +271,7 @@ output$download_normality_result <- downloadHandler(
   }
 )
 
-# ## --- UJI HOMOGENITAS (DIPERBAIKI) --- ##
+# ##   UJI HOMOGENITAS
 output$download_homogeneity_result <- downloadHandler(
   filename = function() { 
     ext <- switch(input$homogeneity_format, "pdf" = "pdf", "docx" = "docx", "html" = "html")
@@ -292,7 +292,7 @@ output$download_homogeneity_result <- downloadHandler(
     
     # Membuat konten R Markdown secara dinamis
     rmd_content <- paste(
-      "---",
+      " ",
       "title: 'Laporan Hasil Uji Homogenitas Variansi (Levene Test)'",
       paste0("date: '", format(Sys.time(), "%A, %d %B %Y %H:%M:%S"), "'"),
       "output:",
@@ -301,7 +301,7 @@ output$download_homogeneity_result <- downloadHandler(
       } else if(input$homogeneity_format == "docx") {
         "  word_document:\n    toc: true"
       },
-      "---",
+      " ",
       "",
       "## 1. Ringkasan Analisis",
       paste("- **Variabel Dependen:**", input$homogeneity_var),
@@ -333,7 +333,7 @@ output$download_homogeneity_result <- downloadHandler(
                "")
       },
       "",
-      "---",
+      " ",
       paste0("*Laporan ini dibuat secara otomatis pada ", format(Sys.time(), "%d %B %Y, %H:%M:%S"), ".*"),
       sep = "\n"
     )
@@ -359,7 +359,7 @@ output$download_homogeneity_result <- downloadHandler(
   }
 )
 
-# --- VALIDASI & STATUS ---
+#   VALIDASI & STATUS  
 
 
 validate_homogeneity_inputs <- validate_homogeneity_inputs <- function(data, dep_var, group_var) {

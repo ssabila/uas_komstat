@@ -1,5 +1,4 @@
 # server/user_guide_server.R
-# Handler untuk navigasi cepat di tab panduan pengguna
 
 #  NAVIGASI CEPAT 
 # Handler untuk tombol Data (Manajemen Data)

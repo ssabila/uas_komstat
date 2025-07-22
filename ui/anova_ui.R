@@ -1,4 +1,4 @@
-# ui/anova_ui.R - Versi yang diperbaiki tanpa emoji
+# ui/anova_ui.R
 
 tagList(
   # Header Section

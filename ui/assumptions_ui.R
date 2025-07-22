@@ -1,4 +1,4 @@
-# ui/assumptions_ui.R - VERSI LENGKAP DAN DIPERBAIKI
+# ui/assumptions_ui.R
 
 tagList(
   # Header Section
@@ -85,8 +85,8 @@ tagList(
                    radioButtons("normality_format", 
                                 "Pilih Format Download:", 
                                 choices = list(
-                                  "📄 PDF" = "pdf", 
-                                  "📝 Word (.docx)" = "docx"
+                                  "PDF" = "pdf", 
+                                  "Word (.docx)" = "docx"
                                 ), 
                                 inline = FALSE,
                                 selected = "pdf")
@@ -95,7 +95,7 @@ tagList(
                    div(
                      style = "margin-top: 25px;",
                      downloadButton("download_normality_result", 
-                                    "📥 Download Laporan", 
+                                    "Download Laporan", 
                                     class = "btn-primary btn-lg",
                                     style = "width: 100%; padding: 12px; font-weight: bold;")
                    )
@@ -160,8 +160,8 @@ tagList(
                    radioButtons("homogeneity_format", 
                                 "Pilih Format Download:", 
                                 choices = list(
-                                  "📄 PDF" = "pdf", 
-                                  "📝 Word (.docx)" = "docx"
+                                  "PDF" = "pdf", 
+                                  "Word (.docx)" = "docx"
                                 ), 
                                 inline = FALSE,
                                 selected = "pdf")
@@ -170,7 +170,7 @@ tagList(
                    div(
                      style = "margin-top: 25px;",
                      downloadButton("download_homogeneity_result", 
-                                    "📥 Download Laporan", 
+                                    "Download Laporan", 
                                     class = "btn-primary btn-lg",
                                     style = "width: 100%; padding: 12px; font-weight: bold;")
                    )

@@ -1,6 +1,6 @@
 # server/download_server.R
 
-# --- 1. LOGIKA DOWNLOAD DATA ---
+#   1. LOGIKA DOWNLOAD DATA  
 output$download_current_data <- downloadHandler(
   filename = function() {
     paste0("processed_data_", Sys.Date(), ".", input$download_data_format)
@@ -21,7 +21,7 @@ output$download_current_data <- downloadHandler(
   }
 )
 
-# --- 2. LOGIKA DOWNLOAD LAPORAN LENGKAP SEMUA ANALISIS ---
+#   2. LOGIKA DOWNLOAD LAPORAN LENGKAP SEMUA ANALISIS  
 output$download_report <- downloadHandler(
   filename = function() {
     paste0("laporan_analisis_lengkap_", Sys.Date(), ".", input$download_report_format)
@@ -142,7 +142,7 @@ output$download_report <- downloadHandler(
   }
 )
 
-# --- 3. FUNGSI HELPER UNTUK VALIDASI ANALISIS ---
+#   3. FUNGSI HELPER UNTUK VALIDASI ANALISIS  
 validate_analysis_results <- function() {
   # Fungsi untuk memvalidasi bahwa hasil analisis dalam format yang benar
   valid <- TRUE
@@ -215,7 +215,7 @@ validate_analysis_results <- function() {
   return(list(valid = valid, issues = issues))
 }
 
-# --- 4. FUNGSI HELPER UNTUK MEMBUAT RINGKASAN ANALISIS ---
+#   4. FUNGSI HELPER UNTUK MEMBUAT RINGKASAN ANALISIS  
 create_analysis_summary <- function() {
   # Fungsi untuk membuat ringkasan singkat analisis yang telah dilakukan
   summary_text <- "RINGKASAN ANALISIS YANG TELAH DILAKUKAN:\n\n"
@@ -260,7 +260,7 @@ create_analysis_summary <- function() {
   return(summary_text)
 }
 
-# --- 5. OBSERVER UNTUK MONITORING STATUS ANALISIS ---
+#   5. OBSERVER UNTUK MONITORING STATUS ANALISIS  
 # Observer ini akan memantau perubahan pada analysis_results dan memberikan feedback
 observeEvent({
   analysis_results$descriptive
@@ -283,11 +283,4 @@ observeEvent({
     !is.null(analysis_results$anova),
     !is.null(analysis_results$regression)
   )
-  
-  # Update status di UI jika perlu (ini opsional, bisa dihapus jika tidak diperlukan)
-  if (analysis_count > 0) {
-    # Bisa menambahkan notifikasi atau update status di sini jika diperlukan
-    # showNotification(paste(analysis_count, "analisis tersedia untuk laporan"), 
-    #                  type = "default", duration = 3)
-  }
 }, ignoreInit = TRUE)

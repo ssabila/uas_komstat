@@ -1,0 +1,10 @@
+name: uas_komstat_sovi
+title:
+username: ssabila
+account: ssabila
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 15110875
+bundleId: 10658005
+url: https://ssabila.shinyapps.io/uas_komstat_sovi/
+version: 1

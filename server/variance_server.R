@@ -1,4 +1,4 @@
-# --- 1. UI DINAMIS ---
+#    1. UI DINAMIS   
 output$variance_variable_selector <- renderUI({
   req(processed_data$current)
   numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
@@ -20,7 +20,7 @@ output$variance_group_selector <- renderUI({
   selectInput("variance_group_var", "Pilih Variabel Grup (2 Kategori):", choices = cat_vars)
 })
 
-# --- 2. FUNGSI UJI VARIANCE ---
+#    2. FUNGSI UJI VARIANCE   
 perform_variance_test <- function(data, variable, test_type, sigma2=NULL, group_var=NULL, alternative="two.sided", alpha=0.05) {
   if (test_type == "one_sample") {
     values <- data[[variable]][!is.na(data[[variable]])]; n <- length(values)
@@ -40,7 +40,7 @@ perform_variance_test <- function(data, variable, test_type, sigma2=NULL, group_
   }
 }
 
-# --- 3. LOGIKA UJI VARIANCE ---
+#    3. LOGIKA UJI VARIANCE   
 variance_results <- eventReactive(input$run_variance_test, {
   req(processed_data$current, input$variance_var, input$variance_test_type)
   result <- tryCatch({
@@ -56,11 +56,11 @@ variance_results <- eventReactive(input$run_variance_test, {
   return(result)
 })
 
-# --- 4. FUNGSI PEMBANTU (HELPER FUNCTIONS) UNTUK TEKS ---
+#    4. FUNGSI PEMBANTU (HELPER FUNCTIONS) UNTUK TEKS   
 generate_variance_summary_text <- function(result) {
   req(result)
   summary_lines <- c(
-    "=== HASIL UJI VARIANS ===",
+    "   HASIL UJI VARIANS   ",
     paste("Uji:", result$test_type)
   )
   if (result$test_type == "Chi-square test for variance") {
@@ -95,7 +95,7 @@ generate_variance_interpretation_text <- function(result) {
   } else {
     conclusion_text <- if(p_val<alpha){sprintf("KESIMPULAN: Dengan tingkat kepercayaan %d%%, data memberikan cukup bukti untuk menyatakan\nbahwa terdapat perbedaan varians yang signifikan antara grup '%s' dan '%s'.",(1-alpha)*100, result$group1,result$group2)}else{sprintf("KESIMPULAN: Dengan tingkat kepercayaan %d%%, data tidak memberikan cukup bukti untuk menyatakan\nadanya perbedaan varians yang signifikan antara grup '%s' dan '%s'.",(1-alpha)*100,result$group1,result$group2)}
   }
-  return(paste("=== INTERPRETASI HASIL UJI STATISTIK ===\n\n", decision_text, "\n\n", conclusion_text))
+  return(paste("   INTERPRETASI HASIL UJI STATISTIK   \n\n", decision_text, "\n\n", conclusion_text))
 }
 
 generate_variance_vis_interpretation_text <- function(result) {
@@ -110,13 +110,13 @@ generate_variance_vis_interpretation_text <- function(result) {
 }
 
 
-# --- 5. RENDER OUTPUT KE UI ---
+#    5. RENDER OUTPUT KE UI   
 output$variance_test_result <- renderPrint({ cat(generate_variance_summary_text(variance_results())) })
 output$variance_interpretation <- renderText({ generate_variance_interpretation_text(variance_results()) })
 output$variance_visualization_interpretation <- renderText({ generate_variance_vis_interpretation_text(variance_results()) })
 
 
-# --- 6. STATISTIK DESKRIPTIF & VISUALISASI ---
+#    6. STATISTIK DESKRIPTIF & VISUALISASI   
 output$variance_descriptive_stats <- DT::renderDataTable({
   req(variance_results(), input$variance_var); data <- processed_data$current
   if (input$variance_test_type=="one_sample"){df<-data.frame(Statistik=c("N","Mean","Variance","Std Dev"),Nilai=c(length(data[[input$variance_var]][!is.na(data[[input$variance_var]])]),round(mean(data[[input$variance_var]],na.rm=T),4),round(var(data[[input$variance_var]],na.rm=T),4),round(sd(data[[input$variance_var]],na.rm=T),4)))}else{req(input$variance_group_var);groups<-unique(data[[input$variance_group_var]]);d1<-data[[input$variance_var]][data[[input$variance_group_var]]==groups[1]];d2<-data[[input$variance_var]][data[[input$variance_group_var]]==groups[2]];df<-data.frame(Statistik=c("N","Mean","Variance","Std Dev"),G1=c(length(d1),round(mean(d1),4),round(var(d1),4),round(sd(d1),4)),G2=c(length(d2),round(mean(d2),4),round(var(d2),4),round(sd(d2),4)));names(df)[2:3]<-groups}
@@ -132,7 +132,7 @@ output$variance_histogram <- renderPlot({
 })
 
 
-# --- 7. LOGIKA UNDUH ---
+#    7. LOGIKA UNDUH   
 
 output$download_variance_result <- downloadHandler(
   filename = function() {
@@ -206,7 +206,7 @@ output$download_variance_result <- downloadHandler(
     temp_rmd <- tempfile(fileext = ".Rmd")
     
     rmd_content <- paste(
-      "---",
+      "  ",
       "title: 'Laporan Hasil Uji Varians'",
       paste0("date: '", format(Sys.time(), "%A, %d %B %Y %H:%M:%S"), "'"),
       "output:",
@@ -215,7 +215,7 @@ output$download_variance_result <- downloadHandler(
       } else if(input$variance_format == "docx") {
         "  word_document:\n    toc: true"
       },
-      "---",
+      "  ",
       "",
       "## 1. Ringkasan Analisis",
       paste("- **Jenis Uji:**", if(input$variance_test_type == "one_sample") "Uji Varians Satu Sampel" else "Uji Varians Dua Sampel"),
@@ -237,7 +237,7 @@ output$download_variance_result <- downloadHandler(
       "## 5. Interpretasi Visual",
       vis_interpretation_text,
       "",
-      "---",
+      "  ",
       paste0("*Laporan ini dibuat secara otomatis pada ", format(Sys.time(), "%d %B %Y, %H:%M:%S"), ".*"),
       sep = "\n"
     )

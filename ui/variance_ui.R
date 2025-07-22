@@ -99,7 +99,7 @@ tagList(
              hr(),
              div(
                style = "background: #e9ecef; padding: 15px; border-radius: 5px;",
-               h4("📥 Unduh Laporan Lengkap"),
+               h4("Unduh Laporan Lengkap"),
                p("Unduh semua hasil analisis (teks dan gambar) dalam satu dokumen."),
                fluidRow(
                  column(8, radioButtons("variance_format", "Pilih Format:", choices = list("PDF" = "pdf", "Word" = "docx"), inline = TRUE)),

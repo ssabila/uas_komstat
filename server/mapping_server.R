@@ -62,7 +62,7 @@ output$distribution_map <- renderLeaflet({
     return(leaflet() %>% addTiles() %>% setView(lng = 118, lat = -2, zoom = 4))
   }
   
-  cat("=== SIMPLE DEBUG ===\n")
+  cat("  SIMPLE DEBUG  \n")
   cat("Data SOVI rows:", nrow(sovi_data_current), "\n")
   cat("GeoJSON class:", class(geojson), "\n")
   cat("GeoJSON@data columns:", paste(names(geojson@data), collapse = ", "), "\n")

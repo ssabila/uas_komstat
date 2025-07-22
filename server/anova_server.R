@@ -5,7 +5,7 @@ library(car)
 library(dplyr)  
 library(DT) 
 
-# ===== HELPER FUNCTIONS FOR ANOVA =====
+#   HELPER FUNCTIONS FOR ANOVA  
 
 # Function to validate ANOVA inputs
 validate_anova_inputs <- function(data, dep_var, indep_var1, indep_var2 = NULL, type = "one_way") {
@@ -223,7 +223,7 @@ observeEvent(input$run_posthoc, {
   })
 })
 
-# --- 1. RENDER UI DINAMIS ---
+#   1. RENDER UI DINAMIS  
 output$anova_dependent_selector <- renderUI({
   req(processed_data$current)
   numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
@@ -257,7 +257,7 @@ output$anova_independent2_selector <- renderUI({
               selected = if(length(cat_vars) > 0) cat_vars[1] else NULL)
 })
 
-# --- 2. REACTIVE VALUES ---
+#   2. REACTIVE VALUES  
 anova_results <- reactiveValues(
   model = NULL,
   summary = NULL,
@@ -271,7 +271,7 @@ posthoc_results <- reactiveValues(
   interpretation = NULL
 )
 
-# --- 3. LOGIKA ANOVA YANG DIPERBAIKI ---
+#   3. LOGIKA ANOVA 
 observeEvent(input$run_anova, {
   req(processed_data$current, input$anova_dep_var, input$anova_indep_var1)
   
@@ -341,7 +341,7 @@ observeEvent(input$run_anova, {
   })
 })
 
-# --- 4. OUTPUT TABEL ANOVA ---
+#   4. OUTPUT TABEL ANOVA  
 output$anova_summary_table <- renderPrint({
   req(anova_results$summary)
   
@@ -359,7 +359,7 @@ output$anova_summary_table <- renderPrint({
   }
 })
 
-# --- 5. INTERPRETASI YANG DIPERBAIKI ---
+#   5. INTERPRETASI
 output$anova_interpretation <- renderText({
   req(anova_results$summary)
   
@@ -541,7 +541,7 @@ output$anova_interpretation <- renderText({
   })
 })
 
-# --- 6. VISUALISASI YANG DIPERBAIKI ---
+#   6. VISUALISASI 
 output$anova_plot <- renderPlotly({
   req(anova_results$data, input$anova_dep_var, input$anova_indep_var1)
   
@@ -618,7 +618,7 @@ output$anova_plot <- renderPlotly({
   })
 })
 
-# --- 7. POST HOC LOGIC ---
+#   7. POST HOC LOGIC  
 
 # Determine when to show post hoc tab
 output$show_posthoc <- reactive({
@@ -788,7 +788,7 @@ output$posthoc_plot <- renderPlotly({
   })
 })
 
-# --- 8. LOGIKA UNDUH ---
+#   8. LOGIKA UNDUH  
 
 # Helper function untuk check apakah ANOVA signifikan
 is_anova_significant <- function(anova_results) {

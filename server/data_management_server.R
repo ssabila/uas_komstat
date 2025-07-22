@@ -1,6 +1,6 @@
-# server/data_management_server.R - VERSI FINAL TANPA VISUALISASI & INTERPRETASI
+# server/data_management_server.R
 
-# ===== REACTIVE VALUES =====
+#   REACTIVE VALUES  
 processed_data <- reactiveValues(
   current = NULL,
   original = NULL,
@@ -19,7 +19,7 @@ observe({
   }
 })
 
-# ===== STATUS DATA SUMMARY =====
+#   STATUS DATA SUMMARY  
 output$data_status_summary <- renderText({
   data <- processed_data$current
   if (!is.null(data)) {
@@ -31,14 +31,14 @@ output$data_status_summary <- renderText({
     outliers_count <- if (!is.null(processed_data$outliers)) length(processed_data$outliers) else 0
     
     status_text <- paste(
-      "=== STATUS DATA TERKINI ===",
+      "   STATUS DATA TERKINI   ",
       paste("Total Observasi:", format(n_obs, big.mark = ",")),
       paste("Total Variabel:", n_vars, paste0("(", n_numeric, " numerik, ", n_categorical, " kategori)")),
       paste("Missing Values:", paste0(missing_pct, "%")),
       paste("Outliers Terdeteksi:", outliers_count),
       paste("Operasi Diterapkan:", length(processed_data$operations)),
       "",
-      "=== KUALITAS DATA ===",
+      "   KUALITAS DATA   ",
       paste("Data Quality:", if(missing_pct < 5) "Excellent" else if(missing_pct < 15) "Good" else "Needs Attention"),
       paste("Data Size:", if(n_obs > 1000) "Large" else if(n_obs > 100) "Medium" else "Small"),
       sep = "\n"
@@ -47,7 +47,7 @@ output$data_status_summary <- renderText({
     # Tambah informasi operasi terbaru
     if (length(processed_data$operation_log) > 0) {
       recent_op <- tail(processed_data$operation_log, 1)
-      status_text <- paste(status_text, "", "=== OPERASI TERBARU ===", recent_op, sep = "\n")
+      status_text <- paste(status_text, "", "   OPERASI TERBARU   ", recent_op, sep = "\n")
     }
     
     return(status_text)
@@ -56,7 +56,7 @@ output$data_status_summary <- renderText({
   }
 })
 
-# ===== VALUE BOXES (DIPERBAIKI) =====
+#   VALUE BOXES
 output$vbox_rows <- renderValueBox({
   req(processed_data$current)
   valueBox(
@@ -101,7 +101,7 @@ output$vbox_outliers <- renderValueBox({
   )
 })
 
-# ===== TAMBAHAN: INFO BOX UNTUK STATUS OPERASI =====
+#   TAMBAHAN: INFO BOX UNTUK STATUS OPERASI  
 output$operation_status_box <- renderInfoBox({
   ops_count <- length(processed_data$operations)
   
@@ -115,7 +115,7 @@ output$operation_status_box <- renderInfoBox({
   )
 })
 
-# ===== DATA QUALITY ASSESSMENT =====
+#   DATA QUALITY ASSESSMENT  
 output$data_quality_assessment <- renderText({
   req(processed_data$current)
   data <- processed_data$current
@@ -287,18 +287,18 @@ observeEvent(input$btn_filter, {
 observeEvent(input$btn_reset_filter, { if(!is.null(processed_data$original)){processed_data$current<-processed_data$original;log_entry<-"🔄 Filter direset";processed_data$operation_log<-c(processed_data$operation_log,log_entry);shiny::showNotification("Filter direset!",type="default")}})
 observeEvent(input$btn_reset_all, { if(!is.null(processed_data$original)){processed_data$current<-processed_data$original;processed_data$operations<-list();processed_data$operation_log<-character(0);processed_data$outliers<-NULL;processed_data$last_outlier_var<-NULL;shiny::showNotification("Semua perubahan direset!",type="default")}})
 
-# ===== TABEL PREVIEW DATA & STATS =====
+#   TABEL PREVIEW DATA & STATS  
 output$data_preview_table <- DT::renderDataTable({ req(processed_data$current); DT::datatable(processed_data$current, options = list(scrollX = TRUE, pageLength = 5), filter = 'top') })
 
-# ===== LOG OPERASI =====
+#   LOG OPERASI  
 output$operation_log <- renderText({
   if (length(processed_data$operation_log) > 0) {
-    paste("=== LOG OPERASI DATA ===\n", paste(rev(processed_data$operation_log), collapse = "\n"), sep = "\n")
+    paste("   LOG OPERASI DATA   \n", paste(rev(processed_data$operation_log), collapse = "\n"), sep = "\n")
   } else { "Belum ada operasi yang dilakukan." }
 })
 
 
-# ===== DOWNLOAD DATA =====
+#   DOWNLOAD DATA  
 output$btn_export_data <- downloadHandler(
   filename = function() { paste("processed_data_", Sys.Date(), ".csv", sep = "") },
   content = function(file) { if (!is.null(processed_data$current)) write.csv(processed_data$current, file, row.names = FALSE) }
