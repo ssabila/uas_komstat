@@ -791,53 +791,291 @@ output$posthoc_plot <- renderPlotly({
 })
 
 # --- 8. LOGIKA UNDUH YANG DIPERBAIKI ---
+# server/anova_server.R - Tambahkan ini di bagian akhir file
+
+# ===== DOWNLOAD FUNCTIONALITY FOR ANOVA =====
+
+# server/anova_server.R - Auto-run Tukey saat download jika diperlukan
+
+# ===== SMART DOWNLOAD FUNCTIONALITY WITH AUTO TUKEY =====
+
+# Helper function untuk check apakah ANOVA signifikan
+is_anova_significant <- function(anova_results) {
+  tryCatch({
+    if (is.null(anova_results$summary)) return(FALSE)
+    
+    anova_table <- anova_results$summary[[1]]
+    p_values <- anova_table$`Pr(>F)`
+    
+    # Check if any main effect is significant
+    significant_effects <- any(p_values[!is.na(p_values)] < 0.05)
+    return(significant_effects)
+  }, error = function(e) {
+    return(FALSE)
+  })
+}
+
+# Helper function untuk auto-run Tukey jika belum dilakukan
+auto_run_tukey_if_needed <- function(anova_results, posthoc_results) {
+  # Jika ANOVA signifikan dan Tukey belum dilakukan, jalankan otomatis
+  if (is_anova_significant(anova_results) && is.null(posthoc_results$result)) {
+    tryCatch({
+      # Perform post hoc analysis
+      posthoc_result <- perform_posthoc(anova_results$model)
+      
+      if (!"error" %in% names(posthoc_result)) {
+        # Store results
+        posthoc_results$result <- posthoc_result
+        posthoc_results$method <- "tukey"
+        posthoc_results$interpretation <- interpret_posthoc(posthoc_result)
+        
+        return(list(success = TRUE, message = "Tukey HSD otomatis dijalankan"))
+      } else {
+        return(list(success = FALSE, message = posthoc_result$error))
+      }
+    }, error = function(e) {
+      return(list(success = FALSE, message = e$message))
+    })
+  }
+  
+  return(list(success = TRUE, message = "Tukey sudah tersedia atau tidak diperlukan"))
+}
+
+# Helper function untuk generate summary text
+generate_anova_summary_text <- function(anova_results) {
+  if (is.null(anova_results$summary) || is.null(anova_results$model)) {
+    return("Tidak ada hasil ANOVA yang tersedia.")
+  }
+  
+  # Capture summary output
+  summary_output <- capture.output({
+    cat("=== HASIL ANALISIS ANOVA ===\n")
+    cat("Formula yang digunakan:", anova_results$formula_used, "\n")
+    cat("Jumlah observasi:", nrow(anova_results$data), "\n\n")
+    print(anova_results$summary)
+    cat("\n=== RINGKASAN MODEL ===\n")
+    cat("R-squared:", round(summary.lm(anova_results$model)$r.squared, 4), "\n")
+    cat("Adjusted R-squared:", round(summary.lm(anova_results$model)$adj.r.squared, 4), "\n")
+  })
+  
+  return(paste(summary_output, collapse = "\n"))
+}
+
+# Helper function untuk generate interpretasi text  
+generate_anova_interpretation_text <- function(anova_results, input_values) {
+  if (is.null(anova_results$summary)) {
+    return("Interpretasi tidak tersedia.")
+  }
+  
+  tryCatch({
+    summary_aov <- anova_results$summary
+    anova_table <- summary_aov[[1]]
+    p_values <- anova_table$`Pr(>F)`
+    f_values <- anova_table$`F value`
+    
+    interpretation <- "=== INTERPRETASI HASIL ANOVA ===\n\n"
+    
+    if (input_values$anova_type == "one_way") {
+      # ANOVA Satu Arah
+      main_p_value <- p_values[1]
+      main_f_value <- f_values[1]
+      
+      if (!is.na(main_p_value) && !is.na(main_f_value)) {
+        interpretation <- paste0(interpretation,
+                                 "Berdasarkan hasil ANOVA satu arah diperoleh nilai signifikansi sebesar ",
+                                 sprintf("%.3f", main_p_value), ". "
+        )
+        
+        if (main_p_value < 0.05) {
+          interpretation <- paste0(interpretation,
+                                   "Karena nilai p < 0,05, maka dapat disimpulkan bahwa terdapat perbedaan yang signifikan ",
+                                   "antara rata-rata ", input_values$anova_dep_var, " minimal dua kelompok ", input_values$anova_indep_var1, ".\n\n",
+                                   "Dengan F-statistik = ", sprintf("%.3f", main_f_value), 
+                                   " dan p-value = ", sprintf("%.3f", main_p_value), 
+                                   ", kita menolak hipotesis nol dan menerima hipotesis alternatif.\n\n",
+                                   "Karena ANOVA menunjukkan hasil signifikan, uji Post Hoc Tukey HSD otomatis dijalankan ",
+                                   "untuk mengidentifikasi kelompok mana yang berbeda secara spesifik."
+          )
+        } else {
+          interpretation <- paste0(interpretation,
+                                   "Karena nilai p ≥ 0,05, maka dapat disimpulkan bahwa tidak terdapat perbedaan yang signifikan ",
+                                   "antara rata-rata ", input_values$anova_dep_var, " antar kelompok ", input_values$anova_indep_var1, ".\n\n",
+                                   "Dengan F-statistik = ", sprintf("%.3f", main_f_value), 
+                                   " dan p-value = ", sprintf("%.3f", main_p_value), 
+                                   ", kita gagal menolak hipotesis nul.\n\n",
+                                   "Karena ANOVA tidak signifikan, uji Post Hoc tidak diperlukan."
+          )
+        }
+      }
+    } else {
+      # ANOVA Dua Arah
+      factor_names <- rownames(anova_table)
+      interpretation <- paste0(interpretation, "Hasil ANOVA dua arah:\n\n")
+      
+      any_significant <- FALSE
+      for (i in 1:length(factor_names)) {
+        if (factor_names[i] != "Residuals" && !is.na(p_values[i])) {
+          factor_effect <- if (p_values[i] < 0.05) "signifikan" else "tidak signifikan"
+          if (p_values[i] < 0.05) any_significant <- TRUE
+          
+          interpretation <- paste0(interpretation,
+                                   "- Efek ", factor_names[i], ": ", factor_effect, 
+                                   " (F = ", sprintf("%.3f", f_values[i]), 
+                                   ", p = ", sprintf("%.3f", p_values[i]), ")\n"
+          )
+        }
+      }
+      
+      if (input_values$anova_interaction && length(p_values) >= 3) {
+        interaction_p <- p_values[3]
+        if (!is.na(interaction_p)) {
+          interaction_effect <- if (interaction_p < 0.05) "signifikan" else "tidak signifikan"
+          if (interaction_p < 0.05) any_significant <- TRUE
+          
+          interpretation <- paste0(interpretation,
+                                   "\nEfek interaksi antara kedua faktor adalah ", interaction_effect, 
+                                   " (p = ", sprintf("%.3f", interaction_p), ")."
+          )
+        }
+      }
+      
+      if (any_significant) {
+        interpretation <- paste0(interpretation, 
+                                 "\n\nKarena terdapat efek yang signifikan, uji Post Hoc Tukey HSD otomatis dijalankan.")
+      } else {
+        interpretation <- paste0(interpretation, 
+                                 "\n\nKarena tidak ada efek yang signifikan, uji Post Hoc tidak diperlukan.")
+      }
+    }
+    
+    return(interpretation)
+  }, error = function(e) {
+    return(paste("Error dalam interpretasi:", e$message))
+  })
+}
+
+# Helper function untuk generate Tukey HSD text
+generate_tukey_summary_text <- function(posthoc_results) {
+  if (is.null(posthoc_results$result)) {
+    return("Uji Post Hoc Tukey HSD tidak diperlukan (ANOVA tidak signifikan).")
+  }
+  
+  tryCatch({
+    # Capture Tukey output
+    tukey_output <- capture.output({
+      cat("=== HASIL UJI POST HOC TUKEY HSD ===\n")
+      cat("Metode:", posthoc_results$result$method, "\n")
+      if (!is.null(posthoc_results$result$note)) {
+        cat("Catatan:", posthoc_results$result$note, "\n")
+      }
+      cat("\n")
+      print(posthoc_results$result$result)
+    })
+    
+    return(paste(tukey_output, collapse = "\n"))
+  }, error = function(e) {
+    return(paste("Error dalam ringkasan Tukey:", e$message))
+  })
+}
+
+# Helper function untuk generate Tukey interpretation
+generate_tukey_interpretation_text <- function(posthoc_results) {
+  if (is.null(posthoc_results$interpretation)) {
+    return("Interpretasi Tukey HSD tidak tersedia.")
+  }
+  
+  return(paste("=== INTERPRETASI UJI POST HOC TUKEY HSD ===\n\n", posthoc_results$interpretation))
+}
+
+# SMART download handler - otomatis jalankan Tukey jika diperlukan
 output$download_anova_result <- downloadHandler(
   filename = function() {
-    paste("hasil-anova-", Sys.Date(), ".", input$anova_format, sep = "")
+    paste("laporan-anova-lengkap-", Sys.Date(), ".", input$anova_download_format, sep = "")
   },
   content = function(file) {
-    req(anova_results$summary)
+    # Validasi bahwa hasil ANOVA tersedia
+    req(anova_results$summary, anova_results$model)
     
+    showNotification("Menyiapkan laporan lengkap...", type = "message", duration = 2)
+    
+    # OTOMATIS JALANKAN TUKEY JIKA DIPERLUKAN
+    tukey_auto_result <- auto_run_tukey_if_needed(anova_results, posthoc_results)
+    
+    # Simpan current input values untuk interpretasi
+    current_inputs <- list(
+      anova_type = input$anova_type,
+      anova_dep_var = input$anova_dep_var,
+      anova_indep_var1 = input$anova_indep_var1,
+      anova_indep_var2 = input$anova_indep_var2,
+      anova_interaction = input$anova_interaction
+    )
+    
+    # Generate teks laporan ANOVA
+    summary_text <- generate_anova_summary_text(anova_results)
+    interpretation_text <- generate_anova_interpretation_text(anova_results, current_inputs)
+    
+    # Generate teks Tukey (baik sudah ada atau baru dijalankan)
+    tukey_summary <- generate_tukey_summary_text(posthoc_results)
+    tukey_interpretation <- generate_tukey_interpretation_text(posthoc_results)
+    
+    # Status Tukey untuk laporan
+    tukey_status <- if (is_anova_significant(anova_results)) {
+      if (tukey_auto_result$success) "✓ Otomatis dijalankan dalam laporan ini" 
+      else paste("✗ Error:", tukey_auto_result$message)
+    } else {
+      "✗ Tidak diperlukan (ANOVA tidak signifikan)"
+    }
+    
+    # Gabungkan semua teks
+    full_report_text <- paste(
+      summary_text,
+      "\n\n",
+      interpretation_text,
+      "\n\n",
+      tukey_summary,
+      "\n\n",
+      tukey_interpretation,
+      "\n\n=== INFORMASI TAMBAHAN ===\n",
+      "Tanggal Analisis: ", format(Sys.time(), "%d %B %Y %H:%M:%S"), "\n",
+      "Jenis ANOVA: ", ifelse(input$anova_type == "one_way", "Satu Arah (One-Way)", "Dua Arah (Two-Way)"), "\n",
+      "Total Observasi: ", nrow(anova_results$data), "\n",
+      "Status Tukey HSD: ", tukey_status, "\n",
+      "Metode Laporan: Smart Auto-Download (ANOVA + Tukey otomatis)",
+      sep = "\n"
+    )
+    
+    # Parameter untuk R Markdown
+    params <- list(
+      report_title = "Laporan Lengkap Analisis ANOVA + Post Hoc Tukey HSD",
+      text_output = full_report_text
+    )
+    
+    # Render laporan
     tryCatch({
-      # Create comprehensive report content
-      report_content <- c(
-        "# LAPORAN HASIL ANALISIS ANOVA",
-        "",
-        paste("**Tanggal Analisis:** ", Sys.Date()),
-        paste("**Jenis ANOVA:** ", if(input$anova_type == "one_way") "Satu Arah (One-Way)" else "Dua Arah (Two-Way)"),
-        paste("**Formula:** ", anova_results$formula_used),
-        "",
-        "## Ringkasan Data",
-        paste("- Jumlah observasi:", nrow(anova_results$data)),
-        paste("- Variabel dependen:", input$anova_dep_var),
-        paste("- Variabel independen 1:", input$anova_indep_var1),
-        if(input$anova_type == "two_way") paste("- Variabel independen 2:", input$anova_indep_var2) else "",
-        "",
-        "## Hasil ANOVA",
-        "```",
-        capture.output(print(anova_results$summary)),
-        "```",
-        "",
-        "## Interpretasi",
-        # Add interpretation here
-        ""
-      )
-      
-      # Write to temporary file
-      temp_rmd <- tempfile(fileext = ".Rmd")
-      writeLines(report_content, temp_rmd)
-      
-      # Render report
       rmarkdown::render(
-        input = temp_rmd,
+        input = "text_report.Rmd",
         output_file = file,
-        output_format = if(input$anova_format == "pdf") "pdf_document" else "word_document",
-        quiet = TRUE
+        output_format = if (input$anova_download_format == "pdf") "pdf_document" else "word_document",
+        params = params,
+        envir = new.env(parent = globalenv())
       )
+      
+      # Smart notification berdasarkan apa yang terjadi
+      if (is_anova_significant(anova_results)) {
+        if (tukey_auto_result$success) {
+          showNotification("✅ Laporan lengkap berhasil! ANOVA + Tukey HSD otomatis disertakan.", 
+                           type = "message", duration = 5)
+        } else {
+          showNotification("⚠️ Laporan ANOVA berhasil, tapi Tukey HSD gagal dijalankan otomatis.", 
+                           type = "warning", duration = 5)
+        }
+      } else {
+        showNotification("📄 Laporan ANOVA berhasil dibuat. Tukey HSD tidak diperlukan (hasil tidak signifikan).", 
+                         type = "message", duration = 4)
+      }
       
     }, error = function(e) {
-      # Fallback: simple text output
-      writeLines(capture.output(print(anova_results$summary)), file)
+      showNotification(paste("❌ Error membuat laporan:", e$message), type = "error", duration = 5)
     })
   }
 )

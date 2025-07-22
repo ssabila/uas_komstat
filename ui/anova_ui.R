@@ -1,4 +1,4 @@
-# ui/anova_ui.R - FINAL FIXED VERSION untuk mengatasi error tabsetPanel
+# ui/anova_ui.R - Kembalikan versi original lengkap dengan post hoc + tambahan download
 
 tagList(
   # Header Section
@@ -106,14 +106,13 @@ tagList(
              solidHeader = TRUE,
              width = 12,
              
-             # PERBAIKAN: Tambahkan parameter yang diperlukan untuk tabsetPanel
              tabsetPanel(
                id = "anova_results_tabs",
-               type = "tabs",  # PERBAIKAN: Tambahkan parameter type
+               type = "tabs",
                
                # ANOVA Table Tab
                tabPanel(
-                 title = "Tabel ANOVA",  # PERBAIKAN: Simplify title, hapus div() complex
+                 title = "Tabel ANOVA",
                  value = "anova_table",
                  br(),
                  div(
@@ -123,26 +122,96 @@ tagList(
                  
                  hr(),
                  
-                 # Download Section
+                 # Download Section - TAMBAHAN BARU
+                 # Smart Download Section untuk UI ANOVA - ganti bagian download di ui/anova_ui.R
+                 
+                 # Smart Download Section - Auto ANOVA + Tukey
                  div(
-                   style = "background: #e9ecef; padding: 15px; border-radius: 5px;",
-                   h4("📥 Unduh Hasil ANOVA", style = "margin-top: 0;"),  # PERBAIKAN: Simplify title
+                   class = "download-section",
+                   style = "background: #e9ecef; padding: 20px; border-radius: 8px; border-top: 3px solid #28a745; margin-top: 20px;",
+                   h4("🚀 Smart Download - Laporan Lengkap", style = "margin-top: 0; color: #495057;"),
+                   p(strong("Sekali klik untuk laporan komprehensif!"), " Sistem akan otomatis menjalankan Tukey HSD jika ANOVA signifikan."),
+                   
                    fluidRow(
                      column(6,
-                            radioButtons("anova_format", 
-                                         "Pilih Format:", 
+                            radioButtons("anova_download_format", 
+                                         "Pilih Format Download:", 
                                          choices = list(
-                                           "PDF" = "pdf", 
-                                           "Word (.docx)" = "docx"
+                                           "📄 PDF" = "pdf", 
+                                           "📝 Word (.docx)" = "docx"
                                          ), 
-                                         inline = TRUE)
+                                         inline = FALSE,
+                                         selected = "pdf")
                      ),
                      column(6,
-                            br(),
-                            downloadButton("download_anova_result", 
-                                           label = "📄 Unduh Laporan",  # PERBAIKAN: Simplify label
-                                           class = "btn-primary",
-                                           style = "width: 100%;")
+                            div(
+                              style = "margin-top: 25px;",
+                              downloadButton("download_anova_result", 
+                                             "🚀 Download Laporan Lengkap", 
+                                             class = "btn-success btn-lg",
+                                             style = "width: 100%; padding: 12px; font-weight: bold;")
+                            )
+                     )
+                   ),
+                   
+                   # Smart process explanation
+                   div(
+                     style = "background: #d4edda; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid #28a745;",
+                     h6("🤖 Proses Otomatis", style = "margin-top: 0; color: #155724;"),
+                     div(
+                       style = "display: flex; align-items: center; margin-bottom: 10px;",
+                       div(style = "background: #28a745; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: bold; font-size: 12px;", "1"),
+                       span("Sistem menganalisis hasil ANOVA Anda", style = "color: #155724;")
+                     ),
+                     div(
+                       style = "display: flex; align-items: center; margin-bottom: 10px;",
+                       div(style = "background: #28a745; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: bold; font-size: 12px;", "2"),
+                       span("Jika signifikan → Tukey HSD otomatis dijalankan", style = "color: #155724;")
+                     ),
+                     div(
+                       style = "display: flex; align-items: center;",
+                       div(style = "background: #28a745; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: bold; font-size: 12px;", "3"),
+                       span("Laporan lengkap dengan interpretasi siap diunduh", style = "color: #155724;")
+                     )
+                   ),
+                   
+                   # Content overview
+                   div(
+                     style = "background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid #6c757d;",
+                     h6("📋 Isi Laporan Lengkap", style = "margin-top: 0; color: #495057;"),
+                     
+                     # Always included
+                     div(
+                       style = "margin-bottom: 10px;",
+                       h6("✅ Selalu Disertakan:", style = "margin: 0 0 5px 0; color: #155724;"),
+                       tags$ul(
+                         style = "margin: 0 0 0 20px; font-size: 0.9em; color: #495057;",
+                         tags$li("Tabel ANOVA lengkap + interpretasi"),
+                         tags$li("Formula analisis & ringkasan model"),
+                         tags$li("Informasi dataset & metadata")
+                       )
+                     ),
+                     
+                     # Conditional content
+                     div(
+                       h6("🔍 Tukey HSD (Otomatis):", style = "margin: 0 0 5px 0; color: #0c5460;"),
+                       tags$ul(
+                         style = "margin: 0 0 0 20px; font-size: 0.9em; color: #495057;",
+                         tags$li("✓ Dijalankan otomatis jika ANOVA signifikan"),
+                         tags$li("✓ Perbandingan berpasangan semua kelompok"),
+                         tags$li("✓ Interpretasi kelompok mana yang berbeda"),
+                         tags$li("ℹ️ Dilewati jika ANOVA tidak signifikan")
+                       )
+                     )
+                   ),
+                   
+                   # Benefits highlight
+                   div(
+                     style = "background: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 10px; border-left: 3px solid #ffc107;",
+                     h6("⚡ Keunggulan Smart Download:", style = "margin-top: 0; color: #856404;"),
+                     div(
+                       style = "font-size: 0.9em; color: #856404;",
+                       "• Tidak perlu klik berkali-kali • Hasil selalu lengkap • Workflow yang efisien • Laporan profesional siap pakai"
                      )
                    )
                  )
@@ -150,55 +219,31 @@ tagList(
                
                # Interpretation Tab
                tabPanel(
-                 title = "Interpretasi",  # PERBAIKAN: Simplify title
-                 value = "interpretation",
+                 title = "Interpretasi",
+                 value = "anova_interpretation",
                  br(),
                  div(
                    style = "background: #f8f9fa; padding: 20px; border-radius: 5px;",
+                   h4("📝 Interpretasi Hasil ANOVA"),
+                   hr(),
                    div(
-                     style = "background: #d1ecf1; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #bee5eb;",
-                     h4("💡 Interpretasi Hasil", style = "margin-top: 0; color: #0c5460;"),  # PERBAIKAN: Simplify title
-                     p("Interpretasi statistik berdasarkan hasil ANOVA yang telah dijalankan:", 
-                       style = "margin-bottom: 0; color: #0c5460;")
-                   ),
-                   verbatimTextOutput("anova_interpretation", placeholder = TRUE)
-                 ),
-                 
-                 # Post Hoc Notification (conditionally shown)
-                 conditionalPanel(
-                   condition = "output.show_posthoc == true",
-                   div(
-                     style = "background: #d4edda; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid #c3e6cb;",
-                     h5("⚠️ Uji Post Hoc Diperlukan!", style = "margin-top: 0; color: #155724;"),  # PERBAIKAN: Simplify title
-                     p("Hasil ANOVA menunjukkan perbedaan signifikan antar grup. ", 
-                       strong("Silakan gunakan tab 'Uji Post Hoc'"), 
-                       " untuk mengidentifikasi grup mana yang berbeda secara spesifik.",
-                       style = "margin-bottom: 0; color: #155724;")
-                   )
-                 ),
-                 
-                 # Guidance Box
-                 div(
-                   style = "background: #d4edda; padding: 15px; border-radius: 5px; margin-top: 15px;",
-                   h5("❓ Panduan Interpretasi", style = "margin-top: 0;"),  # PERBAIKAN: Simplify title
-                   tags$ul(
-                     tags$li(strong("p < 0.05:"), " Ada perbedaan signifikan antar grup"),
-                     tags$li(strong("p ≥ 0.05:"), " Tidak ada perbedaan signifikan"),
-                     tags$li(strong("F-statistik:"), " Semakin besar, semakin kuat bukti perbedaan"),
-                     tags$li(strong("Post-hoc:"), " Jika signifikan, lakukan uji lanjutan untuk identifikasi grup yang berbeda")
+                     style = "background: white; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff;",
+                     verbatimTextOutput("anova_interpretation")
                    )
                  )
                ),
                
-               # Visualization Tab
+               # Visualisasi Tab
                tabPanel(
-                 title = "Visualisasi",  # PERBAIKAN: Simplify title
-                 value = "visualization",
+                 title = "Visualisasi",
+                 value = "anova_visualization",
                  br(),
+                 
+                 # Info Box
                  div(
-                   style = "background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px;",
-                   h4("📊 Visualisasi Distribusi Data", style = "margin-top: 0;"),  # PERBAIKAN: Simplify title
-                   p("Boxplot menunjukkan distribusi data antar grup. Titik merah menunjukkan rata-rata grup.")
+                   style = "background: #e7f3ff; padding: 15px; border-radius: 5px; margin-bottom: 20px;",
+                   h4("📈 Visualisasi Data ANOVA", style = "margin-top: 0;"),
+                   p("Visualisasi ini membantu memahami distribusi data dan perbedaan antar grup secara visual.")
                  ),
                  
                  # Plot container with loading message
@@ -209,7 +254,7 @@ tagList(
                      condition = "!output.anova_plot",
                      div(
                        style = "text-align: center; padding: 50px; color: #6c757d;",
-                       h4("📊 Grafik Belum Tersedia"),  # PERBAIKAN: Simplify title
+                       h4("📊 Grafik Belum Tersedia"),
                        p("Klik 'Jalankan ANOVA' untuk menampilkan visualisasi.")
                      )
                    )
@@ -218,7 +263,7 @@ tagList(
                  # Visualization Guide
                  div(
                    style = "background: #fff3cd; padding: 15px; border-radius: 5px; margin-top: 15px;",
-                   h5("👁️ Cara Membaca Visualisasi", style = "margin-top: 0;"),  # PERBAIKAN: Simplify title
+                   h5("👁️ Cara Membaca Visualisasi", style = "margin-top: 0;"),
                    fluidRow(
                      column(6,
                             tags$ul(
@@ -242,21 +287,22 @@ tagList(
     )
   ),
   
-  # Post Hoc Section (Conditional) - HANYA TUKEY
+  # Post Hoc Section (Conditional) - KEMBALIKAN SEPERTI SEMULA
   conditionalPanel(
     condition = "output.show_posthoc == true",
     fluidRow(
       column(12,
              box(
-               title = "🔍 Uji Post Hoc Tukey HSD",  # PERBAIKAN: Simplify title
+               title = "🔍 Uji Post Hoc Tukey HSD",
                status = "warning",
                solidHeader = TRUE,
                width = 12,
                
                div(
                  style = "background: #d1ecf1; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #bee5eb;",
-                 h4("ℹ️ Uji Post Hoc Tukey HSD", style = "margin-top: 0; color: #0c5460;"),  # PERBAIKAN: Simplify title
-                 p("Hasil ANOVA menunjukkan perbedaan signifikan antar grup. Uji post hoc Tukey HSD akan mengidentifikasi grup mana yang berbeda secara spesifik.", 
+                 h4("ℹ️ Uji Post Hoc Tukey HSD", style = "margin-top: 0; color: #0c5460;"),
+                 p("Hasil ANOVA menunjukkan perbedaan signifikan antar grup. ",
+                   "Uji post hoc Tukey HSD akan mengidentifikasi grup mana yang berbeda secara spesifik.", 
                    style = "margin-bottom: 0; color: #0c5460;")
                ),
                
@@ -268,26 +314,25 @@ tagList(
                           h5("Uji Post Hoc Tukey HSD", style = "margin-top: 0;"),
                           div(
                             style = "background: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
-                            h6("✅ Metode: Tukey HSD", style = "margin: 0; color: #495057;"),  # PERBAIKAN: Simplify title
+                            h6("✅ Metode: Tukey HSD", style = "margin: 0; color: #495057;"),
                             p("Metode paling umum dan andal untuk perbandingan multiple", 
                               style = "margin: 5px 0 0 0; font-size: 0.9em; color: #6c757d;")
                           ),
                           actionButton("run_posthoc", 
-                                       label = "▶️ Jalankan Tukey HSD",  # PERBAIKAN: Simplify label
+                                       label = "▶️ Jalankan Tukey HSD",
                                        class = "btn-primary btn-block",
                                        style = "font-weight: bold;")
                         )
                  ),
                  
                  column(8,
-                        # PERBAIKAN: Tambahkan parameter yang diperlukan untuk tabsetPanel
                         tabsetPanel(
-                          id = "posthoc_tabs",  # PERBAIKAN: Tambahkan id
-                          type = "tabs",  # PERBAIKAN: Tambahkan parameter type
+                          id = "posthoc_tabs",
+                          type = "tabs",
                           
                           tabPanel(
-                            title = "Hasil",  # PERBAIKAN: Simplify title
-                            value = "posthoc_results_tab",  # PERBAIKAN: Tambahkan value
+                            title = "Hasil",
+                            value = "posthoc_results_tab",
                             br(),
                             div(
                               style = "background: #f8f9fa; padding: 15px; border-radius: 5px;",
@@ -295,8 +340,8 @@ tagList(
                             )
                           ),
                           tabPanel(
-                            title = "Interpretasi",  # PERBAIKAN: Simplify title
-                            value = "posthoc_interpretation_tab",  # PERBAIKAN: Tambahkan value
+                            title = "Interpretasi",
+                            value = "posthoc_interpretation_tab",
                             br(),
                             div(
                               style = "background: #d4edda; padding: 15px; border-radius: 5px;",
@@ -304,32 +349,15 @@ tagList(
                             )
                           ),
                           tabPanel(
-                            title = "Visualisasi",  # PERBAIKAN: Simplify title
-                            value = "posthoc_visualization_tab",  # PERBAIKAN: Tambahkan value
+                            title = "Visualisasi",
+                            value = "posthoc_visualization_tab",
                             br(),
-                            plotlyOutput("posthoc_plot", height = "400px")
+                            div(
+                              style = "background: #f8f9fa; padding: 15px; border-radius: 5px;",
+                              plotlyOutput("posthoc_plot", height = "400px")
+                            )
                           )
                         )
-                 )
-               ),
-               
-               # Tukey HSD Information
-               div(
-                 style = "background: #fff3cd; padding: 15px; border-radius: 5px; margin-top: 15px;",
-                 h5("ℹ️ Tentang Tukey HSD", style = "margin-top: 0;"),  # PERBAIKAN: Simplify title
-                 fluidRow(
-                   column(6,
-                          tags$ul(
-                            tags$li(strong("Family-wise error control:"), " Mengontrol tingkat kesalahan tipe I secara keseluruhan"),
-                            tags$li(strong("Perbandingan all-pairwise:"), " Membandingkan semua kemungkinan pasangan grup")
-                          )
-                   ),
-                   column(6,
-                          tags$ul(
-                            tags$li(strong("Adjustment otomatis:"), " P-value sudah disesuaikan untuk multiple comparisons"),
-                            tags$li(strong("Interpretasi mudah:"), " p < 0.05 = berbeda signifikan")
-                          )
-                   )
                  )
                )
              )

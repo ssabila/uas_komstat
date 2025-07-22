@@ -299,7 +299,6 @@ output$normality_residual_interpretation <- renderPrint({
   }
 })
 
-# 4.3 Homoskedastisitas dengan Interpretasi
 output$regression_residual_plot <- renderPlot({
   model <- regression_model()
   
@@ -326,13 +325,55 @@ output$regression_residual_plot <- renderPlot({
   }
 })
 
-# 4.4 Interpretasi Homoskedastisitas
-output$homoskedasticity_interpretation <- renderPrint({
+#4.3 autokorelasi
+output$independence_interpretation <- renderPrint({
   model <- regression_model()
   
   if (!is.null(model)) {
     tryCatch({
-      # Uji Breusch-Pagan untuk homoskedastisitas
+      # Membutuhkan package 'lmtest'
+      if (requireNamespace("lmtest", quietly = TRUE)) {
+        dw_test <- lmtest::dwtest(model)
+        
+        cat("=== UJI AUTOKORELASI (DURBIN-WATSON) ===\n")
+        cat("Hipotesis:\n")
+        cat("H₀: Tidak ada autokorelasi (residual independen)\n")
+        cat("H₁: Ada autokorelasi positif\n")
+        cat("Tingkat signifikansi (α): 0.05\n\n")
+        
+        cat("Hasil Pengujian:\n")
+        cat("Statistik DW:", round(dw_test$statistic, 4), "\n")
+        cat("P-value:", round(dw_test$p.value, 6), "\n\n")
+        
+        cat("=== INTERPRETASI ===\n")
+        if (dw_test$p.value < 0.05) {
+          cat(sprintf("Berdasarkan uji Durbin-Watson, terindikasi adanya masalah autokorelasi karena nilai \np-value (%.6f) < α (0.05), sehingga keputusan yang diambil adalah TOLAK H₀.\n\n", dw_test$p.value))
+          cat("Kesimpulan: Asumsi independensi residual TIDAK terpenuhi.\n")
+        } else {
+          cat(sprintf("Berdasarkan uji Durbin-Watson, tidak ditemukan adanya masalah autokorelasi karena nilai \np-value (%.6f) ≥ α (0.05), sehingga keputusan yang diambil adalah GAGAL TOLAK H₀.\n\n", dw_test$p.value))
+          cat("Kesimpulan: Asumsi independensi residual TERPENUHI.\n")
+        }
+        
+      } else {
+        cat("Package 'lmtest' tidak tersedia. Silakan install package 'lmtest' untuk melakukan uji Durbin-Watson.")
+      }
+      
+    }, error = function(e) {
+      cat("Error dalam uji autokorelasi:", e$message)
+    })
+  } else {
+    cat("Model regresi belum dibuat. Klik 'Bangun Model' terlebih dahulu.")
+  }
+})
+
+
+# 4.4 Interpretasi Homoskedastisitas
+output$homoscedasticity_interpretation <- renderPrint({
+  model <- regression_model()
+  
+  if (!is.null(model)) {
+    tryCatch({
+      # Memastikan package 'lmtest' terinstal
       if (requireNamespace("lmtest", quietly = TRUE)) {
         bp_test <- lmtest::bptest(model)
         
@@ -343,97 +384,85 @@ output$homoskedasticity_interpretation <- renderPrint({
         cat("Tingkat signifikansi (α): 0.05\n\n")
         
         cat("Hasil Pengujian:\n")
-        cat("Statistik BP:", round(bp_test$statistic, 6), "\n")
-        cat("P-value:", round(bp_test$p.value, 6), "\n\n")
+        cat("Statistik BP:", round(bp_test$statistic, 4), "\n")
+        cat("P-value:", format.pval(bp_test$p.value, digits = 6), "\n\n")
         
         cat("=== INTERPRETASI ===\n")
         if (bp_test$p.value < 0.05) {
-          cat(sprintf("Berdasarkan uji Breusch-Pagan yang telah dilakukan, diketahui bahwa model regresi \nmengalami masalah heteroskedastisitas karena nilai p-value (%.6f) < α (0.05), \nsehingga keputusan yang diambil adalah TOLAK H₀.\n\n", 
-                      bp_test$p.value))
-          cat("Kesimpulan: Asumsi homoskedastisitas TIDAK terpenuhi.\n\n")
+          cat(sprintf(
+            "Berdasarkan uji Breusch-Pagan, model regresi mengalami masalah heteroskedastisitas karena \nnilai p-value (%.6f) < α (0.05).\nKeputusan yang diambil adalah TOLAK H₀.\n", 
+            bp_test$p.value
+          ))
+          cat("\nKesimpulan: Asumsi homoskedastisitas TIDAK terpenuhi.\n")
         } else {
-          cat(sprintf("Berdasarkan uji Breusch-Pagan yang telah dilakukan, diketahui bahwa model regresi \nTIDAK mengalami masalah heteroskedastisitas karena nilai p-value (%.6f) > α (0.05), \nsehingga keputusan yang diambil adalah GAGAL TOLAK H₀.\n\n", 
-                      bp_test$p.value))
-          cat("Kesimpulan: Asumsi homoskedastisitas TERPENUHI.\n\n")
-          cat("Catatan: Varians residual konstan, mendukung validitas inferensi statistik.\n")
+          cat(sprintf(
+            "Berdasarkan uji Breusch-Pagan, model regresi TIDAK mengalami masalah heteroskedastisitas karena \nnilai p-value (%.6f) ≥ α (0.05).\nKeputusan yang diambil adalah GAGAL TOLAK H₀.\n", 
+            bp_test$p.value
+          ))
+          cat("\nKesimpulan: Asumsi homoskedastisitas TERPENUHI.\n")
+          cat("Catatan: Varians residual yang konstan mendukung validitas inferensi statistik.\n")
         }
       } else {
-        cat("=== UJI HOMOSKEDASTISITAS ===\n")
-        cat("Package 'lmtest' tidak tersedia.\n")
-        cat("Silakan evaluasi secara visual melalui plot Residuals vs Fitted:\n")
-        cat("- Jika titik tersebar acak tanpa pola: homoskedastisitas\n")
-        cat("- Jika membentuk pola corong/kerucut: heteroskedastisitas\n")
+        cat("Package 'lmtest' tidak tersedia. Silakan install package 'lmtest' terlebih dahulu.")
       }
       
     }, error = function(e) {
       cat("Error dalam uji homoskedastisitas:", e$message)
     })
   } else {
+    # Pesan ini seharusnya tidak muncul jika grafik sudah ada, tapi ini adalah fallback yang baik.
     cat("Model regresi belum dibuat. Klik 'Bangun Model' terlebih dahulu.")
   }
 })
 
 # 4.5 Multikolinearitas dengan Interpretasi
-output$regression_vif <- renderPrint({
+output$multikolinearitas_vif <- renderPrint({
   model <- regression_model()
   
   if (!is.null(model)) {
+    # VIF hanya relevan jika ada lebih dari 1 variabel independen
     if (length(input$reg_indep_vars) > 1) {
       tryCatch({
+        # Membutuhkan package 'car'
         if (requireNamespace("car", quietly = TRUE)) {
           vif_values <- car::vif(model)
           
           cat("=== UJI MULTIKOLINEARITAS (VARIANCE INFLATION FACTOR) ===\n")
           cat("Kriteria VIF:\n")
-          cat("- VIF < 5: Tidak ada masalah multikolinearitas\n")
+          cat("- VIF < 5:  Tidak ada masalah multikolinearitas\n")
           cat("- VIF 5-10: Multikolinearitas sedang, perlu diwaspadai\n")
-          cat("- VIF > 10: Multikolinearitas serius\n\n")
+          cat("- VIF > 10: Multikolinearitas serius, perlu perbaikan model\n\n")
           
           cat("Hasil VIF untuk setiap variabel:\n")
-          for (i in 1:length(vif_values)) {
-            var_name <- names(vif_values)[i]
-            vif_val <- vif_values[i]
-            cat(sprintf("%-20s: %.4f", var_name, vif_val))
-            
-            if (vif_val < 5) {
-              cat(" [✓ Baik]")
-            } else if (vif_val <= 10) {
-              cat(" [⚠ Waspada]")
-            } else {
-              cat(" [✗ Bermasalah]")
-            }
-            cat("\n")
-          }
+          print(vif_values)
           
           cat("\n=== INTERPRETASI ===\n")
           max_vif <- max(vif_values)
-          problematic_vars <- names(vif_values)[vif_values > 10]
-          warning_vars <- names(vif_values)[vif_values > 5 & vif_values <= 10]
           
           if (max_vif > 10) {
-            cat(sprintf("Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi \nmengalami masalah multikolinearitas SERIUS karena terdapat variabel dengan VIF > 10.\n\n"))
-            cat("Variabel bermasalah:", paste(problematic_vars, collapse = ", "), "\n\n")
-            cat("Kesimpulan: Asumsi tidak adanya multikolinearitas TIDAK terpenuhi.\n\n")
+            problematic_vars <- names(vif_values)[vif_values > 10]
+            cat("Ditemukan masalah multikolinearitas SERIUS pada model.\n")
+            cat("Variabel dengan VIF > 10:", paste(problematic_vars, collapse = ", "), "\n")
+            cat("Kesimpulan: Asumsi bebas multikolinearitas TIDAK terpenuhi.\n")
           } else if (max_vif > 5) {
-            cat(sprintf("Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi \nmengalami multikolinearitas SEDANG karena terdapat variabel dengan VIF antara 5-10.\n\n"))
-            cat("Variabel yang perlu diwaspadai:", paste(warning_vars, collapse = ", "), "\n\n")
-            cat("Kesimpulan: Asumsi tidak adanya multikolinearitas CUKUP terpenuhi dengan catatan.\n\n")
+            warning_vars <- names(vif_values)[vif_values > 5]
+            cat("Ditemukan potensi multikolinearitas SEDANG pada model.\n")
+            cat("Variabel dengan VIF > 5:", paste(warning_vars, collapse = ", "), "\n")
+            cat("Kesimpulan: Asumsi bebas multikolinearitas CUKUP terpenuhi, namun perlu kewaspadaan.\n")
           } else {
-            cat(sprintf("Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi \nTIDAK mengalami masalah multikolinearitas karena semua variabel memiliki VIF < 5.\n\n"))
-            cat("Kesimpulan: Asumsi tidak adanya multikolinearitas TERPENUHI.\n\n")
-            cat("Catatan: Semua variabel independen dapat dipertahankan dalam model.\n")
+            cat("Tidak ditemukan masalah multikolinearitas yang signifikan pada model (semua VIF < 5).\n")
+            cat("Kesimpulan: Asumsi bebas multikolinearitas TERPENUHI.\n")
           }
           
         } else {
-          cat("Package 'car' tidak tersedia untuk menghitung VIF.\n")
-          cat("Silakan install package 'car' terlebih dahulu.")
+          cat("Package 'car' tidak tersedia untuk menghitung VIF.\nSilakan install package 'car' terlebih dahulu.")
         }
       }, error = function(e) {
-        cat("Error menghitung VIF:", e$message)
+        cat("Error saat menghitung VIF:", e$message)
       })
     } else {
-      cat("VIF (Variance Inflation Factor) memerlukan minimal 2 variabel independen.\n")
-      cat("Model saat ini hanya memiliki 1 variabel independen, sehingga tidak ada masalah multikolinearitas.")
+      cat("Uji VIF (Variance Inflation Factor) memerlukan minimal 2 variabel independen.\n")
+      cat("Model saat ini hanya memiliki 1 variabel independen, sehingga multikolinearitas tidak dapat dihitung (dan tidak menjadi masalah).\n")
     }
   } else {
     cat("Model regresi belum dibuat. Klik 'Bangun Model' terlebih dahulu.")
@@ -478,15 +507,15 @@ output$regression_interpretation <- renderText({
       })
       
       signif_interpretation <- paste(
-        "Dari hasil tersebut, diperoleh", paste(p_values_text, collapse = " dan "), ".",
+        "\nDari hasil tersebut, diperoleh", paste(p_values_text, collapse = " dan \n"), ".",
         if (length(significant_vars) == 1) {
-          paste("Karena p-value lebih kecil dari 0,05, maka", significant_vars[1], 
-                "berpengaruh signifikan terhadap", input$reg_dep_var, "pada tingkat signifikansi 5%.")
+          paste("Karena p-value lebih kecil dari 0,05, \n maka", significant_vars[1], 
+                "\nberpengaruh signifikan terhadap", input$reg_dep_var, "pada tingkat signifikansi 5%.")
         } else {
-          paste("Karena semua p-value lebih kecil dari 0,05, maka", 
+          paste("Karena semua p-value lebih kecil dari 0,05, \n maka", 
                 paste(significant_vars[-length(significant_vars)], collapse = ", "), 
-                "maupun", significant_vars[length(significant_vars)], 
-                "berpengaruh signifikan terhadap", input$reg_dep_var, "pada tingkat signifikansi 5%.")
+                "\nmaupun", significant_vars[length(significant_vars)], 
+                "\nberpengaruh signifikan terhadap", input$reg_dep_var, "pada tingkat signifikansi 5%.")
         }
       )
     }
@@ -502,28 +531,28 @@ output$regression_interpretation <- renderText({
         if (grepl("(?i)(populasi|population)", var)) {
           # Variabel populasi (satuan: jiwa)
           paste("Koefisien", var, "sebesar", sprintf("%.6f", coeff_value), 
-                "menunjukkan bahwa setiap tambahan satu jiwa", var, 
+                "menunjukkan bahwa \nsetiap tambahan satu jiwa", var, 
                 "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
                 input$reg_dep_var, "sebesar", sprintf("%.6f", abs(coeff_value)), 
-                "persen, dengan asumsi variabel lain tetap konstan.")
+                "persen, \ndengan asumsi variabel lain tetap konstan.")
         } else if (grepl("(?i)(family.*size|familysize|ukuran.*keluarga|size.*family)", var)) {
           # Variabel family size (satuan: orang)
           paste("Koefisien", var, "sebesar", sprintf("%.3f", coeff_value), 
-                "menunjukkan bahwa setiap tambahan satu orang dalam", var, 
+                "menunjukkan bahwa \nsetiap tambahan satu orang dalam", var, 
                 "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
-                input$reg_dep_var, "sebesar", sprintf("%.3f", abs(coeff_value)), 
-                "persen, dengan asumsi variabel lain tetap konstan.")
+                input$reg_dep_var, "\nsebesar", sprintf("%.3f", abs(coeff_value)), 
+                "persen, \ndengan asumsi variabel lain tetap konstan.")
         } else {
           # Variabel dengan satuan persen (default)
           paste("Koefisien", var, "sebesar", sprintf("%.3f", coeff_value), 
-                "mengindikasikan bahwa setiap kenaikan satu persen", var, 
+                "mengindikasikan bahwa \nsetiap kenaikan satu persen\n", var, 
                 "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
-                input$reg_dep_var, "sebesar", sprintf("%.3f", abs(coeff_value)), 
-                "persen, dengan asumsi variabel lain tetap konstan.")
+                input$reg_dep_var, "\nsebesar", sprintf("%.3f", abs(coeff_value)), 
+                "persen, \ndengan asumsi variabel lain tetap konstan.")
         }
       })
       
-      coeff_interpretation <- paste(coeff_texts, collapse = " Sementara itu, ")
+      coeff_interpretation <- paste(coeff_texts, collapse = " \nSementara itu, ")
     }
     
     # --- BAGIAN 3: INTERPRETASI R-SQUARED ---
@@ -532,7 +561,7 @@ output$regression_interpretation <- renderText({
       "menunjukkan bahwa", sprintf("%.1f", r_squared * 100), 
       "% variasi", input$reg_dep_var, 
       "dapat dijelaskan oleh", paste(input$reg_indep_vars, collapse = ", "), 
-      ", sementara sisanya", sprintf("%.1f", (1 - r_squared) * 100), 
+      ", \nsementara sisanya", sprintf("%.1f", (1 - r_squared) * 100), 
       "% dijelaskan oleh faktor lain yang tidak dimasukkan dalam model."
     )
     
@@ -542,7 +571,7 @@ output$regression_interpretation <- renderText({
       if (length(significant_vars) == 1) {
         paste("variabel", significant_vars[1], "memiliki")
       } else if (length(significant_vars) > 1) {
-        paste("variabel-variabel independen tersebut secara bersama-sama memiliki")
+        paste("variabel-variabel independen tersebut\n secara bersama-sama memiliki")
       } else {
         "model secara keseluruhan memiliki"
       },
@@ -586,170 +615,120 @@ output$regression_interpretation <- renderText({
 })
 
 # --- 6. LOGIKA UNDUH - DIPERBAIKI ---
+# Contoh di dalam regression_server.R
+# GANTIKAN SELURUH BLOK INI DI FILE SERVER REGRESI ANDA
+
 output$download_regression_summary <- downloadHandler(
   filename = function() {
-    paste("laporan-regresi-lengkap-", Sys.Date(), ".", input$regression_format, sep = "")
+    ext <- switch(input$regression_format, "pdf" = "pdf", "docx" = "docx")
+    paste0("laporan-analisis-regresi-", Sys.Date(), ".", ext)
   },
   content = function(file) {
+    req(regression_model())
+    
+    showNotification("Menyiapkan laporan...", type = "message", duration = 5)
+    
     model <- regression_model()
     
-    if (!is.null(model)) {
-      # --- BAGIAN 1: SUMMARY STATISTIK MODEL ---
-      summary_text <- capture.output(summary(model))
-      
-      # --- BAGIAN 2: INTERPRETASI LENGKAP (SAMA DENGAN DASHBOARD) ---
-      interpretation_text <- generate_regression_interpretation(
-        model, 
-        input$reg_dep_var, 
-        input$reg_indep_vars
-      )
-      
-      # --- BAGIAN 3: UJI ASUMSI LENGKAP ---
-      assumptions_text <- "\n\n=== UJI ASUMSI REGRESI ==="
-      
-      tryCatch({
-        # 1. Uji normalitas residual
-        residuals_data <- residuals(model)
-        if (length(residuals_data) <= 5000) {
-          shapiro_test <- shapiro.test(residuals_data)
-          assumptions_text <- paste(assumptions_text, 
-                                    "\n\n1. UJI NORMALITAS RESIDUAL (SHAPIRO-WILK)",
-                                    "Hipotesis:",
-                                    "H₀: Residual berdistribusi normal",
-                                    "H₁: Residual tidak berdistribusi normal",
-                                    "Tingkat signifikansi (α): 0.05",
-                                    "",
-                                    "Hasil Pengujian:",
-                                    sprintf("Statistik W: %.6f", shapiro_test$statistic),
-                                    sprintf("P-value: %.6f", shapiro_test$p.value),
-                                    "",
-                                    "Interpretasi:",
-                                    if (shapiro_test$p.value < 0.05) {
-                                      sprintf("Berdasarkan uji Shapiro-Wilk yang telah dilakukan, diketahui bahwa residual model regresi TIDAK berdistribusi normal karena nilai p-value (%.6f) < α (0.05), sehingga keputusan yang diambil adalah TOLAK H₀.\n\nKesimpulan: Asumsi normalitas residual TIDAK terpenuhi.", shapiro_test$p.value)
-                                    } else {
-                                      sprintf("Berdasarkan uji Shapiro-Wilk yang telah dilakukan, diketahui bahwa residual model regresi berdistribusi normal karena nilai p-value (%.6f) ≥ α (0.05), sehingga keputusan yang diambil adalah TERIMA H₀.\n\nKesimpulan: Asumsi normalitas residual TERPENUHI.", shapiro_test$p.value)
-                                    },
-                                    sep = "\n")
-        }
-        
-        # 2. Uji homoskedastisitas
-        if (requireNamespace("lmtest", quietly = TRUE)) {
-          bp_test <- lmtest::bptest(model)
-          assumptions_text <- paste(assumptions_text,
-                                    "\n\n2. UJI HOMOSKEDASTISITAS (BREUSCH-PAGAN)",
-                                    "Hipotesis:",
-                                    "H₀: Varians residual konstan (homoskedastisitas)",
-                                    "H₁: Varians residual tidak konstan (heteroskedastisitas)",
-                                    "Tingkat signifikansi (α): 0.05",
-                                    "",
-                                    "Hasil Pengujian:",
-                                    sprintf("Statistik BP: %.6f", bp_test$statistic),
-                                    sprintf("P-value: %.6f", bp_test$p.value),
-                                    "",
-                                    "Interpretasi:",
-                                    if (bp_test$p.value < 0.05) {
-                                      sprintf("Berdasarkan uji Breusch-Pagan yang telah dilakukan, diketahui bahwa model regresi mengalami masalah heteroskedastisitas karena nilai p-value (%.6f) < α (0.05), sehingga keputusan yang diambil adalah TOLAK H₀.\n\nKesimpulan: Asumsi homoskedastisitas TIDAK terpenuhi.", bp_test$p.value)
-                                    } else {
-                                      sprintf("Berdasarkan uji Breusch-Pagan yang telah dilakukan, diketahui bahwa model regresi TIDAK mengalami masalah heteroskedastisitas karena nilai p-value (%.6f) ≥ α (0.05), sehingga keputusan yang diambil adalah TERIMA H₀.\n\nKesimpulan: Asumsi homoskedastisitas TERPENUHI.", bp_test$p.value)
-                                    },
-                                    sep = "\n")
-        }
-        
-        # 3. Uji multikolinearitas (VIF)
-        if (length(input$reg_indep_vars) > 1 && requireNamespace("car", quietly = TRUE)) {
-          vif_values <- car::vif(model)
-          vif_text <- paste(sapply(names(vif_values), function(x) 
-            sprintf("%s: %.4f", x, vif_values[x])), collapse = "\n")
-          
-          assumptions_text <- paste(assumptions_text,
-                                    "\n\n3. UJI MULTIKOLINEARITAS (VIF)",
-                                    "Variance Inflation Factor (VIF) untuk setiap variabel:",
-                                    vif_text,
-                                    "",
-                                    "Interpretasi:",
-                                    if (max(vif_values) > 10) {
-                                      "Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi mengalami masalah multikolinearitas SERIUS karena terdapat variabel dengan VIF > 10.\n\nKesimpulan: Asumsi tidak adanya multikolinearitas TIDAK terpenuhi."
-                                    } else if (max(vif_values) > 5) {
-                                      "Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi mengalami masalah multikolinearitas SEDANG karena terdapat variabel dengan VIF > 5.\n\nKesimpulan: Asumsi tidak adanya multikolinearitas TIDAK terpenuhi sepenuhnya."
-                                    } else {
-                                      "Berdasarkan uji VIF yang telah dilakukan, diketahui bahwa model regresi TIDAK mengalami masalah multikolinearitas karena semua variabel memiliki VIF < 5.\n\nKesimpulan: Asumsi tidak adanya multikolinearitas TERPENUHI."
-                                    },
-                                    sep = "\n")
-        } else if (length(input$reg_indep_vars) == 1) {
-          assumptions_text <- paste(assumptions_text,
-                                    "\n\n3. UJI MULTIKOLINEARITAS (VIF)",
-                                    "Model hanya memiliki 1 variabel independen, sehingga tidak ada masalah multikolinearitas.",
-                                    "Kesimpulan: Asumsi tidak adanya multikolinearitas TERPENUHI.",
-                                    sep = "\n")
-        }
-        
-      }, error = function(e) {
-        assumptions_text <- paste(assumptions_text, "\n\nError dalam uji asumsi:", e$message)
-      })
-      
-      # --- GABUNGKAN SEMUA KONTEN ---
-      full_content <- paste(
-        "LAPORAN ANALISIS REGRESI LINEAR BERGANDA",
-        paste("Tanggal:", Sys.Date()),
-        "",
-        "=== SUMMARY STATISTIK MODEL ===",
-        paste(summary_text, collapse = "\n"),
-        "",
-        interpretation_text,
-        "",
-        assumptions_text,
-        "",
-        "=== CATATAN ===",
-        "1. Periksa plot residual untuk validasi visual asumsi",
-        "2. Pertimbangkan transformasi variabel jika asumsi dilanggar",
-        sep = "\n"
-      )
-      
-      # --- RENDER KE FILE ---
-      tryCatch({
-        rmarkdown::render(
-          input = "text_report.Rmd",
-          output_file = file,
-          output_format = if(input$regression_format == "pdf") "pdf_document" else "word_document",
-          params = list(
-            report_title = "Laporan Analisis Regresi Linear Berganda",
-            text_output = full_content
-          ),
-          envir = new.env(parent = globalenv())
-        )
-      }, error = function(e) {
-        # Fallback: buat file teks sederhana
-        writeLines(full_content, file)
-      })
-      
-    } else {
-      # Jika model belum dibuat
+    # --- LANGKAH 1: PERSIAPKAN SEMUA TEKS ---
+    
+    # Ringkasan Model
+    summary_text <- capture.output(summary(model))
+    
+    # Interpretasi (hanya panggil fungsi satu kali)
+    interpretation_text_raw <- generate_regression_interpretation(
+      model, 
+      input$reg_dep_var, 
+      input$reg_indep_vars
+    )
+    
+    # Format teks interpretasi agar ramah Markdown (memaksa ganti baris)
+    interpretation_text_formatted <- gsub("\\n", "  \n", interpretation_text_raw)
+    
+    # Hapus panggilan fungsi yang berulang
+    # interpretation_text <- generate_regression_interpretation(...) # <-- DIHAPUS
+    
+    # Uji Asumsi
+    normality_test_text <- tryCatch(
+      capture.output(print(shapiro.test(residuals(model)))),
+      error = function(e) "Gagal melakukan uji normalitas."
+    )
+    homogeneity_test_text <- tryCatch(
+      if(requireNamespace("lmtest", quietly=TRUE)) capture.output(print(lmtest::bptest(model))) else "Package 'lmtest' tidak terinstal.",
+      error = function(e) "Gagal melakukan uji homoskedastisitas."
+    )
+    autocorrelation_test_text <- tryCatch(
+      if(requireNamespace("lmtest", quietly=TRUE)) capture.output(print(lmtest::dwtest(model))) else "Package 'lmtest' tidak terinstal.",
+      error = function(e) "Gagal melakukan uji autokorelasi."
+    )
+    vif_test_text <- tryCatch(
+      if(length(input$reg_indep_vars) > 1 && requireNamespace("car", quietly=TRUE)) capture.output(print(car::vif(model))) else "VIF tidak dihitung.",
+      error = function(e) "Gagal menghitung VIF."
+    )
+    
+    # --- LANGKAH 2: BUAT KONTEN LAPORAN ---
+    temp_rmd <- tempfile(fileext = ".Rmd")
+    
+    rmd_content <- paste(
+      "---",
+      "title: 'Laporan Analisis Regresi Linear'",
+      paste0("date: '", format(Sys.time(), "%A, %d %B %Y %H:%M:%S"), "'"),
+      "output: default",
+      "---",
+      "",
+      "### 1. Ringkasan Model Regresi",
+      "```",
+      paste(summary_text, collapse = "\n"),
+      "```",
+      "",
+      "### 2. Interpretasi Model",
+      "", # <-- Beri spasi untuk kerapian
+      # --- PERBAIKAN UTAMA ---
+      # Blok kode (```) DIHAPUS dan gunakan variabel yang sudah diformat
+      paste(interpretation_text_formatted, collapse = "\n"),
+      # --- SELESAI ---
+      "",
+      "### 3. Hasil Uji Asumsi Klasik",
+      "#### 3.1. Uji Normalitas Residual (Shapiro-Wilk)",
+      "```",
+      paste(normality_test_text, collapse = "\n"),
+      "```",
+      "",
+      "#### 3.2. Uji Homoskedastisitas (Breusch-Pagan)",
+      "```",
+      paste(homogeneity_test_text, collapse = "\n"),
+      "```",
+      "",
+      "#### 3.3. Uji Autokorelasi (Durbin-Watson)",
+      "```",
+      paste(autocorrelation_test_text, collapse = "\n"),
+      "```",
+      "",
+      "#### 3.4. Uji Multikolinearitas (VIF)",
+      "```",
+      paste(vif_test_text, collapse = "\n"),
+      "```",
+      "",
+      "---",
+      paste0("*Laporan ini dibuat secara otomatis pada ", format(Sys.time(), "%d %B %Y, %H:%M:%S"), ".*"),
+      sep = "\n"
+    )
+    
+    writeLines(rmd_content, temp_rmd)
+    
+    # --- LANGKAH 3: RENDER LAPORAN ---
+    tryCatch({
       rmarkdown::render(
-        input = "text_report.Rmd",
+        input = temp_rmd,
         output_file = file,
-        output_format = if(input$regression_format == "pdf") "pdf_document" else "word_document",
-        params = list(
-          report_title = "Laporan Regresi",
-          text_output = "Model regresi belum dibuat. Silakan buat model terlebih dahulu."
-        ),
-        envir = new.env(parent = globalenv())
+        output_format = switch(input$regression_format, "pdf" = "pdf_document", "docx" = "word_document"),
+        quiet = TRUE
       )
-    }
+      showNotification("Laporan berhasil dibuat!", type = "message")
+    }, error = function(e) {
+      showNotification(paste("Error membuat laporan:", e$message), type = "error", duration = 10)
+    })
+    
+    if(file.exists(temp_rmd)) unlink(temp_rmd)
   }
 )
-
-# --- 8. TAMBAHAN: OBSERVER UNTUK DEBUGGING ---
-observe({
-  if (!is.null(input$run_regression)) {
-    cat("Run regression button clicked:", input$run_regression, "\n")
-  }
-})
-
-observe({
-  model <- regression_model()
-  if (!is.null(model)) {
-    cat("Regression model available, summary:\n")
-    cat("Formula:", as.character(formula(model)), "\n")
-    cat("R-squared:", summary(model)$r.squared, "\n")
-  }
-})
