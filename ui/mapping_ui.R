@@ -1,5 +1,7 @@
+library(shinycssloaders)
+
 fluidPage(
-  # Header box (existing)
+  # Header box (tidak berubah)
   bs4Card(
     title = "Peta Distribusi Spasial",
     status = "primary",
@@ -11,7 +13,7 @@ fluidPage(
     uiOutput("map_variable_selector")
   ),
   
-  # Layout dengan peta dan panel statistik (existing)
+  # Layout dengan peta dan panel statistik
   fluidRow(
     # Kolom peta
     column(
@@ -22,11 +24,17 @@ fluidPage(
         solidHeader = TRUE,
         width = NULL,
         height = "700px",
-        leafletOutput("distribution_map", height = "600px")
+        
+        # PERBAIKAN: Menggunakan withSpinner yang lebih stabil
+        shinycssloaders::withSpinner(
+          leafletOutput("distribution_map", height = "600px"),
+          type = 6, # Pilih tipe spinner dari 1-8
+          color = "#0d6efd" # Sesuaikan warna dengan tema Anda
+        )
       )
     ),
     
-    # Kolom panel statistik
+    # Kolom panel statistik (tidak berubah)
     column(
       width = 4,
       bs4Card(
@@ -41,6 +49,7 @@ fluidPage(
     )
   ),
   
+  # Baris Interpretasi (tidak berubah)
   fluidRow(
     column(
       width = 12,
@@ -51,8 +60,6 @@ fluidPage(
         width = NULL,
         height = "auto",
         style = "margin-top: 15px;",
-        
-        # Konten interpretasi dinamis
         uiOutput("map_interpretation_content")
       )
     )

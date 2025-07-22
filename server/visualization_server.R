@@ -1,258 +1,316 @@
-# server/visualization_server.R - Versi yang Diperbaiki
+# server/visualization_server.R
 
-# Selektor dinamis untuk UI
+# Selektor variabel utama (untuk histogram dan boxplot)
 output$vis_variable_selector <- renderUI({
   req(processed_data$current)
   numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
-  selectInput("vis_var", "Pilih Variabel Utama:", choices = numeric_vars)
+  
+  selectInput("vis_var", "Variabel:", 
+              choices = numeric_vars,
+              selected = if(length(numeric_vars) > 0) numeric_vars[1] else NULL)
 })
 
+# Selektor variabel grup (untuk histogram dan boxplot)
 output$vis_group_selector <- renderUI({
   req(processed_data$current)
   categorical_vars <- names(processed_data$current)[sapply(processed_data$current, function(x) is.character(x) || is.factor(x))]
-  selectInput("vis_group", "Pilih Variabel Grup (Opsional):", choices = c("Tidak Ada", categorical_vars))
+  
+  selectInput("vis_group", "Grup (Opsional):", 
+              choices = c("Tidak Ada", categorical_vars),
+              selected = "Tidak Ada")
 })
 
-output$vis_plot_type_selector <- renderUI({
-  selectInput("vis_plot_type", "Pilih Jenis Plot:", choices = c("Histogram", "Boxplot", "Scatter Plot"))
+# Selektor variabel X khusus untuk scatter plot
+output$vis_x_variable_selector <- renderUI({
+  req(processed_data$current)
+  numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
+  
+  selectInput("vis_x_var", "Variabel X:", 
+              choices = numeric_vars,
+              selected = if(length(numeric_vars) > 0) numeric_vars[1] else NULL)
+})
+
+# Selektor variabel Y khusus untuk scatter plot
+output$vis_y_variable_selector <- renderUI({
+  req(processed_data$current)
+  numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
+  
+  selectInput("vis_y_var", "Variabel Y:", 
+              choices = numeric_vars,
+              selected = if(length(numeric_vars) > 1) numeric_vars[2] else NULL)
+})
+
+# Selektor variabel warna untuk scatter plot
+output$vis_color_selector <- renderUI({
+  req(processed_data$current)
+  categorical_vars <- names(processed_data$current)[sapply(processed_data$current, function(x) is.character(x) || is.factor(x))]
+  
+  selectInput("vis_color_var", "Warna:", 
+              choices = c("Tidak Ada" = "", categorical_vars),
+              selected = "")
 })
 
 # Render plot utama
 output$main_plot <- renderPlotly({
-  req(input$vis_var, input$vis_plot_type, processed_data$current)
+  req(processed_data$current)
   
   tryCatch({
     data <- processed_data$current
     
     # Validasi data
     if(is.null(data) || nrow(data) == 0) {
-      return(NULL)
+      return(plotly::plot_ly() %>% 
+               plotly::add_text(x = 0.5, y = 0.5, text = "Data tidak tersedia",
+                                textfont = list(size = 16, color = "red")))
     }
     
-    # Validasi variabel
-    if(!input$vis_var %in% names(data)) {
-      return(NULL)
-    }
+    # Tentukan jenis plot berdasarkan input atau default
+    plot_type <- if(is.null(input$vis_plot_type)) "Histogram" else input$vis_plot_type
     
-    p <- switch(input$vis_plot_type,
+    p <- switch(plot_type,
                 "Histogram" = {
-                  create_histogram(data, input$vis_var)
-                },
-                "Boxplot" = {
-                  group_var <- if(input$vis_group == "Tidak Ada") NULL else input$vis_group
-                  create_boxplot(data, input$vis_var, group_var = group_var)
-                },
-                "Scatter Plot" = {
-                  # Pastikan ada minimal 2 variabel numerik
-                  numeric_vars <- names(data)[sapply(data, is.numeric)]
-                  if(length(numeric_vars) < 2) {
-                    # Fallback ke histogram jika tidak cukup variabel
-                    create_histogram(data, input$vis_var)
+                  var_name <- if(is.null(input$vis_var)) {
+                    numeric_vars <- names(data)[sapply(data, is.numeric)]
+                    if(length(numeric_vars) > 0) numeric_vars[1] else NULL
                   } else {
-                    x_var <- numeric_vars[numeric_vars != input$vis_var][1]
-                    if(is.na(x_var)) x_var <- numeric_vars[1]
-                    create_scatterplot(data, x_var = x_var, y_var = input$vis_var)
+                    input$vis_var
                   }
+                  
+                  if(is.null(var_name) || !var_name %in% names(data)) {
+                    return(plotly::plot_ly() %>% 
+                             plotly::add_text(x = 0.5, y = 0.5, text = "Variabel tidak tersedia",
+                                              textfont = list(size = 16, color = "red")))
+                  }
+                  
+                  create_histogram(data, var_name)
+                },
+                
+                "Boxplot" = {
+                  var_name <- if(is.null(input$vis_var)) {
+                    numeric_vars <- names(data)[sapply(data, is.numeric)]
+                    if(length(numeric_vars) > 0) numeric_vars[1] else NULL
+                  } else {
+                    input$vis_var
+                  }
+                  
+                  if(is.null(var_name) || !var_name %in% names(data)) {
+                    return(plotly::plot_ly() %>% 
+                             plotly::add_text(x = 0.5, y = 0.5, text = "Variabel tidak tersedia",
+                                              textfont = list(size = 16, color = "red")))
+                  }
+                  
+                  group_var <- if(is.null(input$vis_group) || input$vis_group == "Tidak Ada") NULL else input$vis_group
+                  create_boxplot(data, var_name, group_var = group_var)
+                },
+                
+                "Scatter Plot" = {
+                  # Default variables jika input belum tersedia
+                  numeric_vars <- names(data)[sapply(data, is.numeric)]
+                  
+                  x_var <- if(is.null(input$vis_x_var)) {
+                    if(length(numeric_vars) > 0) numeric_vars[1] else NULL
+                  } else {
+                    input$vis_x_var
+                  }
+                  
+                  y_var <- if(is.null(input$vis_y_var)) {
+                    if(length(numeric_vars) > 1) numeric_vars[2] else if(length(numeric_vars) > 0) numeric_vars[1] else NULL
+                  } else {
+                    input$vis_y_var
+                  }
+                  
+                  # Validasi variabel
+                  if(is.null(x_var) || is.null(y_var) || !x_var %in% names(data) || !y_var %in% names(data)) {
+                    return(plotly::plot_ly() %>% 
+                             plotly::add_text(x = 0.5, y = 0.5, text = "Variabel tidak tersedia",
+                                              textfont = list(size = 16, color = "red")))
+                  }
+                  
+                  # Cek apakah variabel X dan Y sama
+                  if(x_var == y_var) {
+                    return(plotly::plot_ly() %>% 
+                             plotly::add_text(x = 0.5, y = 0.5, text = "Pilih variabel X dan Y yang berbeda",
+                                              textfont = list(size = 16, color = "orange")))
+                  }
+                  
+                  # Tentukan variabel warna
+                  color_var <- if(is.null(input$vis_color_var) || input$vis_color_var == "") {
+                    NULL
+                  } else {
+                    input$vis_color_var
+                  }
+                  
+                  # Tentukan apakah menampilkan trend line
+                  show_trend <- if(is.null(input$vis_show_trend)) TRUE else input$vis_show_trend
+                  
+                  # Buat scatter plot
+                  create_scatterplot(data, 
+                                     x_var = x_var, 
+                                     y_var = y_var, 
+                                     color_var = color_var,
+                                     show_trend = show_trend)
                 }
     )
     
-    if(is.null(p)) return(NULL)
-    ggplotly(p)
+    if(is.null(p)) {
+      return(plotly::plot_ly() %>% 
+               plotly::add_text(x = 0.5, y = 0.5, text = "Error membuat plot",
+                                textfont = list(size = 16, color = "red")))
+    }
+    
+    # Konversi ke plotly
+    ggplotly(p, tooltip = "all") %>%
+      plotly::layout(
+        title = list(font = list(size = 16)),
+        margin = list(t = 80, b = 60, l = 60, r = 60)
+      )
     
   }, error = function(e) {
     showNotification(paste("Error creating plot:", e$message), type = "error")
-    return(NULL)
+    return(plotly::plot_ly() %>% 
+             plotly::add_text(x = 0.5, y = 0.5, text = paste("Error:", e$message),
+                              textfont = list(size = 14, color = "red")))
   })
 })
 
 # Interpretasi sebaran data
-output$data_interpretation <- renderUI({
-  req(input$vis_var, input$vis_plot_type, processed_data$current)
+output$data_interpretation <- renderText({
+  req(processed_data$current)
   
   tryCatch({
     data <- processed_data$current
+    plot_type <- if(is.null(input$vis_plot_type)) "Histogram" else input$vis_plot_type
     
-    # Validasi data dan variabel
-    if(is.null(data) || !input$vis_var %in% names(data)) {
-      return(HTML("<p>Data tidak tersedia untuk interpretasi.</p>"))
-    }
-    
-    var_data <- data[[input$vis_var]]
-    var_data <- var_data[!is.na(var_data)]
-    
-    if(length(var_data) == 0) {
-      return(HTML("<p>Tidak ada data valid untuk interpretasi.</p>"))
-    }
-    
-    # Statistik dasar dengan penanganan error
-    mean_val <- tryCatch(mean(var_data), error = function(e) NA)
-    median_val <- tryCatch(median(var_data), error = function(e) NA)
-    sd_val <- tryCatch(sd(var_data), error = function(e) NA)
-    
-    if(is.na(mean_val) || is.na(median_val) || is.na(sd_val)) {
-      return(HTML("<p>Error dalam perhitungan statistik dasar.</p>"))
-    }
-    
-    cv_val <- if(mean_val != 0) sd_val / mean_val * 100 else NA
-    
-    # Load library e1071 jika belum ada
-    if (!requireNamespace("e1071", quietly = TRUE)) {
-      skewness_val <- NA
-      kurtosis_val <- NA
-    } else {
-      skewness_val <- tryCatch(e1071::skewness(var_data), error = function(e) NA)
-      kurtosis_val <- tryCatch(e1071::kurtosis(var_data), error = function(e) NA)
-    }
-    
-    # Outliers
-    q1 <- quantile(var_data, 0.25, na.rm = TRUE)
-    q3 <- quantile(var_data, 0.75, na.rm = TRUE)
-    iqr <- q3 - q1
-    outliers <- sum(var_data < (q1 - 1.5 * iqr) | var_data > (q3 + 1.5 * iqr), na.rm = TRUE)
-    
-    # Normalitas (Shapiro-Wilk untuk n < 5000)
-    normality_test <- if(length(var_data) <= 5000 && length(var_data) >= 3) {
-      tryCatch(shapiro.test(var_data)$p.value, error = function(e) NA)
-    } else {
-      "Data terlalu besar atau kecil untuk uji Shapiro-Wilk"
-    }
-    
-    # Interpretasi berdasarkan jenis plot
-    interpretation <- switch(input$vis_plot_type,
-                             "Histogram" = {
-                               shape_desc <- if(!is.na(skewness_val)) {
-                                 if(abs(skewness_val) < 0.5) {
-                                   "Distribusi relatif simetris"
-                                 } else if(skewness_val > 0.5) {
-                                   "Distribusi miring kanan (tail panjang ke kanan)"
-                                 } else {
-                                   "Distribusi miring kiri (tail panjang ke kiri)"
-                                 }
-                               } else {
-                                 "Bentuk distribusi tidak dapat dihitung"
-                               }
-                               
-                               kurtosis_desc <- if(!is.na(kurtosis_val)) {
-                                 if(abs(kurtosis_val) < 0.5) {
-                                   "Kurtosis normal (mesokurtik)"
-                                 } else if(kurtosis_val > 0.5) {
-                                   "Kurtosis tinggi (leptokurtik) - distribusi runcing"
-                                 } else {
-                                   "Kurtosis rendah (platykurtik) - distribusi datar"
-                                 }
-                               } else {
-                                 "Kurtosis tidak dapat dihitung"
-                               }
-                               
-                               variability <- if(!is.na(cv_val)) {
-                                 if(cv_val < 15) "Variabilitas rendah" 
-                                 else if(cv_val < 30) "Variabilitas sedang" 
-                                 else "Variabilitas tinggi"
-                               } else {
-                                 "Variabilitas tidak dapat dihitung"
-                               }
-                               
-                               list(
-                                 shape_desc = shape_desc,
-                                 kurtosis_desc = kurtosis_desc,
-                                 variability = variability
-                               )
-                             },
-                             "Boxplot" = {
-                               list(
-                                 outlier_desc = paste0("Terdapat ", outliers, " outlier dalam data"),
-                                 spread_desc = paste0("IQR = ", round(iqr, 2), " menunjukkan sebaran data di kuartil tengah"),
-                                 median_vs_mean = if(abs(median_val - mean_val) < 0.1 * sd_val) "Median ≈ Mean (distribusi simetris)" else if(median_val < mean_val) "Median < Mean (miring kanan)" else "Median > Mean (miring kiri)"
-                               )
-                             },
-                             "Scatter Plot" = {
-                               numeric_vars <- names(data)[sapply(data, is.numeric)]
-                               if(length(numeric_vars) >= 2) {
-                                 x_var <- numeric_vars[numeric_vars != input$vis_var][1]
-                                 if(is.na(x_var)) x_var <- numeric_vars[1]
-                                 
-                                 correlation <- tryCatch(
-                                   cor(data[[x_var]], data[[input$vis_var]], use = "complete.obs"),
-                                   error = function(e) NA
-                                 )
-                                 
-                                 if(!is.na(correlation)) {
-                                   list(
-                                     correlation_desc = paste0("Korelasi dengan ", x_var, ": ", round(correlation, 3)),
-                                     strength_desc = if(abs(correlation) < 0.3) "Korelasi lemah" else if(abs(correlation) < 0.7) "Korelasi sedang" else "Korelasi kuat",
-                                     direction_desc = if(correlation > 0) "Hubungan positif" else "Hubungan negatif"
-                                   )
-                                 } else {
-                                   list(correlation_desc = "Korelasi tidak dapat dihitung")
-                                 }
-                               } else {
-                                 list(correlation_desc = "Tidak cukup variabel untuk analisis korelasi")
-                               }
-                             }
-    )
-    
-    # Generate HTML output
-    HTML(paste0(
-      "<div style='padding: 10px;'>",
-      "<h4 style='color: #2c3e50; margin-bottom: 15px;'> Analisis ", input$vis_var, "</h4>",
+    if(plot_type == "Scatter Plot") {
+      # Default variables jika input belum tersedia
+      numeric_vars <- names(data)[sapply(data, is.numeric)]
       
-      "<div style='background: #ecf0f1; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
-      "<strong>Statistik Deskriptif:</strong><br>",
-      "• Mean: ", if(!is.na(mean_val)) round(mean_val, 3) else "N/A", "<br>",
-      "• Median: ", if(!is.na(median_val)) round(median_val, 3) else "N/A", "<br>",
-      "• Std Dev: ", if(!is.na(sd_val)) round(sd_val, 3) else "N/A", "<br>",
-      "• CV: ", if(!is.na(cv_val)) paste0(round(cv_val, 2), "%") else "N/A", "<br>",
-      "</div>",
-      
-      "<div style='background: #e8f6f3; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
-      "<strong>Karakteristik Distribusi:</strong><br>",
-      if(input$vis_plot_type == "Histogram") {
-        paste0(
-          "• ", interpretation$shape_desc, "<br>",
-          "• ", interpretation$kurtosis_desc, "<br>",
-          "• ", interpretation$variability, "<br>",
-          "• Skewness: ", if(!is.na(skewness_val)) round(skewness_val, 3) else "N/A"
-        )
-      } else if(input$vis_plot_type == "Boxplot") {
-        paste0(
-          "• ", interpretation$outlier_desc, "<br>",
-          "• ", interpretation$spread_desc, "<br>",
-          "• ", interpretation$median_vs_mean
-        )
+      x_var <- if(is.null(input$vis_x_var)) {
+        if(length(numeric_vars) > 0) numeric_vars[1] else NULL
       } else {
-        paste0(
-          "• ", interpretation$correlation_desc, "<br>",
-          if(!is.null(interpretation$strength_desc)) paste0("• ", interpretation$strength_desc, "<br>") else "",
-          if(!is.null(interpretation$direction_desc)) paste0("• ", interpretation$direction_desc) else ""
-        )
-      },
-      "</div>",
+        input$vis_x_var
+      }
       
-      if(is.numeric(normality_test)) {
-        paste0(
-          "<div style='background: #fef9e7; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
-          "<strong>Uji Normalitas:</strong><br>",
-          "• Shapiro-Wilk p-value: ", round(normality_test, 4), "<br>",
-          "• Interpretasi: ", if(normality_test > 0.05) "Data terdistribusi normal" else "Data TIDAK terdistribusi normal",
-          "</div>"
-        )
-      } else "",
-      
-      "<div style='background: #fdedec; padding: 10px; border-radius: 5px;'>",
-      "<strong> Rekomendasi Analisis:</strong><br>",
-      if(is.numeric(normality_test) && normality_test > 0.05) {
-        "• Gunakan uji parametrik (t-test, ANOVA)<br>• Regresi linear dapat diterapkan"
+      y_var <- if(is.null(input$vis_y_var)) {
+        if(length(numeric_vars) > 1) numeric_vars[2] else if(length(numeric_vars) > 0) numeric_vars[1] else NULL
       } else {
-        "• Transformasi data mungkin diperlukan<br>• Hati-hati dalam interpretasi regresi"
-      },
-      "</div>",
-      "</div>"
-    ))
+        input$vis_y_var
+      }
+      
+      if(is.null(x_var) || is.null(y_var) || !x_var %in% names(data) || !y_var %in% names(data)) {
+        return("<p style='color: red;'>Variabel tidak ditemukan dalam data.</p>")
+      }
+      
+      if(x_var == y_var) {
+        return("<p style='color: orange;'>Pilih variabel X dan Y yang berbeda untuk analisis yang bermakna.</p>")
+      }
+      
+      # Analisis korelasi untuk scatter plot
+      clean_data <- data[!is.na(data[[x_var]]) & !is.na(data[[y_var]]), ]
+      
+      if(nrow(clean_data) < 3) {
+        return("<p style='color: red;'>Data tidak cukup untuk analisis korelasi (minimal 3 observasi).</p>")
+      }
+      
+      correlation <- cor(clean_data[[x_var]], clean_data[[y_var]], use = "complete.obs")
+      
+      # Interpretasi kekuatan korelasi
+      strength <- if(abs(correlation) >= 0.8) {
+        "sangat kuat"
+      } else if(abs(correlation) >= 0.6) {
+        "kuat"
+      } else if(abs(correlation) >= 0.4) {
+        "sedang"
+      } else if(abs(correlation) >= 0.2) {
+        "lemah"
+      } else {
+        "sangat lemah"
+      }
+      
+      direction <- if(correlation > 0) "positif" else "negatif"
+      
+      interpretation <- paste0(
+        "<h5><i class='fa fa-chart-line'></i> Analisis Scatter Plot</h5>",
+        "<p><strong>Variabel X:</strong> ", x_var, "</p>",
+        "<p><strong>Variabel Y:</strong> ", y_var, "</p>",
+        "<p><strong>Korelasi Pearson:</strong> ", round(correlation, 4), "</p>",
+        "<p><strong>Interpretasi:</strong> Terdapat hubungan <span style='color: ",
+        if(abs(correlation) >= 0.4) "green" else "orange", ";'><strong>", strength, "</strong></span> ",
+        "dan bersifat <strong>", direction, "</strong> antara kedua variabel.</p>",
+        "<p><strong>Jumlah observasi valid:</strong> ", nrow(clean_data), "</p>"
+      )
+      
+      # Tambahan interpretasi praktis
+      if(abs(correlation) >= 0.6) {
+        interpretation <- paste0(interpretation,
+                                 "<div style='background: #d4edda; padding: 10px; border-radius: 5px; margin-top: 10px;'>",
+                                 "<i class='fa fa-lightbulb'></i> <strong>Insight:</strong> ",
+                                 "Korelasi yang kuat menunjukkan bahwa kedua variabel memiliki hubungan yang signifikan. ",
+                                 if(correlation > 0) {
+                                   paste0("Ketika ", x_var, " meningkat, ", y_var, " cenderung meningkat juga.")
+                                 } else {
+                                   paste0("Ketika ", x_var, " meningkat, ", y_var, " cenderung menurun.")
+                                 },
+                                 "</div>"
+        )
+      }
+      
+      return(interpretation)
+      
+    } else {
+      # Interpretasi untuk histogram dan boxplot
+      var_name <- if(is.null(input$vis_var)) {
+        numeric_vars <- names(data)[sapply(data, is.numeric)]
+        if(length(numeric_vars) > 0) numeric_vars[1] else NULL
+      } else {
+        input$vis_var
+      }
+      
+      if(is.null(var_name) || !var_name %in% names(data)) {
+        return("<p style='color: red;'>Variabel tidak ditemukan dalam data.</p>")
+      }
+      
+      # Analisis statistik deskriptif
+      analysis <- analyze_variable(data, var_name)
+      
+      interpretation <- paste0(
+        "<h5><i class='fa fa-chart-bar'></i> Analisis ", plot_type, "</h5>",
+        "<p><strong>Variabel:</strong> ", var_name, "</p>",
+        "<p><strong>Jumlah observasi:</strong> ", analysis$n, "</p>",
+        "<p><strong>Mean:</strong> ", round(analysis$mean, 2), "</p>",
+        "<p><strong>Median:</strong> ", round(analysis$median, 2), "</p>",
+        "<p><strong>Standar Deviasi:</strong> ", round(analysis$sd, 2), "</p>"
+      )
+      
+      if(!is.na(analysis$cv)) {
+        interpretation <- paste0(interpretation,
+                                 "<p><strong>Coefficient of Variation:</strong> ", round(analysis$cv, 2), "%</p>"
+        )
+      }
+      
+      if(!is.na(analysis$outliers)) {
+        interpretation <- paste0(interpretation,
+                                 "<p><strong>Outliers:</strong> ", analysis$outliers, " observasi</p>"
+        )
+      }
+      
+      # Interpretasi normalitas
+      if(!is.na(analysis$normal)) {
+        interpretation <- paste0(interpretation,
+                                 "<p><strong>Normalitas (Shapiro-Wilk):</strong> ",
+                                 if(analysis$normal) "Data terdistribusi normal" else "Data tidak terdistribusi normal",
+                                 " (p = ", round(analysis$shapiro_p, 4), ")</p>"
+        )
+      }
+      
+      return(interpretation)
+    }
     
   }, error = function(e) {
-    HTML(paste0("<p>Error dalam interpretasi: ", e$message, "</p>"))
+    return(paste0("<p style='color: red;'>Error dalam interpretasi: ", e$message, "</p>"))
   })
 })
+
 
 # Render heatmap korelasi
 output$correlation_heatmap <- renderPlotly({
@@ -330,8 +388,6 @@ output$correlation_interpretation <- renderUI({
   weak <- sum(cor_analysis$abs_correlation >= 0.2 & cor_analysis$abs_correlation < 0.4)
   very_weak <- sum(cor_analysis$abs_correlation < 0.2)
   
-  # Top 5 korelasi terkuat
-  top_5 <- head(cor_analysis, 5)
   
   # Generate HTML output
   HTML(paste0(
@@ -349,39 +405,11 @@ output$correlation_interpretation <- renderUI({
     "• Korelasi sangat lemah (<0.2): ", very_weak,
     "</div>",
     
-    # Korelasi terkuat
-    "<div style='background: #fdf2e9; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
-    "<strong>Korelasi Terkuat (Absolut):</strong><br>",
-    "• <span style='color: #d35400; font-weight: bold;'>", strongest_abs$var1, " ↔ ", strongest_abs$var2, "</span><br>",
-    "• Nilai: ", round(strongest_abs$correlation, 3), "<br>",
-    "• Interpretasi: ", 
-    if(strongest_abs$abs_correlation >= 0.8) "Korelasi sangat kuat" else 
-      if(strongest_abs$abs_correlation >= 0.6) "Korelasi kuat" else 
-        if(strongest_abs$abs_correlation >= 0.4) "Korelasi sedang" else "Korelasi lemah",
-    if(strongest_abs$correlation > 0) " (positif)" else " (negatif)",
-    "</div>",
-    
-    # Korelasi terlemah
-    "<div style='background: #eaf2f8; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
-    "<strong>Korelasi Terlemah:</strong><br>",
-    "• <span style='color: #2980b9; font-weight: bold;'>", weakest_abs$var1, " ↔ ", weakest_abs$var2, "</span><br>",
-    "• Nilai: ", round(weakest_abs$correlation, 3), "<br>",
-    "• Interpretasi: Hampir tidak ada hubungan linear",
-    "</div>",
-    
     # Korelasi positif dan negatif terkuat
     "<div style='background: #e8f8f5; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
     "<strong>Ekstrem Korelasi:</strong><br>",
     "• <span style='color: #27ae60;'>Positif terkuat:</span> ", strongest_pos$var1, " ↔ ", strongest_pos$var2, " (", round(strongest_pos$correlation, 3), ")<br>",
     "• <span style='color: #e74c3c;'>Negatif terkuat:</span> ", strongest_neg$var1, " ↔ ", strongest_neg$var2, " (", round(strongest_neg$correlation, 3), ")",
-    "</div>",
-    
-    # Top 5 korelasi
-    "<div style='background: #f8f9fa; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
-    "<strong>🏆 Top 5 Korelasi Terkuat:</strong><br>",
-    paste(sapply(1:min(5, nrow(top_5)), function(i) {
-      paste0(i, ". ", top_5$var1[i], " ↔ ", top_5$var2[i], " (", round(top_5$correlation[i], 3), ")")
-    }), collapse = "<br>"),
     "</div>",
     
     # Interpretasi dan rekomendasi

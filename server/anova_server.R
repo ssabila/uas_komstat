@@ -147,10 +147,10 @@ perform_posthoc <- function(model) {
   })
 }
 
-# Function untuk interpretasi Post Hoc - HANYA TUKEY
+# Function untuk interpretasi Post Hoc
 interpret_posthoc <- function(posthoc_result, alpha = 0.05) {
   tryCatch({
-    interpretation <- "=== INTERPRETASI UJI POST HOC TUKEY HSD ===\n\n"
+    interpretation <- "   INTERPRETASI UJI POST HOC TUKEY HSD   \n\n"
     interpretation <- paste0(interpretation, "Tingkat signifikansi: α = ", alpha, "\n\n")
     
     pairwise <- posthoc_result$pairwise
@@ -345,14 +345,14 @@ observeEvent(input$run_anova, {
 output$anova_summary_table <- renderPrint({
   req(anova_results$summary)
   
-  cat("=== HASIL ANALISIS ANOVA ===\n")
+  cat("   HASIL ANALISIS ANOVA   \n")
   cat("Formula yang digunakan:", anova_results$formula_used, "\n")
   cat("Jumlah observasi:", nrow(anova_results$data), "\n\n")
   
   print(anova_results$summary)
   
   # Tambahan informasi model
-  cat("\n=== RINGKASAN MODEL ===\n")
+  cat("\n   RINGKASAN MODEL   \n")
   if(!is.null(anova_results$model)) {
     cat("R-squared:", round(summary.lm(anova_results$model)$r.squared, 4), "\n")
     cat("Adjusted R-squared:", round(summary.lm(anova_results$model)$adj.r.squared, 4), "\n")
@@ -400,7 +400,7 @@ output$anova_interpretation <- renderText({
         
         # Tambahan informasi statistik
         interpretation <- paste0(interpretation, "\n\n",
-                                 "**Detail Hasil:**\n",
+                                 "Detail Hasil:\n",
                                  "- F-statistik: ", round(main_f_value, 3), "\n",
                                  "- Derajat bebas: ", anova_table$Df[1], " dan ", anova_table$Df[2], "\n",
                                  "- Jumlah grup: ", length(unique(anova_results$data[[input$anova_indep_var1]])), "\n",
@@ -408,7 +408,7 @@ output$anova_interpretation <- renderText({
         )
         
       } else {
-        interpretation <- "Error: Tidak dapat menginterpretasi hasil ANOVA karena nilai tidak valid."
+        interpretation <- "Error: Tidak dapat menginterpretasi hasil ANOVA karena nilai tidak valid.\nPilih variabel lain"
       }
       
     } else if (input$anova_type == "two_way") {
@@ -466,8 +466,7 @@ output$anova_interpretation <- renderText({
       if (length(effects_description) > 0) {
         interpretation <- paste0(interpretation, paste(effects_description, collapse = ", "), ". ")
       }
-      
-      # Interpretasi makna
+
       # Hitung berapa main effects yang signifikan
       significant_main_effects <- 0
       if (length(var1_idx) > 0 && !is.na(p_values[var1_idx]) && p_values[var1_idx] < 0.05) {
@@ -683,7 +682,7 @@ output$posthoc_results <- renderPrint({
   
   result <- posthoc_results$result
   
-  cat("=== HASIL UJI POST HOC ===\n")
+  cat("   HASIL UJI POST HOC   \n")
   cat("Metode:", result$method, "\n")
   if (!is.null(result$note)) {
     cat("Catatan:", result$note, "\n")
@@ -840,11 +839,11 @@ generate_anova_summary_text <- function(anova_results) {
   
   # Capture summary output
   summary_output <- capture.output({
-    cat("=== HASIL ANALISIS ANOVA ===\n")
+    cat("   HASIL ANALISIS ANOVA   \n")
     cat("Formula yang digunakan:", anova_results$formula_used, "\n")
     cat("Jumlah observasi:", nrow(anova_results$data), "\n\n")
     print(anova_results$summary)
-    cat("\n=== RINGKASAN MODEL ===\n")
+    cat("\n   RINGKASAN MODEL   \n")
     cat("R-squared:", round(summary.lm(anova_results$model)$r.squared, 4), "\n")
     cat("Adjusted R-squared:", round(summary.lm(anova_results$model)$adj.r.squared, 4), "\n")
   })
@@ -864,7 +863,7 @@ generate_anova_interpretation_text <- function(anova_results, input_values) {
     p_values <- anova_table$`Pr(>F)`
     f_values <- anova_table$`F value`
     
-    interpretation <- "=== INTERPRETASI HASIL ANOVA ===\n\n"
+    interpretation <- "   INTERPRETASI HASIL ANOVA   \n\n"
     
     if (input_values$anova_type == "one_way") {
       # ANOVA Satu Arah
@@ -954,7 +953,7 @@ generate_tukey_summary_text <- function(posthoc_results) {
   tryCatch({
     # Capture Tukey output
     tukey_output <- capture.output({
-      cat("=== HASIL UJI POST HOC TUKEY HSD ===\n")
+      cat("   HASIL UJI POST HOC TUKEY HSD   \n")
       cat("Metode:", posthoc_results$result$method, "\n")
       if (!is.null(posthoc_results$result$note)) {
         cat("Catatan:", posthoc_results$result$note, "\n")
@@ -975,7 +974,7 @@ generate_tukey_interpretation_text <- function(posthoc_results) {
     return("Interpretasi Tukey HSD tidak tersedia.")
   }
   
-  return(paste("=== INTERPRETASI UJI POST HOC TUKEY HSD ===\n\n", posthoc_results$interpretation))
+  return(paste("   INTERPRETASI UJI POST HOC TUKEY HSD   \n\n", posthoc_results$interpretation))
 }
 
 output$download_anova_result <- downloadHandler(
@@ -1025,7 +1024,7 @@ output$download_anova_result <- downloadHandler(
       tukey_summary,
       "\n\n",
       tukey_interpretation,
-      "\n\n=== INFORMASI TAMBAHAN ===\n",
+      "\n\n   INFORMASI TAMBAHAN   \n",
       "Tanggal Analisis: ", format(Sys.time(), "%d %B %Y %H:%M:%S"), "\n",
       "Jenis ANOVA: ", ifelse(input$anova_type == "one_way", "Satu Arah (One-Way)", "Dua Arah (Two-Way)"), "\n",
       "Total Observasi: ", nrow(anova_results$data), "\n",

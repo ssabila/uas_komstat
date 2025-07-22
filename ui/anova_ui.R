@@ -126,8 +126,7 @@ tagList(
                  div(
                    class = "download-section",
                    style = "background: #e9ecef; padding: 20px; border-radius: 8px; border-top: 3px solid #28a745; margin-top: 20px;",
-                   h4("Download - Laporan Lengkap", style = "margin-top: 0; color: #495057;"),
-                   p(strong("Sekali klik untuk laporan komprehensif!"), " Sistem akan otomatis menjalankan Tukey HSD jika ANOVA signifikan."),
+                   h4("Download Laporan ", style = "margin-top: 0; color: #495057;"),
                    
                    fluidRow(
                      column(6,

@@ -12,6 +12,7 @@ library(here)
 library(e1071)
 library(reshape2)
 library(sf)
+library(shinycustomloader)
 
 
 cat("\n=== Loading Modules ===\n")

@@ -120,10 +120,10 @@ output$normality_test_result <- renderPrint({
     cat("P-value:", format.pval(result$p_value, eps = 1e-6, digits = 6), "\n\n")
     cat("  INTERPRETASI  \n")
     if (result$p_value < 0.05) {
-      cat(sprintf("Dengan p-value = %s (< 0.05), H₀ ditolak. Terdapat cukup bukti untuk menyatakan bahwa data variabel '%s' TIDAK berdistribusi normal.", 
+      cat(sprintf("Dengan p-value = %s (< 0.05), H₀ ditolak.\nTerdapat cukup bukti untuk menyatakan\nbahwa data variabel '%s' TIDAK berdistribusi normal.", 
                   format.pval(result$p_value, eps = 1e-6, digits = 6), input$normality_var))
     } else {
-      cat(sprintf("Dengan p-value = %s (≥ 0.05), H₀ gagal ditolak. Tidak cukup bukti untuk menyatakan bahwa data variabel '%s' tidak berdistribusi normal. Asumsi normalitas terpenuhi.", 
+      cat(sprintf("Dengan p-value = %s (≥ 0.05), H₀ gagal ditolak.\nTidak cukup bukti untuk menyatakan\nbahwa data variabel '%s' tidak berdistribusi normal. Asumsi normalitas terpenuhi.", 
                   format.pval(result$p_value, eps = 1e-6, digits = 6), input$normality_var))
     }
   } else {
@@ -160,10 +160,10 @@ output$homogeneity_test_result <- renderPrint({
     cat("P-value:", format.pval(result$p_value, eps = 1e-6, digits = 6), "\n\n")
     cat("  INTERPRETASI  \n")
     if (result$p_value < 0.05) {
-      cat(sprintf("Dengan p-value = %s (< 0.05), H₀ ditolak. Terdapat cukup bukti untuk menyatakan bahwa variansi variabel '%s' TIDAK HOMOGEN antar grup '%s'.", 
+      cat(sprintf("Dengan p-value = %s (< 0.05), H₀ ditolak.\nTerdapat cukup bukti untuk menyatakan bahwa\nvariansi variabel '%s' TIDAK HOMOGEN antar grup '%s'.", 
                   format.pval(result$p_value, eps = 1e-6, digits = 6), input$homogeneity_var, input$homogeneity_group))
     } else {
-      cat(sprintf("Dengan p-value = %s (≥ 0.05), H₀ gagal ditolak. Tidak cukup bukti untuk menyatakan bahwa variansi berbeda. Asumsi homogenitas variansi TERPENUHI.", 
+      cat(sprintf("Dengan p-value = %s (≥ 0.05), H₀ gagal ditolak.\nTidak cukup bukti untuk menyatakan bahwa\nvariansi berbeda. Asumsi homogenitas variansi TERPENUHI.", 
                   format.pval(result$p_value, eps = 1e-6, digits = 6), input$homogeneity_var, input$homogeneity_group))
     }
   } else {
@@ -271,7 +271,7 @@ output$download_normality_result <- downloadHandler(
   }
 )
 
-# ##   UJI HOMOGENITAS
+# UJI HOMOGENITAS
 output$download_homogeneity_result <- downloadHandler(
   filename = function() { 
     ext <- switch(input$homogeneity_format, "pdf" = "pdf", "docx" = "docx", "html" = "html")

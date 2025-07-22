@@ -175,7 +175,7 @@ create_boxplot <- function(data, variable, group_var = NULL, fill_color = "light
 }
 
 # Fungsi untuk membuat scatter plot dengan error handling
-create_scatterplot <- function(data, x_var, y_var, color_var = NULL) {
+create_scatterplot <- function(data, x_var, y_var, color_var = NULL, show_trend = TRUE) {
   # Validasi input
   if(missing(data) || missing(x_var) || missing(y_var)) {
     stop("Data, x_var, dan y_var harus disediakan")
@@ -185,89 +185,207 @@ create_scatterplot <- function(data, x_var, y_var, color_var = NULL) {
     stop("Variabel tidak ditemukan dalam data")
   }
   
-  # Clean data
-  if (!is.null(color_var) && color_var %in% names(data)) {
+  # Cek apakah variabel sama
+  if(x_var == y_var) {
+    stop("Variabel X dan Y harus berbeda")
+  }
+  
+  # Clean data berdasarkan ada tidaknya color_var
+  if (!is.null(color_var) && color_var != "" && color_var %in% names(data)) {
     clean_data <- data[!is.na(data[[x_var]]) & !is.na(data[[y_var]]) & !is.na(data[[color_var]]), ]
+    use_color <- TRUE
   } else {
     clean_data <- data[!is.na(data[[x_var]]) & !is.na(data[[y_var]]), ]
+    use_color <- FALSE
+    color_var <- NULL
   }
   
   if(nrow(clean_data) == 0) {
     stop("Tidak ada data valid untuk scatter plot")
   }
   
-  # Calculate correlation
-  correlation <- tryCatch(
-    cor(clean_data[[x_var]], clean_data[[y_var]], use = "complete.obs"),
-    error = function(e) NA
-  )
+  if(nrow(clean_data) < 3) {
+    warning("Data terlalu sedikit untuk analisis yang robust")
+  }
   
-  if (!is.null(color_var) && color_var %in% names(data)) {
+  # Calculate correlation
+  correlation <- tryCatch({
+    cor(clean_data[[x_var]], clean_data[[y_var]], use = "complete.obs")
+  }, error = function(e) NA)
+  
+  # Determine correlation strength for subtitle
+  cor_strength <- if(!is.na(correlation)) {
+    abs_cor <- abs(correlation)
+    if(abs_cor >= 0.8) "sangat kuat"
+    else if(abs_cor >= 0.6) "kuat"
+    else if(abs_cor >= 0.4) "sedang"
+    else if(abs_cor >= 0.2) "lemah"
+    else "sangat lemah"
+  } else "tidak dapat dihitung"
+  
+  # Create subtitle
+  subtitle_text <- if(!is.na(correlation)) {
+    paste0("Korelasi: ", round(correlation, 3), " (", cor_strength, ")")
+  } else {
+    "Korelasi tidak dapat dihitung"
+  }
+  
+  if(use_color) {
     # Colored scatter plot
     tryCatch({
+      # Create base plot with color
       p <- ggplot(clean_data, aes_string(x = x_var, y = y_var, color = color_var)) +
-        geom_point(alpha = 0.6, size = 2) +
-        geom_smooth(method = "lm", se = TRUE, color = "black", linewidth = 1) +
+        geom_point(alpha = 0.7, size = 2.5) +
+        scale_color_viridis_d(name = color_var) +
         labs(
-          title = paste("Hubungan", y_var, "vs", x_var, "berdasarkan", color_var),
-          subtitle = if(!is.na(correlation)) paste("Korelasi Pearson:", round(correlation, 3)) else "Korelasi tidak dapat dihitung",
-          x = x_var,
-          y = y_var,
-          color = color_var
+          title = paste("Scatter Plot:", y_var, "vs", x_var),
+          subtitle = paste0(subtitle_text, " | Warna: ", color_var, " | n = ", nrow(clean_data)),
+          x = paste(x_var, "(Sumbu X)"),
+          y = paste(y_var, "(Sumbu Y)")
         ) +
         theme_minimal() +
         theme(
           plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
-          plot.subtitle = element_text(hjust = 0.5, size = 10, color = "gray60"),
-          axis.title = element_text(size = 12),
-          axis.text = element_text(size = 10)
-        )
-      return(p)
-    }, error = function(e) {
-      # Fallback: simple colored scatter
-      p <- ggplot(clean_data, aes_string(x = x_var, y = y_var, color = color_var)) +
-        geom_point(alpha = 0.6) +
-        labs(title = paste("Scatter Plot:", y_var, "vs", x_var), x = x_var, y = y_var) +
-        theme_minimal()
-      return(p)
-    })
-  } else {
-    # Simple scatter plot
-    tryCatch({
-      p <- ggplot(clean_data, aes_string(x = x_var, y = y_var)) +
-        geom_point(alpha = 0.6, color = "steelblue", size = 2) +
-        geom_smooth(method = "lm", se = TRUE, color = "red", linewidth = 1) +
-        labs(
-          title = paste("Hubungan", y_var, "vs", x_var),
-          subtitle = if(!is.na(correlation)) paste("Korelasi Pearson:", round(correlation, 3)) else "Korelasi tidak dapat dihitung",
-          x = x_var,
-          y = y_var
-        ) +
-        theme_minimal() +
-        theme(
-          plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
-          plot.subtitle = element_text(hjust = 0.5, size = 10, color = "gray60"),
-          axis.title = element_text(size = 12),
-          axis.text = element_text(size = 10)
+          plot.subtitle = element_text(hjust = 0.5, size = 11, color = "gray60"),
+          axis.title = element_text(size = 12, face = "bold"),
+          axis.text = element_text(size = 10),
+          legend.title = element_text(size = 11, face = "bold"),
+          legend.text = element_text(size = 10),
+          panel.grid.minor = element_blank(),
+          panel.border = element_rect(color = "gray80", fill = NA, size = 0.5)
         )
       
-      # Add correlation annotation if available
-      if(!is.na(correlation)) {
-        p <- p + annotate("text", x = Inf, y = Inf, 
-                          label = paste("r =", round(correlation, 3)), 
-                          hjust = 1.1, vjust = 2, size = 5, color = "red", fontface = "bold")
+      # Add trend line if requested
+      if(show_trend && nrow(clean_data) >= 3) {
+        p <- p + geom_smooth(method = "lm", se = TRUE, color = "black", 
+                             linewidth = 1, alpha = 0.3, linetype = "dashed")
       }
       
       return(p)
+      
     }, error = function(e) {
-      # Fallback: simple scatter
+      # Fallback: simple colored scatter without trend
+      p <- ggplot(clean_data, aes_string(x = x_var, y = y_var, color = color_var)) +
+        geom_point(alpha = 0.7) +
+        labs(title = paste("Scatter Plot:", y_var, "vs", x_var), 
+             x = x_var, y = y_var) +
+        theme_minimal()
+      return(p)
+    })
+    
+  } else {
+    # Simple scatter plot without color grouping
+    tryCatch({
       p <- ggplot(clean_data, aes_string(x = x_var, y = y_var)) +
-        geom_point(alpha = 0.6, color = "steelblue") +
-        labs(title = paste("Scatter Plot:", y_var, "vs", x_var), x = x_var, y = y_var) +
+        geom_point(alpha = 0.7, color = "steelblue", size = 2.5) +
+        labs(
+          title = paste("Scatter Plot:", y_var, "vs", x_var),
+          subtitle = paste0(subtitle_text, " | n = ", nrow(clean_data)),
+          x = paste(x_var, "(Sumbu X)"),
+          y = paste(y_var, "(Sumbu Y)")
+        ) +
+        theme_minimal() +
+        theme(
+          plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+          plot.subtitle = element_text(hjust = 0.5, size = 11, color = "gray60"),
+          axis.title = element_text(size = 12, face = "bold"),
+          axis.text = element_text(size = 10),
+          panel.grid.minor = element_blank(),
+          panel.border = element_rect(color = "gray80", fill = NA, size = 0.5)
+        )
+      
+      # Add trend line if requested
+      if(show_trend && nrow(clean_data) >= 3) {
+        p <- p + geom_smooth(method = "lm", se = TRUE, color = "red", 
+                             linewidth = 1.2, alpha = 0.3)
+      }
+      
+      # Add correlation annotation if available
+      if(!is.na(correlation)) {
+        # Position annotation in appropriate corner
+        x_pos <- if(correlation > 0) Inf else -Inf
+        y_pos <- if(correlation > 0) Inf else -Inf
+        hjust_val <- if(correlation > 0) 1.1 else -0.1
+        vjust_val <- if(correlation > 0) 2 else -1
+        
+        p <- p + annotate("text", x = x_pos, y = y_pos, 
+                          label = paste("r =", round(correlation, 3)), 
+                          hjust = hjust_val, vjust = vjust_val, 
+                          size = 4.5, color = "red", fontface = "bold",
+                          bg = "white", alpha = 0.8)
+      }
+      
+      return(p)
+      
+    }, error = function(e) {
+      # Fallback: very simple scatter
+      p <- ggplot(clean_data, aes_string(x = x_var, y = y_var)) +
+        geom_point(alpha = 0.7, color = "steelblue") +
+        labs(title = paste("Scatter Plot:", y_var, "vs", x_var), 
+             x = x_var, y = y_var) +
         theme_minimal()
       return(p)
     })
   }
+}
+
+# Fungsi helper untuk menganalisis variabel - TAMBAHKAN JIKA BELUM ADA
+analyze_variable <- function(data, variable) {
+  # Validasi input
+  if(missing(data) || missing(variable)) {
+    stop("Data dan variable harus disediakan")
+  }
+  
+  if (!variable %in% names(data)) {
+    stop("Variabel tidak ditemukan dalam data")
+  }
+  
+  # Clean data
+  clean_values <- data[[variable]]
+  clean_values <- clean_values[!is.na(clean_values)]
+  
+  if(length(clean_values) == 0) {
+    stop("Tidak ada data valid untuk dianalisis")
+  }
+  
+  # Basic statistics
+  analysis <- list(
+    n = length(clean_values),
+    mean = tryCatch(mean(clean_values), error = function(e) NA),
+    median = tryCatch(median(clean_values), error = function(e) NA),
+    sd = tryCatch(sd(clean_values), error = function(e) NA),
+    min = tryCatch(min(clean_values), error = function(e) NA),
+    max = tryCatch(max(clean_values), error = function(e) NA),
+    q1 = tryCatch(quantile(clean_values, 0.25), error = function(e) NA),
+    q3 = tryCatch(quantile(clean_values, 0.75), error = function(e) NA)
+  )
+  
+  # CV calculation
+  if(!is.na(analysis$mean) && !is.na(analysis$sd) && analysis$mean != 0) {
+    analysis$cv <- analysis$sd / analysis$mean * 100
+  } else {
+    analysis$cv <- NA
+  }
+  
+  # Outliers calculation
+  if(!is.na(analysis$q1) && !is.na(analysis$q3)) {
+    iqr <- analysis$q3 - analysis$q1
+    analysis$outliers <- sum(clean_values < (analysis$q1 - 1.5 * iqr) | 
+                               clean_values > (analysis$q3 + 1.5 * iqr))
+  } else {
+    analysis$outliers <- NA
+  }
+  
+  # Normality test (Shapiro-Wilk)
+  if(length(clean_values) >= 3 && length(clean_values) <= 5000) {
+    analysis$shapiro_p <- tryCatch(shapiro.test(clean_values)$p.value, error = function(e) NA)
+    analysis$normal <- if(!is.na(analysis$shapiro_p)) analysis$shapiro_p > 0.05 else NA
+  } else {
+    analysis$shapiro_p <- NA
+    analysis$normal <- NA
+  }
+  
+  return(analysis)
 }
 
 # Fungsi untuk membuat correlation heatmap dengan error handling
