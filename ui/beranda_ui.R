@@ -1,3 +1,4 @@
+# ui/beranda_ui.R - Versi yang diperbaiki dengan status valid
 fluidRow(
   # Header dengan informasi utama
   column(12,
@@ -31,7 +32,7 @@ fluidRow(
            value = textOutput("total_districts"),
            subtitle = "Wilayah yang dianalisis",
            icon = icon("map"),
-           color = "blue",
+           color = "lightblue",  # Ganti dari "blue" ke "lightblue"
            width = 12,
            fill = TRUE
          )
@@ -42,7 +43,7 @@ fluidRow(
            value = textOutput("total_provinces"),
            subtitle = "Provinsi di Indonesia",
            icon = icon("map-marker-alt"),
-           color = "green",
+           color = "lime",  # Ganti dari "green" ke "lime"
            width = 12,
            fill = TRUE
          )
@@ -53,7 +54,7 @@ fluidRow(
            value = textOutput("total_population"),
            subtitle = "Jumlah penduduk (juta jiwa)",
            icon = icon("users"),
-           color = "yellow",
+           color = "orange",  # Ganti dari "yellow" ke "orange"
            width = 12,
            fill = TRUE
          )
@@ -64,7 +65,7 @@ fluidRow(
            value = textOutput("average_poverty"),
            subtitle = "Persentase kemiskinan nasional",
            icon = icon("chart-line"),
-           color = "red",
+           color = "maroon",  # Ganti dari "red" ke "maroon"
            width = 12,
            fill = TRUE
          )
@@ -111,10 +112,10 @@ fluidRow(
                   target = "_blank")
          ),
          
-         # Informasi variabel - DIPINDAH KE SINI
+         # Informasi variabel
          box(
            title = "Variabel Utama", 
-           status = "info", 
+           status = "warning", 
            solidHeader = TRUE,
            width = 12,
            DT::dataTableOutput("variable_info_table")
@@ -123,52 +124,22 @@ fluidRow(
   
   # Sidebar dengan visualisasi geografis
   column(6,
-         # Visualisasi geografis - PIE CHART DIKEMBALIKAN
+         # Visualisasi geografis
          box(
-           title = "Distribusi Populasi per Wilayah", 
-           status = "success", 
-           solidHeader = TRUE,
-           width = 12,
-           plotOutput("population_by_region", height = "250px")
-         ),
-         
-         # Bar chart kemiskinan per pulau - DIKEMBALIKAN
-         box(
-           title = "Distribusi Kemiskinan per Kelompok Pulau", 
-           status = "warning", 
-           solidHeader = TRUE,
-           width = 12,
-           plotOutput("poverty_by_island", height = "300px")
-         ),
-         
-         # Informasi geografis
-         box(
-           title = "Ringkasan Geografis", 
+           title = "Distribusi Populasi", 
            status = "primary", 
            solidHeader = TRUE,
            width = 12,
-           collapsible = TRUE,
-           verbatimTextOutput("geographic_summary")
-         )
-  ),
-  
-  # Metodologi
-  column(12,
+           plotlyOutput("population_pie_chart", height = "400px")
+         ),
+         
+         # Quick stats
          box(
-           title = "Metodologi Analisis", 
-           status = "warning", 
+           title = "Statistik Cepat",
+           status = "secondary",
            solidHeader = TRUE,
            width = 12,
-           tags$div(
-             tags$h4("Pendekatan Analisis:"),
-             tags$ul(
-               tags$li(tags$strong("Analisis Deskriptif:"), " Statistik ringkasan dan visualisasi distribusi data"),
-               tags$li(tags$strong("Analisis Geografis:"), " Perbandingan antar provinsi, pulau, dan wilayah Indonesia"),
-               tags$li(tags$strong("Uji Asumsi:"), " Normalitas (Shapiro-Wilk) dan homogenitas variansi (Levene Test)"),
-               tags$li(tags$strong("Statistik Inferensia:"), " t-test, uji proporsi, uji variance, dan ANOVA"),
-               tags$li(tags$strong("Analisis Regresi:"), " Model linear berganda dengan uji asumsi")
-             )
-           )
+           verbatimTextOutput("quick_stats")
          )
   )
 )

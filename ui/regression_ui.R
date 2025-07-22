@@ -1,4 +1,4 @@
-# ui/regression_ui.R - VERSI DIPERBAIKI DENGAN INTERPRETASI UJI ASUMSI LENGKAP
+# ui/regression_ui.R - VERSI DIPERBAIKI UNTUK MENGATASI ERROR TABSETPANEL
 
 tagList(
   # Kotak Header Utama
@@ -52,147 +52,215 @@ tagList(
   box(
     title = "Hasil Model Regresi",
     status = "success",
+    solidHeader = TRUE,
     width = 12, # Lebar penuh
+    
+    # PERBAIKAN: Tambahkan parameter yang diperlukan untuk tabsetPanel
     tabsetPanel(
-      id = "regression_tabs",
-      type = "tabs",
-      selected = "summary_tab", # Tab default
+      id = "regression_tabs",      # PERBAIKAN: Tambahkan id
+      type = "tabs",               # PERBAIKAN: Tambahkan parameter type yang diperlukan
+      selected = "summary_tab",    # Tab default
       
-      tabPanel("Ringkasan Model", 
-               value = "summary_tab",
-               icon = icon("list-alt"),
-               br(),
-               div(
-                 style = "background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 15px;",
-                 icon("lightbulb", style = "color: #856404;"),
-                 strong(" Cara Membaca Hasil:"),
-                 tags$ul(
-                   style = "margin-bottom: 0; color: #856404;",
-                   tags$li("R-squared: Persentase variabilitas Y yang dijelaskan model"),
-                   tags$li("P-value koefisien < 0.05: Variabel berpengaruh signifikan"),
-                   tags$li("Estimate: Perubahan Y per unit perubahan X")
-                 )
-               ),
-               verbatimTextOutput("regression_summary"),
-               
-               hr(),
-               h4("Unduh Ringkasan"),
-               fluidRow(
-                 column(8,
-                        radioButtons("regression_format", "Pilih Format:", 
-                                     choices = list("PDF" = "pdf", "Word" = "docx"), 
-                                     inline = TRUE)
-                 ),
-                 column(4,
-                        downloadButton("download_regression_summary", "Unduh", 
-                                       class = "btn-primary")
-                 )
-               )
+      # Tab Ringkasan Model
+      tabPanel(
+        title = "Ringkasan Model",  # PERBAIKAN: Simplify title, hapus icon() 
+        value = "summary_tab",      # PERBAIKAN: Tambahkan value
+        br(),
+        div(
+          style = "background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 15px;",
+          icon("lightbulb", style = "color: #856404;"),
+          strong(" Cara Membaca Hasil:"),
+          tags$ul(
+            style = "margin-bottom: 0; color: #856404;",
+            tags$li("R-squared: Persentase variabilitas Y yang dijelaskan model"),
+            tags$li("P-value koefisien < 0.05: Variabel berpengaruh signifikan"),
+            tags$li("Estimate: Perubahan Y per unit perubahan X")
+          )
+        ),
+        verbatimTextOutput("regression_summary"),
+        
+        hr(),
+        
+        # Download Section
+        div(
+          style = "background: #e9ecef; padding: 15px; border-radius: 5px;",
+          h4("📥 Unduh Hasil Regresi"),
+          fluidRow(
+            column(8,
+                   radioButtons("regression_format", 
+                                "Pilih Format:", 
+                                choices = list("PDF" = "pdf", "Word (.docx)" = "docx"), 
+                                inline = TRUE)
+            ),
+            column(4,
+                   downloadButton("download_regression_result", 
+                                  "📄 Unduh Laporan", 
+                                  class = "btn-primary",
+                                  style = "width: 100%;")
+            )
+          )
+        )
       ),
       
-      tabPanel("Uji Asumsi", 
-               value = "assumptions_tab",
-               icon = icon("check-circle"),
-               br(),
-               div(
-                 style = "background: #d4edda; padding: 15px; border-radius: 8px; margin-bottom: 20px;",
-                 icon("info-circle", style = "color: #155724; font-size: 18px;"),
-                 strong(" Pentingnya Uji Asumsi:", style = "color: #155724; font-size: 16px;"),
-                 p("Regresi linear valid hanya jika asumsi terpenuhi. Setiap uji memberikan interpretasi lengkap untuk membantu pengambilan keputusan.", 
-                   style = "margin: 8px 0 0 0; color: #155724;")
-               ),
-               
-               # === 1. UJI NORMALITAS RESIDUAL ===
-               div(
-                 style = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #007bff;",
-                 h4("1. Uji Normalitas Residual", style = "color: #007bff; margin-top: 0;"),
-                 p("Residual harus berdistribusi normal untuk validitas inferensi statistik.", style = "margin-bottom: 15px;"),
-                 
-                 # Plot normalitas
-                 plotOutput("regression_qqplot", height = "400px"),
-                 
-                 hr(),
-                 
-                 # Interpretasi normalitas
-                 h5("Interpretasi Uji Normalitas:", style = "color: #007bff;"),
-                 div(
-                   style = "background: #ffffff; padding: 12px; border: 1px solid #dee2e6; border-radius: 4px;",
-                   verbatimTextOutput("normality_residual_interpretation")
-                 )
-               ),
-               
-               # === 2. UJI HOMOSKEDASTISITAS ===
-               div(
-                 style = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #28a745;",
-                 h4("2. Uji Homoskedastisitas", style = "color: #28a745; margin-top: 0;"),
-                 p("Varians residual harus konstan di semua level variabel independen.", style = "margin-bottom: 15px;"),
-                 
-                 # Plot homoskedastisitas
-                 plotOutput("regression_residual_plot", height = "400px"),
-                 
-                 hr(),
-                 
-                 # Interpretasi homoskedastisitas
-                 h5("Interpretasi Uji Homoskedastisitas:", style = "color: #28a745;"),
-                 div(
-                   style = "background: #ffffff; padding: 12px; border: 1px solid #dee2e6; border-radius: 4px;",
-                   verbatimTextOutput("homoskedasticity_interpretation")
-                 )
-               ),
-               
-               # === 3. UJI MULTIKOLINEARITAS ===
-               div(
-                 style = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;",
-                 h4("3. Uji Multikolinearitas (VIF)", style = "color: #856404; margin-top: 0;"),
-                 p("Variabel independen tidak boleh berkorelasi tinggi satu sama lain.", style = "margin-bottom: 15px;"),
-                 
-                 # Interpretasi VIF
-                 h5("Hasil dan Interpretasi VIF:", style = "color: #856404;"),
-                 div(
-                   style = "background: #ffffff; padding: 12px; border: 1px solid #dee2e6; border-radius: 4px;",
-                   verbatimTextOutput("regression_vif")
-                 )
-               )
+      # Tab Uji Asumsi
+      tabPanel(
+        title = "Uji Asumsi",           # PERBAIKAN: Simplify title
+        value = "assumptions_tab",      # PERBAIKAN: Tambahkan value
+        br(),
+        
+        div(
+          style = "background: #f8d7da; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #dc3545;",
+          h4("⚠️ Asumsi Regresi Linear", style = "margin-top: 0; color: #721c24;"),
+          p("Model regresi linear memiliki 4 asumsi utama yang harus dipenuhi:", 
+            style = "margin-bottom: 0; color: #721c24;")
+        ),
+        
+        # Asumsi 1: Normalitas Residual
+        div(
+          style = "background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;",
+          h5("1. 📊 Normalitas Residual"),
+          p("Residual harus berdistribusi normal. Gunakan Q-Q plot dan uji Shapiro-Wilk."),
+          
+          fluidRow(
+            column(8,
+                   plotOutput("regression_qqplot", height = "300px")
+            ),
+            column(4,
+                   div(
+                     style = "background: #f8f9fa; padding: 15px; border-radius: 5px;",
+                     h6("Interpretasi Q-Q Plot:"),
+                     tags$ul(
+                       tags$li("Titik mengikuti garis → Normal"),
+                       tags$li("Titik menyimpang → Tidak normal"),
+                       tags$li("Pola kurva → Distribusi skewed")
+                     )
+                   )
+            )
+          ),
+          verbatimTextOutput("normality_residual_interpretation")
+        ),
+        
+        # Asumsi 2: Homoskedastisitas
+        div(
+          style = "background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;",
+          h5("2. 📈 Homoskedastisitas (Variansi Konstan)"),
+          p("Variansi residual harus konstan di semua level variabel independen."),
+          
+          fluidRow(
+            column(8,
+                   plotOutput("regression_residual_plot", height = "300px")
+            ),
+            column(4,
+                   div(
+                     style = "background: #f8f9fa; padding: 15px; border-radius: 5px;",
+                     h6("Interpretasi Residual Plot:"),
+                     tags$ul(
+                       tags$li("Titik tersebar acak → Homoskedastis"),
+                       tags$li("Pola funnel → Heteroskedastis"),
+                       tags$li("Pola kurva → Non-linear")
+                     )
+                   )
+            )
+          ),
+          verbatimTextOutput("homoscedasticity_interpretation")
+        ),
+        
+        # Asumsi 3: Independensi
+        div(
+          style = "background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;",
+          h5("3. 🔗 Independensi Residual"),
+          p("Residual tidak berkorelasi (tidak ada autokorelasi). Gunakan uji Durbin-Watson."),
+          verbatimTextOutput("independence_interpretation")
+        ),
+        
+        # Asumsi 4: Linearitas
+        div(
+          style = "background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;",
+          h5("4. 📏 Linearitas"),
+          p("Hubungan antara variabel independen dan dependen harus linear."),
+          plotOutput("regression_linearity_plot", height = "300px"),
+          verbatimTextOutput("linearity_interpretation")
+        ),
+        
+        # Overall Assessment
+        div(
+          style = "background: #d4edda; padding: 15px; border-radius: 8px; border-left: 4px solid #c3e6cb;",
+          h5("✅ Penilaian Keseluruhan Asumsi", style = "margin-top: 0; color: #155724;"),
+          verbatimTextOutput("overall_assumptions_assessment"),
+          p(strong("Catatan:"), " Jika asumsi dilanggar, pertimbangkan transformasi data atau metode regresi alternatif.",
+            style = "margin-bottom: 0; color: #155724;")
+        )
       ),
       
-      tabPanel("Interpretasi Model", 
-               value = "interpretation_tab",
-               icon = icon("comment-dots"),
-               br(),
-               div(
-                 style = "background: #d1ecf1; padding: 15px; border-radius: 8px; border-left: 4px solid #bee5eb;",
-                 h4("Panduan Interpretasi Lengkap", style = "color: #0c5460; margin-top: 0;"),
-                 p("Gunakan panduan di bawah untuk memahami dan mengkomunikasikan hasil regresi secara komprehensif.", 
-                   style = "color: #0c5460; margin-bottom: 0;")
-               ),
-               
-               # Area interpretasi
-               div(
-                 style = "background: #ffffff; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; margin-top: 15px;",
-                 verbatimTextOutput("regression_interpretation", 
-                                    placeholder = FALSE) %>% 
-                   tagAppendAttributes(style = "
-                    white-space: pre-wrap !important; 
-                    word-wrap: break-word !important; 
-                    overflow-wrap: break-word !important;
-                    max-width: 100% !important;
-                    overflow-x: auto !important;
-                  ")
-               ),
-               
-               # Panduan tambahan
-               div(
-                 style = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;",
-                 h5("Panduan Pelaporan Hasil:", style = "color: #495057;"),
-                 tags$ol(
-                   tags$li("Mulai dengan kualitas model (R-squared, F-test)"),
-                   tags$li("Interpretasikan koefisien yang signifikan"),
-                   tags$li("Laporkan hasil uji asumsi"),
-                   tags$li("Berikan rekomendasi berdasarkan temuan"),
-                   tags$li("Diskusikan keterbatasan model")
-                 )
-               )
+      # Tab Interpretasi
+      tabPanel(
+        title = "Interpretasi",           # PERBAIKAN: Simplify title
+        value = "interpretation_tab",     # PERBAIKAN: Tambahkan value
+        br(),
+        
+        div(
+          style = "background: #d1ecf1; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #bee5eb;",
+          h4("💡 Interpretasi Hasil Regresi", style = "margin-top: 0; color: #0c5460;"),
+          p("Analisis mendalam terhadap koefisien, signifikansi, dan kualitas model regresi.", 
+            style = "color: #0c5460; margin-bottom: 0;")
+        ),
+        
+        # Area interpretasi
+        div(
+          style = "background: #ffffff; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; margin-top: 15px;",
+          verbatimTextOutput("regression_interpretation", 
+                             placeholder = FALSE)
+        ),
+        
+        # Panduan tambahan
+        div(
+          style = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 20px;",
+          h5("📋 Panduan Pelaporan Hasil:", style = "color: #495057;"),
+          tags$ol(
+            tags$li("Mulai dengan kualitas model (R-squared, F-test)"),
+            tags$li("Interpretasikan koefisien yang signifikan"),
+            tags$li("Laporkan hasil uji asumsi"),
+            tags$li("Berikan rekomendasi berdasarkan temuan"),
+            tags$li("Diskusikan keterbatasan model")
+          )
+        )
       ),
+      
+      # Tab Prediksi
+      tabPanel(
+        title = "Prediksi",               # PERBAIKAN: Simplify title
+        value = "prediction_tab",         # PERBAIKAN: Tambahkan value
+        br(),
+        
+        div(
+          style = "background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;",
+          h4("🔮 Prediksi dengan Model Regresi"),
+          p("Gunakan model yang telah dibuat untuk memprediksi nilai variabel dependen berdasarkan input variabel independen.")
+        ),
+        
+        # Input untuk prediksi
+        div(
+          style = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;",
+          h5("Input Nilai untuk Prediksi:"),
+          uiOutput("prediction_inputs"),
+          br(),
+          actionButton("make_prediction", "🎯 Buat Prediksi", 
+                       class = "btn-primary",
+                       style = "width: 200px;")
+        ),
+        
+        # Hasil prediksi
+        div(
+          style = "background: #e8f4fd; padding: 15px; border-radius: 8px;",
+          h5("📊 Hasil Prediksi:"),
+          verbatimTextOutput("prediction_result"),
+          
+          div(
+            style = "background: #fff; padding: 10px; border-radius: 5px; margin-top: 10px;",
+            strong("Catatan:"), " Prediksi hanya akurat dalam rentang data yang digunakan untuk membangun model."
+          )
+        )
+      )
     )
   )
 )

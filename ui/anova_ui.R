@@ -1,4 +1,4 @@
-# ui/anova_ui.R - FINAL FIXED VERSION
+# ui/anova_ui.R - FINAL FIXED VERSION untuk mengatasi error tabsetPanel
 
 tagList(
   # Header Section
@@ -106,12 +106,14 @@ tagList(
              solidHeader = TRUE,
              width = 12,
              
+             # PERBAIKAN: Tambahkan parameter yang diperlukan untuk tabsetPanel
              tabsetPanel(
                id = "anova_results_tabs",
+               type = "tabs",  # PERBAIKAN: Tambahkan parameter type
                
                # ANOVA Table Tab
                tabPanel(
-                 title = div(icon("table"), "Tabel ANOVA"),
+                 title = "Tabel ANOVA",  # PERBAIKAN: Simplify title, hapus div() complex
                  value = "anova_table",
                  br(),
                  div(
@@ -124,7 +126,7 @@ tagList(
                  # Download Section
                  div(
                    style = "background: #e9ecef; padding: 15px; border-radius: 5px;",
-                   h4(icon("download"), "Unduh Hasil ANOVA", style = "margin-top: 0;"),
+                   h4("📥 Unduh Hasil ANOVA", style = "margin-top: 0;"),  # PERBAIKAN: Simplify title
                    fluidRow(
                      column(6,
                             radioButtons("anova_format", 
@@ -138,7 +140,7 @@ tagList(
                      column(6,
                             br(),
                             downloadButton("download_anova_result", 
-                                           label = div(icon("file-download"), "Unduh Laporan"),
+                                           label = "📄 Unduh Laporan",  # PERBAIKAN: Simplify label
                                            class = "btn-primary",
                                            style = "width: 100%;")
                      )
@@ -148,14 +150,14 @@ tagList(
                
                # Interpretation Tab
                tabPanel(
-                 title = div(icon("lightbulb"), "Interpretasi"),
+                 title = "Interpretasi",  # PERBAIKAN: Simplify title
                  value = "interpretation",
                  br(),
                  div(
                    style = "background: #f8f9fa; padding: 20px; border-radius: 5px;",
                    div(
                      style = "background: #d1ecf1; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #bee5eb;",
-                     h4(icon("info-circle"), "Interpretasi Hasil", style = "margin-top: 0; color: #0c5460;"),
+                     h4("💡 Interpretasi Hasil", style = "margin-top: 0; color: #0c5460;"),  # PERBAIKAN: Simplify title
                      p("Interpretasi statistik berdasarkan hasil ANOVA yang telah dijalankan:", 
                        style = "margin-bottom: 0; color: #0c5460;")
                    ),
@@ -167,7 +169,7 @@ tagList(
                    condition = "output.show_posthoc == true",
                    div(
                      style = "background: #d4edda; padding: 15px; border-radius: 5px; margin-top: 15px; border-left: 4px solid #c3e6cb;",
-                     h5(icon("exclamation-triangle"), "Uji Post Hoc Diperlukan!", style = "margin-top: 0; color: #155724;"),
+                     h5("⚠️ Uji Post Hoc Diperlukan!", style = "margin-top: 0; color: #155724;"),  # PERBAIKAN: Simplify title
                      p("Hasil ANOVA menunjukkan perbedaan signifikan antar grup. ", 
                        strong("Silakan gunakan tab 'Uji Post Hoc'"), 
                        " untuk mengidentifikasi grup mana yang berbeda secara spesifik.",
@@ -178,7 +180,7 @@ tagList(
                  # Guidance Box
                  div(
                    style = "background: #d4edda; padding: 15px; border-radius: 5px; margin-top: 15px;",
-                   h5(icon("question-circle"), "Panduan Interpretasi", style = "margin-top: 0;"),
+                   h5("❓ Panduan Interpretasi", style = "margin-top: 0;"),  # PERBAIKAN: Simplify title
                    tags$ul(
                      tags$li(strong("p < 0.05:"), " Ada perbedaan signifikan antar grup"),
                      tags$li(strong("p ≥ 0.05:"), " Tidak ada perbedaan signifikan"),
@@ -190,12 +192,12 @@ tagList(
                
                # Visualization Tab
                tabPanel(
-                 title = div(icon("chart-bar"), "Visualisasi"),
+                 title = "Visualisasi",  # PERBAIKAN: Simplify title
                  value = "visualization",
                  br(),
                  div(
                    style = "background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px;",
-                   h4(icon("chart-line"), "Visualisasi Distribusi Data", style = "margin-top: 0;"),
+                   h4("📊 Visualisasi Distribusi Data", style = "margin-top: 0;"),  # PERBAIKAN: Simplify title
                    p("Boxplot menunjukkan distribusi data antar grup. Titik merah menunjukkan rata-rata grup.")
                  ),
                  
@@ -207,7 +209,7 @@ tagList(
                      condition = "!output.anova_plot",
                      div(
                        style = "text-align: center; padding: 50px; color: #6c757d;",
-                       h4(icon("chart-bar"), "Grafik Belum Tersedia"),
+                       h4("📊 Grafik Belum Tersedia"),  # PERBAIKAN: Simplify title
                        p("Klik 'Jalankan ANOVA' untuk menampilkan visualisasi.")
                      )
                    )
@@ -216,7 +218,7 @@ tagList(
                  # Visualization Guide
                  div(
                    style = "background: #fff3cd; padding: 15px; border-radius: 5px; margin-top: 15px;",
-                   h5(icon("eye"), "Cara Membaca Visualisasi", style = "margin-top: 0;"),
+                   h5("👁️ Cara Membaca Visualisasi", style = "margin-top: 0;"),  # PERBAIKAN: Simplify title
                    fluidRow(
                      column(6,
                             tags$ul(
@@ -246,14 +248,14 @@ tagList(
     fluidRow(
       column(12,
              box(
-               title = div(icon("search-plus"), "Uji Post Hoc Tukey HSD"),
+               title = "🔍 Uji Post Hoc Tukey HSD",  # PERBAIKAN: Simplify title
                status = "warning",
                solidHeader = TRUE,
                width = 12,
                
                div(
                  style = "background: #d1ecf1; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #bee5eb;",
-                 h4(icon("info-circle"), "Uji Post Hoc Tukey HSD", style = "margin-top: 0; color: #0c5460;"),
+                 h4("ℹ️ Uji Post Hoc Tukey HSD", style = "margin-top: 0; color: #0c5460;"),  # PERBAIKAN: Simplify title
                  p("Hasil ANOVA menunjukkan perbedaan signifikan antar grup. Uji post hoc Tukey HSD akan mengidentifikasi grup mana yang berbeda secara spesifik.", 
                    style = "margin-bottom: 0; color: #0c5460;")
                ),
@@ -266,21 +268,26 @@ tagList(
                           h5("Uji Post Hoc Tukey HSD", style = "margin-top: 0;"),
                           div(
                             style = "background: #e9ecef; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
-                            h6(icon("check-circle"), "Metode: Tukey HSD", style = "margin: 0; color: #495057;"),
+                            h6("✅ Metode: Tukey HSD", style = "margin: 0; color: #495057;"),  # PERBAIKAN: Simplify title
                             p("Metode paling umum dan andal untuk perbandingan multiple", 
                               style = "margin: 5px 0 0 0; font-size: 0.9em; color: #6c757d;")
                           ),
                           actionButton("run_posthoc", 
-                                       label = div(icon("play"), "Jalankan Tukey HSD"),
+                                       label = "▶️ Jalankan Tukey HSD",  # PERBAIKAN: Simplify label
                                        class = "btn-primary btn-block",
                                        style = "font-weight: bold;")
                         )
                  ),
                  
                  column(8,
+                        # PERBAIKAN: Tambahkan parameter yang diperlukan untuk tabsetPanel
                         tabsetPanel(
+                          id = "posthoc_tabs",  # PERBAIKAN: Tambahkan id
+                          type = "tabs",  # PERBAIKAN: Tambahkan parameter type
+                          
                           tabPanel(
-                            title = div(icon("table"), "Hasil"),
+                            title = "Hasil",  # PERBAIKAN: Simplify title
+                            value = "posthoc_results_tab",  # PERBAIKAN: Tambahkan value
                             br(),
                             div(
                               style = "background: #f8f9fa; padding: 15px; border-radius: 5px;",
@@ -288,7 +295,8 @@ tagList(
                             )
                           ),
                           tabPanel(
-                            title = div(icon("lightbulb"), "Interpretasi"),
+                            title = "Interpretasi",  # PERBAIKAN: Simplify title
+                            value = "posthoc_interpretation_tab",  # PERBAIKAN: Tambahkan value
                             br(),
                             div(
                               style = "background: #d4edda; padding: 15px; border-radius: 5px;",
@@ -296,7 +304,8 @@ tagList(
                             )
                           ),
                           tabPanel(
-                            title = div(icon("chart-bar"), "Visualisasi"),
+                            title = "Visualisasi",  # PERBAIKAN: Simplify title
+                            value = "posthoc_visualization_tab",  # PERBAIKAN: Tambahkan value
                             br(),
                             plotlyOutput("posthoc_plot", height = "400px")
                           )
@@ -307,7 +316,7 @@ tagList(
                # Tukey HSD Information
                div(
                  style = "background: #fff3cd; padding: 15px; border-radius: 5px; margin-top: 15px;",
-                 h5(icon("info-circle"), "Tentang Tukey HSD", style = "margin-top: 0;"),
+                 h5("ℹ️ Tentang Tukey HSD", style = "margin-top: 0;"),  # PERBAIKAN: Simplify title
                  fluidRow(
                    column(6,
                           tags$ul(

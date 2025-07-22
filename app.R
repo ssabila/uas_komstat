@@ -10,7 +10,8 @@ library(readr)
 library(htmltools)
 library(shinyjs)
 library(here)
-library(bs4Dash)
+library(e1071)
+library(reshape2)
 
 # PERBAIKAN: Cek dan install package yang diperlukan
 required_packages <- c("shiny", "shinydashboard", "DT", "plotly", "leaflet", 
