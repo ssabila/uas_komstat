@@ -2,7 +2,7 @@
 fluidRow(
   # Header dengan informasi utama
   column(12,
-         box(
+         bs4Card(
            title = "SOVI EXPLORE : Kerentanan Sosial Indonesia 2017", 
            status = "primary", 
            solidHeader = TRUE,
@@ -74,7 +74,7 @@ fluidRow(
   # Konten utama beranda
   column(6,
          # Tujuan dan deskripsi
-         box(
+         bs4Card(
            title = "Tujuan Analisis", 
            status = "info", 
            solidHeader = TRUE,
@@ -88,7 +88,7 @@ fluidRow(
          ),
          
          # Sumber data
-         box(
+         bs4Card(
            title = "Sumber Data", 
            status = "success", 
            solidHeader = TRUE,
@@ -110,7 +110,7 @@ fluidRow(
          ),
          
          # Informasi variabel
-         box(
+         bs4Card(
            title = "Variabel Utama", 
            status = "warning", 
            solidHeader = TRUE,
@@ -122,7 +122,7 @@ fluidRow(
   # Sidebar dengan visualisasi geografis
   column(6,
          # Visualisasi distribusi populasi - PERBAIKAN: Menggunakan plotlyOutput
-         box(
+         bs4Card(
            title = "Distribusi Populasi per Wilayah", 
            status = "primary", 
            solidHeader = TRUE,
@@ -137,7 +137,7 @@ fluidRow(
          ),
          
          # Quick stats - PERBAIKAN: Box lebih panjang dengan konten yang nyaman dibaca
-         box(
+         bs4Card(
            title = "Statistik Cepat",
            status = "secondary",
            solidHeader = TRUE,
@@ -155,7 +155,7 @@ fluidRow(
          ),
          
          # Top/Bottom Rankings - PERBAIKAN: Box lebih panjang
-         box(
+         bs4Card(
            title = "Peringkat Wilayah", 
            status = "primary", 
            solidHeader = TRUE,

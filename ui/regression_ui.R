@@ -2,7 +2,7 @@
 
 tagList(
   # Kotak Header Utama
-  box(
+  bs4Card(
     title = "Regresi Linear Berganda",
     status = "primary",
     solidHeader = TRUE,
@@ -17,7 +17,7 @@ tagList(
   ),
   
   # Kotak Pengaturan Model (Bagian Atas)
-  box(
+  bs4Card(
     title = "Pengaturan Model Regresi",
     status = "info",
     solidHeader = TRUE,
@@ -48,7 +48,7 @@ tagList(
   ),
   
   # Kotak Hasil Model (Bagian Bawah)
-  box(
+  bs4Card(
     title = "Hasil Model Regresi",
     status = "success",
     solidHeader = TRUE,

@@ -3,7 +3,7 @@
 fluidRow(
   # Header utama
   column(12,
-         box(
+         bs4Card(
            title = "Panduan Penggunaan Dashboard Kerentanan Sosial Indonesia", 
            status = "primary", 
            solidHeader = TRUE,
@@ -24,7 +24,7 @@ fluidRow(
   
   # Navigasi cepat
   column(12,
-         box(
+         bs4Card(
            title = "Navigasi Cepat", 
            status = "info", 
            solidHeader = TRUE,
@@ -85,7 +85,7 @@ fluidRow(
   
   # Konten panduan utama
   column(12,
-         box(
+         bs4Card(
            title = "Panduan Penggunaan Dashboard", 
            status = "primary", 
            solidHeader = TRUE,

@@ -1,7 +1,7 @@
 # ui/ttest_ui.R
 tagList(
   #   Kotak Judul Halaman  
-  box(
+  bs4Card(
     title = "Uji Beda Rata-Rata (t-Test)",
     status = "primary",
     solidHeader = TRUE,
@@ -13,7 +13,7 @@ tagList(
   fluidRow(
     #   Kolom Kiri: Pengaturan Uji  
     column(4,
-           box(
+           bs4Card(
              title = "Pengaturan Uji",
              status = "info",
              solidHeader = TRUE,
@@ -40,7 +40,7 @@ tagList(
     
     #   Kolom Kanan: Ringkasan Hasil & Unduh  
     column(8,
-           box(
+           bs4Card(
              title = "Hasil Analisis t-Test",
              status = "success",
              solidHeader = TRUE,
@@ -53,7 +53,7 @@ tagList(
   #   Baris Baru: Kotak Interpretasi (Full-Width)  
   fluidRow(
     column(12,
-           box(
+           bs4Card(
              title = "Interpretasi Hasil",
              status = "primary",
              solidHeader = TRUE,

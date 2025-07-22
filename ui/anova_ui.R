@@ -2,7 +2,7 @@
 
 tagList(
   # Header Section
-  box(
+  bs4Card(
     title = "Analysis of Variance (ANOVA)",
     status = "primary",
     solidHeader = TRUE,
@@ -30,7 +30,7 @@ tagList(
   fluidRow(
     # Control Panel
     column(4,
-           box(
+           bs4Card(
              title = "Pengaturan ANOVA",
              status = "info",
              solidHeader = TRUE,
@@ -100,7 +100,7 @@ tagList(
     
     # Results Panel
     column(8,
-           box(
+           bs4Card(
              title = "Hasil Analisis ANOVA",
              status = "success",
              solidHeader = TRUE,
@@ -206,7 +206,7 @@ tagList(
     condition = "output.show_posthoc == true",
     fluidRow(
       column(12,
-             box(
+             bs4Card(
                title = "Uji Post Hoc Tukey HSD",
                status = "warning",
                solidHeader = TRUE,

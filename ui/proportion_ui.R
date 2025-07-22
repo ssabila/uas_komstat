@@ -1,6 +1,6 @@
 # ui/proportion_ui.R
 tagList(
-  box(
+  bs4Card(
     title = "Uji Proporsi",
     status = "primary",
     solidHeader = TRUE,
@@ -10,7 +10,7 @@ tagList(
   fluidRow(
     #   Kolom Kiri: Pengaturan Uji  
     column(4,
-           box(
+           bs4Card(
              title = "Pengaturan Uji",
              status = "info",
              solidHeader = TRUE,
@@ -39,7 +39,7 @@ tagList(
     ),
     #   Kolom Kanan: Ringkasan Hasil Uji  
     column(8,
-           box(
+           bs4Card(
              title = "Hasil Analisis Uji Proporsi",
              status = "success",
              solidHeader = TRUE,
@@ -51,7 +51,7 @@ tagList(
   #   Baris Baru untuk Interpretasi dan Unduhan  
   fluidRow(
     column(12,
-           box(
+           bs4Card(
              title = "Interpretasi dan Laporan",
              status = "primary",
              solidHeader = TRUE,

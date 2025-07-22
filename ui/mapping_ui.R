@@ -1,6 +1,6 @@
 fluidPage(
   # Header box (existing)
-  box(
+  bs4Card(
     title = "Peta Distribusi Spasial",
     status = "primary",
     solidHeader = TRUE,
@@ -16,7 +16,7 @@ fluidPage(
     # Kolom peta
     column(
       width = 8,
-      box(
+      bs4Card(
         title = "Peta Interaktif",
         status = "info",
         solidHeader = TRUE,
@@ -29,7 +29,7 @@ fluidPage(
     # Kolom panel statistik
     column(
       width = 4,
-      box(
+      bs4Card(
         title = "Statistik Deskriptif",
         status = "success",
         solidHeader = TRUE,
@@ -44,7 +44,7 @@ fluidPage(
   fluidRow(
     column(
       width = 12,
-      box(
+      bs4Card(
         title = "Interpretasi Visualisasi Peta",
         status = "warning",
         solidHeader = TRUE,

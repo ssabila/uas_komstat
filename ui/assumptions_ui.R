@@ -2,7 +2,7 @@
 
 tagList(
   # Header Section
-  box(
+  bs4Card(
     title = "Uji Asumsi Statistik",
     status = "primary",
     solidHeader = TRUE,
@@ -33,7 +33,7 @@ tagList(
       width = 6,
       style = "padding-right: 15px;",
       
-      box(
+      bs4Card(
         title = "Uji Normalitas (Shapiro-Wilk)",
         status = "info",
         solidHeader = TRUE,
@@ -110,7 +110,7 @@ tagList(
       width = 6,
       style = "padding-left: 15px;",
       
-      box(
+      bs4Card(
         title = "Uji Homogenitas Variansi (Levene)",
         status = "info",
         solidHeader = TRUE,
@@ -181,3 +181,4 @@ tagList(
     )
   )
 )
+

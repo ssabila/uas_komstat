@@ -1,7 +1,7 @@
 # ui/download_ui.R
 fluidPage(
   # Header
-  box(
+  bs4Card(
     title = "Pusat Unduhan",
     status = "primary",
     solidHeader = TRUE,
@@ -12,7 +12,7 @@ fluidPage(
   fluidRow(
     # Panel Download Data
     column(6,
-           box(
+           bs4Card(
              title = "Unduh Data",
              status = "info",
              solidHeader = TRUE,
@@ -29,7 +29,7 @@ fluidPage(
     
     # Panel Download Laporan
     column(6,
-           box(
+           bs4Card(
              title = "Unduh Laporan",
              status = "warning",
              solidHeader = TRUE,

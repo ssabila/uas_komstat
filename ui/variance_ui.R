@@ -2,7 +2,7 @@
 
 tagList(
   # Header Section
-  box(
+  bs4Card(
     title = "Uji Varians",
     status = "primary",
     solidHeader = TRUE,
@@ -23,7 +23,7 @@ tagList(
   fluidRow(
     # Kolom Kiri: Pengaturan Uji
     column(4,
-           box(
+           bs4Card(
              title = "Pengaturan Uji",
              status = "info",
              solidHeader = TRUE,
@@ -49,7 +49,7 @@ tagList(
     
     # Kolom Kanan: Hasil Uji Statistik
     column(8,
-           box(
+           bs4Card(
              title = "Hasil Analisis Uji Varians",
              status = "success",
              solidHeader = TRUE,
@@ -67,7 +67,7 @@ tagList(
   # Baris BARU untuk Interpretasi, Visualisasi, dan Unduhan (Full-Width)
   fluidRow(
     column(12,
-           box(
+           bs4Card(
              title = "Interpretasi, Visualisasi, dan Laporan",
              status = "primary",
              solidHeader = TRUE,

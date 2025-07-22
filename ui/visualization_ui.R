@@ -1,7 +1,7 @@
 # ui/visualization_ui.R - Versi yang Diperbaiki
 fluidPage(
   # Kontrol Visualisasi
-  box(
+  bs4Card(
     title = "Kontrol Visualisasi",
     status = "primary",
     solidHeader = TRUE,
@@ -16,7 +16,7 @@ fluidPage(
   # Visualisasi Utama dengan Interpretasi
   fluidRow(
     column(8,
-           box(
+           bs4Card(
              title = "Hasil Visualisasi",
              status = "info",
              solidHeader = TRUE,
@@ -25,7 +25,7 @@ fluidPage(
            )
     ),
     column(4,
-           box(
+           bs4Card(
              title = "Interpretasi Sebaran Data",
              status = "info",
              solidHeader = TRUE,
@@ -40,7 +40,7 @@ fluidPage(
   # Heatmap Korelasi dengan Interpretasi
   fluidRow(
     column(8,
-           box(
+           bs4Card(
              title = "Heatmap Korelasi",
              status = "warning",
              solidHeader = TRUE,
@@ -51,7 +51,7 @@ fluidPage(
            )
     ),
     column(4,
-           box(
+           bs4Card(
              title = "Analisis Korelasi",
              status = "warning",
              solidHeader = TRUE,

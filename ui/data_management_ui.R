@@ -3,7 +3,7 @@
 fluidRow(
   # Header informasi
   column(12,
-         box(
+         bs4Card(
            title = "Manajemen dan Transformasi Data",
            status = "primary",
            solidHeader = TRUE,
@@ -21,7 +21,7 @@ fluidRow(
   # Panel kontrol utama
   column(4,
          # Status data
-         box(
+         bs4Card(
            title = "Status Data",
            status = "info",
            solidHeader = TRUE,
@@ -30,7 +30,7 @@ fluidRow(
          ),
          
          # Kontrol operasi
-         box(
+         bs4Card(
            title = "Operasi Data",
            status = "warning",
            solidHeader = TRUE,
@@ -121,7 +121,7 @@ fluidRow(
          ),
          
          # Reset dan Export
-         box(
+         bs4Card(
            title = "Kontrol Umum",
            status = "danger",
            solidHeader = TRUE,
@@ -134,7 +134,7 @@ fluidRow(
   
   # Panel hasil
   column(8,
-         box(
+         bs4Card(
            title = "Hasil dan Analisis",
            status = "primary",
            solidHeader = TRUE,
