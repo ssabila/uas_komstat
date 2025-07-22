@@ -133,6 +133,12 @@ output$variance_histogram <- renderPlot({
 
 
 # --- 7. LOGIKA UNDUH ---
+# PERBAIKAN UNTUK server/variance_server.R
+# Bagian: LOGIKA UNDUH (Ganti bagian yang ada dengan kode ini)
+
+# PERBAIKAN UNTUK server/variance_server.R
+# Bagian: LOGIKA UNDUH (Ganti bagian yang ada dengan kode ini)
+
 output$download_variance_result <- downloadHandler(
   filename = function() {
     paste("laporan-uji-varians-", Sys.Date(), ".", input$variance_format, sep = "")
@@ -140,60 +146,142 @@ output$download_variance_result <- downloadHandler(
   content = function(file) {
     req(variance_results())
     
-    # Simpan plot ke file temporer
+    # TAMBAHKAN: Progress notification untuk user experience yang lebih baik
+    showNotification("📋 Sedang menyiapkan laporan...", type = "message", duration = 3)
+    
+    # Gunakan pendekatan yang sama dengan assumptions - buat R Markdown secara langsung
     temp_dir <- tempdir()
-    boxplot_path <- file.path(temp_dir, "boxplot.png")
-    histogram_path <- file.path(temp_dir, "histogram.png")
+    plot_file <- file.path(temp_dir, "variance_plots.png")
     
-    png(boxplot_path, width=7, height=5, units='in', res=300); {
-      output$variance_boxplot()
-    }; dev.off()
+    # PERBAIKAN: Buat plot dengan resolusi rendah untuk kecepatan
+    tryCatch({
+      png(plot_file, width = 800, height = 600, res = 150)
+      
+      data <- processed_data$current
+      if (input$variance_test_type == "one_sample") {
+        # Layout untuk satu plot
+        boxplot(data[[input$variance_var]], 
+                main = paste("Boxplot untuk", input$variance_var),
+                ylab = input$variance_var, 
+                col = "lightblue")
+      } else {
+        req(input$variance_group_var)
+        # Layout untuk dua plot
+        par(mfrow = c(1, 2))
+        
+        # Boxplot
+        boxplot(data[[input$variance_var]] ~ data[[input$variance_group_var]],
+                main = paste("Boxplot", input$variance_var),
+                xlab = input$variance_group_var,
+                ylab = input$variance_var,
+                col = c("lightblue", "lightcoral"))
+        
+        # Histogram
+        groups <- unique(data[[input$variance_group_var]])
+        hist(data[[input$variance_var]][data[[input$variance_group_var]] == groups[1]],
+             main = paste("Histogram", groups[1]),
+             xlab = input$variance_var,
+             col = "lightblue",
+             breaks = 15)
+        
+        par(mfrow = c(1, 1))
+      }
+      dev.off()
+      
+    }, error = function(e) {
+      # Plot fallback
+      png(plot_file, width = 800, height = 600, res = 150)
+      plot(1, 1, type = "n", main = "Plot Tidak Tersedia", xlab = "", ylab = "", axes = FALSE)
+      text(1, 1, paste("Error:", e$message), col = "red", cex = 1.2)
+      dev.off()
+    })
     
-    png(histogram_path, width=8, height=4, units='in', res=300); {
-      output$variance_histogram()
-    }; dev.off()
+    showNotification("📊 Sedang memproses hasil analisis...", type = "message", duration = 2)
     
-    # Panggil helper function untuk mendapatkan semua teks
-    result_text <- generate_variance_summary_text(variance_results())
-    interpretation_text <- generate_variance_interpretation_text(variance_results())
-    vis_interpretation_text <- generate_variance_vis_interpretation_text(variance_results())
+    # Ambil hasil analisis
+    result <- variance_results()
+    result_text <- generate_variance_summary_text(result)
+    interpretation_text <- generate_variance_interpretation_text(result)
+    vis_interpretation_text <- generate_variance_vis_interpretation_text(result)
     
-    # Gabungkan semua teks menjadi satu blok untuk dikirim ke Rmd
-    full_text <- paste(
-      "### 1. Hasil Uji Statistik",
+    # Format output seperti assumptions
+    output_format <- switch(input$variance_format,
+                            "pdf" = "pdf_document",
+                            "docx" = "word_document")
+    
+    temp_rmd <- tempfile(fileext = ".Rmd")
+    
+    # PERBAIKAN: Gunakan format R Markdown langsung seperti assumptions
+    rmd_content <- paste(
+      "---",
+      "title: 'Laporan Hasil Uji Varians'",
+      paste0("date: '", format(Sys.time(), "%A, %d %B %Y %H:%M:%S"), "'"),
+      "output:",
+      if(input$variance_format == "pdf") {
+        "  pdf_document:\n    latex_engine: xelatex\n    toc: true"
+      } else if(input$variance_format == "docx") {
+        "  word_document:\n    toc: true"
+      },
+      "---",
+      "",
+      "## 1. Ringkasan Analisis",
+      paste("- **Jenis Uji:**", if(input$variance_test_type == "one_sample") "Uji Varians Satu Sampel" else "Uji Varians Dua Sampel"),
+      paste("- **Variabel yang diuji:**", input$variance_var),
+      if(input$variance_test_type != "one_sample") paste("- **Variabel Grup:**", input$variance_group_var) else "",
+      paste("- **Tingkat Signifikansi (α):** 0.05"),
+      "",
+      "## 2. Hasil Pengujian",
       "```",
       result_text,
       "```",
-      "\n\n### 2. Interpretasi Hasil",
-      "```",
+      "",
+      "## 3. Interpretasi Hasil",
       interpretation_text,
-      "```",
-      "\n\n### 3. Interpretasi Visualisasi",
-      "```",
+      "",
+      "## 4. Visualisasi Data",
+      if(file.exists(plot_file)) paste0("![Visualisasi Distribusi Data](", plot_file, ")") else "Plot tidak tersedia.",
+      "",
+      "## 5. Interpretasi Visual",
       vis_interpretation_text,
-      "```",
+      "",
+      "---",
+      paste0("*Laporan ini dibuat secara otomatis pada ", format(Sys.time(), "%d %B %Y, %H:%M:%S"), ".*"),
       sep = "\n"
     )
     
-    params <- list(
-      report_title = "Laporan Hasil Uji Varians",
-      text_output = full_text,
-      plot_boxplot_path = boxplot_path,
-      plot_histogram_path = histogram_path
-    )
+    writeLines(rmd_content, temp_rmd)
     
-    rmarkdown::render(
-      input = "text_report.Rmd",
-      output_file = file,
-      output_format = if (input$variance_format == "pdf") "pdf_document" else "word_document",
-      params = params,
-      envir = new.env(parent = globalenv())
-    )
+    showNotification("🔄 Sedang menyusun dokumen final...", type = "message", duration = 2)
+    
+    # PERBAIKAN: Render dengan error handling yang baik
+    tryCatch({
+      rmarkdown::render(
+        input = temp_rmd,
+        output_file = file,
+        output_format = output_format,
+        quiet = TRUE  # Mencegah output verbose
+      )
+      showNotification("✅ Laporan berhasil dibuat!", type = "message", duration = 3)
+    }, error = function(e) {
+      showNotification(paste("❌ Error membuat laporan:", e$message), type = "error", duration = 10)
+      # Fallback: buat file teks sederhana
+      writeLines(c(
+        paste("LAPORAN UJI VARIANS -", Sys.Date()),
+        paste(rep("=", 50), collapse = ""),
+        "",
+        "HASIL UJI STATISTIK:",
+        result_text,
+        "",
+        "INTERPRETASI:",
+        interpretation_text,
+        "",
+        "INTERPRETASI VISUAL:",
+        vis_interpretation_text
+      ), file)
+    })
+    
+    # Bersihkan file temporer
+    if(file.exists(plot_file)) unlink(plot_file)
+    if(file.exists(temp_rmd)) unlink(temp_rmd)
   }
 )
-
-
-
-
-
-
