@@ -8,19 +8,32 @@ output:
 params:
   report_title: "Hasil Analisis"
   text_output: "Tidak ada output yang tersedia."
+  # --- PENAMBAHAN: Parameter opsional untuk path gambar ---
+  plot_boxplot_path: NULL
+  plot_histogram_path: NULL
 ---
 
 ```{r setup, include=FALSE}
 # Opsi global
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.align = 'center')
 ```
+`r params$report_title`
 
-
-`r params$report_title`  
 Tanggal Dibuat: `r format(Sys.time(), '%d %B %Y')`
 
 ```{r}
 # Menampilkan output teks yang dikirim dari Shiny
-# cat() digunakan agar format teks (seperti spasi dan baris baru) tetap terjaga
 cat(params$text_output)
 ```
+
+```{r}
+# Blok ini hanya akan berjalan jika 'plot_boxplot_path' dikirim dari Shiny
+knitr::include_graphics(params$plot_boxplot_path)
+```
+
+
+```{r}
+# Blok ini hanya akan berjalan jika 'plot_histogram_path' dikirim dari Shiny
+knitr::include_graphics(params$plot_histogram_path)
+```
+

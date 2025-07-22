@@ -1,4 +1,4 @@
-# ui/user_guide_ui.R - FINAL FIX untuk mengatasi semua error tabsetPanel
+# ui/user_guide_ui.R - IMPROVED VERSION dengan Panduan Analisis Regresi
 
 fluidRow(
   # Header utama
@@ -91,7 +91,7 @@ fluidRow(
            solidHeader = TRUE,
            width = 12,
            
-           # MAIN TABSETPANEL - FIXED
+           # MAIN TABSETPANEL
            tabsetPanel(
              id = "guide_main_tabs",
              type = "tabs",
@@ -116,94 +116,7 @@ fluidRow(
                  
                  div(
                    style = "background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 15px 0;",
-                   h4("2. Eksplorasi Awal"),
-                   tags$ul(
-                     tags$li("Mulai dengan statistik deskriptif"),
-                     tags$li("Buat visualisasi untuk memahami distribusi data"),
-                     tags$li("Identifikasi pola geografis melalui peta")
-                   )
-                 ),
-                 
-                 div(
-                   style = "background: #fff3cd; padding: 20px; border-radius: 8px; margin: 15px 0;",
-                   h4("3. Analisis Lanjutan"),
-                   tags$ul(
-                     tags$li("Pilih uji statistik yang sesuai dengan tujuan penelitian"),
-                     tags$li("Interpretasikan hasil dengan bantuan panduan yang disediakan"),
-                     tags$li("Unduh laporan untuk dokumentasi")
-                   )
-                 )
-               )
-             ),
-             
-             # Tab 2: Manajemen Data
-             tabPanel(
-               title = "Manajemen Data",
-               value = "data_management",
-               br(),
-               div(
-                 h3("Kelola dan Transformasi Data"),
-                 
-                 div(
-                   style = "background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;",
-                   h4("Transformasi Data"),
-                   tags$ul(
-                     tags$li(strong("Logaritma (log):"), " Mengurangi skewness, cocok untuk data dengan distribusi miring kanan"),
-                     tags$li(strong("Akar kuadrat (sqrt):"), " Mengurangi heteroskedastisitas, untuk data dengan variansi tidak konstan"),
-                     tags$li(strong("Standardisasi (z-score):"), " Mengubah data ke mean=0, sd=1, untuk perbandingan skala"),
-                     tags$li(strong("Normalisasi (0-1):"), " Mengubah range data ke 0-1, untuk algoritma sensitif skala")
-                   )
-                 )
-               )
-             ),
-             
-             # Tab 3: Uji Asumsi
-             tabPanel(
-               title = "Uji Asumsi",
-               value = "assumptions",
-               br(),
-               div(
-                 h3("Verifikasi Prasyarat Analisis Statistik"),
-                 
-                 div(
-                   style = "background: #f8d7da; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #dc3545;",
-                   h4("Mengapa Uji Asumsi Penting?"),
-                   p("Setiap uji statistik memiliki asumsi yang harus dipenuhi. Melanggar asumsi dapat menghasilkan kesimpulan yang salah dan menyesatkan."),
-                   
-                   tags$ul(
-                     tags$li(strong("Normalitas:"), " Data mengikuti distribusi normal"),
-                     tags$li(strong("Homoskedastisitas:"), " Variansi konstan"),
-                     tags$li(strong("Independensi:"), " Observasi saling independen"),
-                     tags$li(strong("Linearitas:"), " Hubungan linear antar variabel")
-                   )
-                 ),
-                 
-                 div(
-                   style = "background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;",
-                   h4("Checklist Uji Asumsi"),
-                   tags$ol(
-                     tags$li("Periksa normalitas untuk setiap variabel numerik"),
-                     tags$li("Uji homogenitas jika akan membandingkan grup"),
-                     tags$li("Lihat Q-Q plot untuk validasi visual normalitas"),
-                     tags$li("Dokumentasikan hasil uji asumsi"),
-                     tags$li("Pilih metode analisis berdasarkan hasil uji asumsi")
-                   )
-                 )
-               )
-             ),
-             
-             # Tab 4: Statistik Inferensia
-             tabPanel(
-               title = "Statistik Inferensia",
-               value = "inference",
-               br(),
-               div(
-                 h3("Uji Hipotesis dan Analisis Inferensia"),
-                 
-                 div(
-                   style = "background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 15px 0;",
-                   h4("Memilih Uji yang Tepat"),
-                   p("Pemilihan uji statistik bergantung pada tujuan penelitian, jenis data, dan jumlah grup yang dibandingkan."),
+                   h4("2. Pemilihan Metode Analisis"),
                    
                    fluidRow(
                      column(6,
@@ -227,8 +140,27 @@ fluidRow(
                    )
                  ),
                  
-                 # FIXED: Remove problematic nested tabsetPanel
-                 # Instead, use simple divs with headers
+                 div(
+                   style = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;",
+                   h4("3. Flow Analisis yang Disarankan"),
+                   tags$ol(
+                     tags$li("Eksplorasi data (Statistik Deskriptif & Visualisasi)"),
+                     tags$li("Uji asumsi data (Normalitas, Homogenitas, dll)"),
+                     tags$li("Pilih dan jalankan uji statistik yang sesuai"),
+                     tags$li("Interpretasi hasil dan buat laporan")
+                   )
+                 )
+               )
+             ),
+             
+             # Tab 2: Uji Statistik
+             tabPanel(
+               title = "Uji Statistik",
+               value = "statistical_tests",
+               br(),
+               div(
+                 h3("Panduan Pemilihan dan Penggunaan Uji Statistik"),
+                 
                  div(
                    style = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;",
                    h4("t-Test"),
@@ -256,6 +188,247 @@ fluidRow(
                    tags$ul(
                      tags$li("Apakah ada perbedaan kemiskinan antar pulau (Jawa, Sumatera, Kalimantan)?"),
                      tags$li("Pengaruh wilayah dan tipe daerah terhadap kerentanan sosial?")
+                   )
+                 )
+               )
+             ),
+             
+             # Tab 3: PANDUAN REGRESI - BARU DITAMBAHKAN
+             tabPanel(
+               title = "Analisis Regresi",
+               value = "regression_guide",
+               br(),
+               div(
+                 h3("Panduan Lengkap Analisis Regresi Linear"),
+                 
+                 # Pengenalan Regresi
+                 div(
+                   style = "background: #d4edda; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #28a745;",
+                   h4("📊 Apa itu Analisis Regresi?", style = "color: #155724; margin-top: 0;"),
+                   p(style = "color: #155724;", "Analisis regresi adalah metode statistik untuk memahami hubungan antara variabel dependen (Y) dengan satu atau lebih variabel independen (X). Metode ini memungkinkan kita untuk:"),
+                   tags$ul(
+                     style = "color: #155724;",
+                     tags$li(strong("Prediksi:"), " Memperkirakan nilai Y berdasarkan nilai X"),
+                     tags$li(strong("Hubungan:"), " Mengukur kekuatan dan arah hubungan antar variabel"),
+                     tags$li(strong("Pengaruh:"), " Menentukan variabel mana yang berpengaruh signifikan")
+                   )
+                 ),
+                 
+                 # Jenis-jenis Regresi
+                 div(
+                   style = "background: #fff3cd; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #ffc107;",
+                   h4("🔍 Jenis-jenis Regresi", style = "color: #856404; margin-top: 0;"),
+                   fluidRow(
+                     column(6,
+                            div(
+                              style = "background: #fff; padding: 15px; border-radius: 5px; margin-bottom: 10px;",
+                              h5("Regresi Linear Sederhana", style = "color: #856404;"),
+                              p("1 variabel independen → 1 variabel dependen"),
+                              p(strong("Formula:"), " Y = a + bX + e"),
+                              p(strong("Contoh:"), " Kemiskinan = f(Pendidikan)")
+                            )
+                     ),
+                     column(6,
+                            div(
+                              style = "background: #fff; padding: 15px; border-radius: 5px; margin-bottom: 10px;",
+                              h5("Regresi Linear Berganda", style = "color: #856404;"),
+                              p("2+ variabel independen → 1 variabel dependen"),
+                              p(strong("Formula:"), " Y = a + b₁X₁ + b₂X₂ + ... + e"),
+                              p(strong("Contoh:"), " Kemiskinan = f(Pendidikan, Kesehatan, Ekonomi)")
+                            )
+                     )
+                   )
+                 ),
+                 
+                 # Langkah-langkah Analisis
+                 div(
+                   style = "background: #e2e3e5; padding: 20px; border-radius: 8px; margin: 15px 0;",
+                   h4("📋 Langkah-langkah Analisis Regresi"),
+                   div(
+                     style = "background: #fff; padding: 15px; border-radius: 5px; margin: 10px 0;",
+                     h5("1. Persiapan Data"),
+                     tags$ul(
+                       tags$li("Pastikan semua variabel numerik"),
+                       tags$li("Periksa missing values dan outliers"),
+                       tags$li("Lakukan eksplorasi data awal (scatter plot, korelasi)")
+                     )
+                   ),
+                   div(
+                     style = "background: #fff; padding: 15px; border-radius: 5px; margin: 10px 0;",
+                     h5("2. Uji Asumsi Regresi"),
+                     tags$ul(
+                       tags$li(strong("Linearitas:"), " Hubungan linear antara X dan Y"),
+                       tags$li(strong("Normalitas residual:"), " Residual berdistribusi normal"),
+                       tags$li(strong("Homoskedastisitas:"), " Variansi residual konstan"),
+                       tags$li(strong("Independensi:"), " Tidak ada autokorelasi residual"),
+                       tags$li(strong("Multikolinearitas:"), " Variabel X tidak saling berkorelasi tinggi")
+                     )
+                   ),
+                   div(
+                     style = "background: #fff; padding: 15px; border-radius: 5px; margin: 10px 0;",
+                     h5("3. Membangun Model"),
+                     tags$ul(
+                       tags$li("Pilih variabel dependen (Y)"),
+                       tags$li("Pilih variabel independen (X₁, X₂, ...)"),
+                       tags$li("Jalankan analisis regresi"),
+                       tags$li("Evaluasi kualitas model (R², F-test)")
+                     )
+                   ),
+                   div(
+                     style = "background: #fff; padding: 15px; border-radius: 5px; margin: 10px 0;",
+                     h5("4. Interpretasi Hasil"),
+                     tags$ul(
+                       tags$li("Analisis koefisien regresi dan signifikansinya"),
+                       tags$li("Evaluasi kualitas model secara keseluruhan"),
+                       tags$li("Uji asumsi residual"),
+                       tags$li("Buat prediksi jika diperlukan")
+                     )
+                   )
+                 ),
+                 
+                 # Cara Membaca Output
+                 div(
+                   style = "background: #d1ecf1; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #bee5eb;",
+                   h4("📖 Cara Membaca Output Regresi", style = "color: #0c5460; margin-top: 0;"),
+                   
+                   fluidRow(
+                     column(6,
+                            div(
+                              style = "background: #fff; padding: 15px; border-radius: 5px;",
+                              h5("Koefisien (Estimates)", style = "color: #0c5460;"),
+                              tags$ul(
+                                tags$li(strong("Intercept (a):"), " Nilai Y ketika semua X = 0"),
+                                tags$li(strong("Slope (b):"), " Perubahan Y per unit perubahan X"),
+                                tags$li(strong("P-value < 0.05:"), " Koefisien signifikan")
+                              )
+                            )
+                     ),
+                     column(6,
+                            div(
+                              style = "background: #fff; padding: 15px; border-radius: 5px;",
+                              h5("Kualitas Model", style = "color: #0c5460;"),
+                              tags$ul(
+                                tags$li(strong("R-squared:"), " % variasi Y yang dijelaskan model"),
+                                tags$li(strong("Adjusted R²:"), " R² yang disesuaikan jumlah variabel"),
+                                tags$li(strong("F-statistic:"), " Signifikansi model secara keseluruhan")
+                              )
+                            )
+                     )
+                   )
+                 ),
+                 
+                 # Contoh Praktis
+                 div(
+                   style = "background: #f8d7da; padding: 20px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #dc3545;",
+                   h4("💡 Contoh Praktis: Analisis Kerentanan Sosial", style = "color: #721c24; margin-top: 0;"),
+                   div(
+                     style = "background: #fff; padding: 15px; border-radius: 5px; margin: 10px 0;",
+                     h5("Penelitian Question:", style = "color: #721c24;"),
+                     p("Faktor-faktor apa yang mempengaruhi tingkat kerentanan sosial di Indonesia?")
+                   ),
+                   div(
+                     style = "background: #fff; padding: 15px; border-radius: 5px; margin: 10px 0;",
+                     h5("Model yang Diusulkan:", style = "color: #721c24;"),
+                     p(strong("Y (Dependen):"), " Indeks Kerentanan Sosial"),
+                     p(strong("X (Independen):"), " Tingkat Kemiskinan, Tingkat Pendidikan, Akses Kesehatan, Infrastruktur")
+                   ),
+                   div(
+                     style = "background: #fff; padding: 15px; border-radius: 5px; margin: 10px 0;",
+                     h5("Interpretasi Hasil:", style = "color: #721c24;"),
+                     tags$ul(
+                       tags$li("Jika koefisien Kemiskinan = 0.8 (p < 0.001): Setiap kenaikan 1% kemiskinan meningkatkan kerentanan sosial sebesar 0.8 poin"),
+                       tags$li("Jika R² = 0.75: Model menjelaskan 75% variasi kerentanan sosial"),
+                       tags$li("Jika F-test signifikan: Model secara keseluruhan bermakna")
+                     )
+                   )
+                 ),
+                 
+                 # Tips dan Peringatan
+                 div(
+                   style = "background: #e7f3ff; padding: 20px; border-radius: 8px; margin: 15px 0;",
+                   h4("⚠️ Tips dan Peringatan Penting"),
+                   fluidRow(
+                     column(6,
+                            div(
+                              style = "background: #fff; padding: 15px; border-radius: 5px; border-left: 3px solid #28a745;",
+                              h5("✅ Best Practices", style = "color: #28a745;"),
+                              tags$ul(
+                                tags$li("Selalu periksa asumsi sebelum interpretasi"),
+                                tags$li("Gunakan scatter plot untuk eksplorasi awal"),
+                                tags$li("Pertimbangkan transformasi data jika asumsi dilanggar"),
+                                tags$li("Validasi model dengan data terpisah jika memungkinkan")
+                              )
+                            )
+                     ),
+                     column(6,
+                            div(
+                              style = "background: #fff; padding: 15px; border-radius: 5px; border-left: 3px solid #dc3545;",
+                              h5("❌ Common Mistakes", style = "color: #dc3545;"),
+                              tags$ul(
+                                tags$li("Mengabaikan uji asumsi"),
+                                tags$li("Menginterpretasi korelasi sebagai kausalitas"),
+                                tags$li("Menggunakan terlalu banyak variabel (overfitting)"),
+                                tags$li("Tidak mempertimbangkan outliers")
+                              )
+                            )
+                     )
+                   )
+                 ),
+                 
+                 # Panduan Pelaporan
+                 div(
+                   style = "background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 15px 0;",
+                   h4("📝 Panduan Pelaporan Hasil Regresi"),
+                   tags$ol(
+                     tags$li(strong("Deskripsi Model:"), " Jelaskan variabel yang digunakan dan tujuan analisis"),
+                     tags$li(strong("Uji Asumsi:"), " Laporkan hasil pemeriksaan asumsi regresi"),
+                     tags$li(strong("Kualitas Model:"), " Sebutkan R², Adjusted R², dan F-test"),
+                     tags$li(strong("Koefisien Signifikan:"), " Interpretasikan variabel yang berpengaruh signifikan"),
+                     tags$li(strong("Kesimpulan:"), " Rangkum temuan utama dan implikasi praktis"),
+                     tags$li(strong("Keterbatasan:"), " Diskusikan batasan model dan saran penelitian lanjutan")
+                   )
+                 )
+               )
+             ),
+             
+             # Tab 4: Tips & Trik
+             tabPanel(
+               title = "Tips & Trik",
+               value = "tips_tricks",
+               br(),
+               div(
+                 h3("Tips dan Trik Penggunaan Dashboard"),
+                 
+                 div(
+                   style = "background: #e8f5e8; padding: 20px; border-radius: 8px; margin: 15px 0;",
+                   h4("🚀 Optimalisasi Workflow"),
+                   tags$ul(
+                     tags$li("Gunakan navigasi cepat untuk berpindah antar tab dengan efisien"),
+                     tags$li("Simpan hasil analisis secara berkala menggunakan fitur download"),
+                     tags$li("Dokumentasikan setiap langkah analisis untuk reproducibility"),
+                     tags$li("Gunakan visualisasi untuk memahami pola data sebelum analisis inferensia")
+                   )
+                 ),
+                 
+                 div(
+                   style = "background: #fff3cd; padding: 20px; border-radius: 8px; margin: 15px 0;",
+                   h4("🔧 Troubleshooting Umum"),
+                   tags$ul(
+                     tags$li(strong("Error saat uji normalitas:"), " Periksa apakah variabel numerik dan tidak ada missing values"),
+                     tags$li(strong("ANOVA tidak signifikan:"), " Pastikan grup memiliki ukuran sampel yang memadai"),
+                     tags$li(strong("R² rendah pada regresi:"), " Pertimbangkan transformasi variabel atau tambahkan variabel prediktor"),
+                     tags$li(strong("Asumsi dilanggar:"), " Gunakan transformasi data atau metode non-parametrik")
+                   )
+                 ),
+                 
+                 div(
+                   style = "background: #d1ecf1; padding: 20px; border-radius: 8px; margin: 15px 0;",
+                   h4("📊 Interpretasi Statistik"),
+                   tags$ul(
+                     tags$li("P-value < 0.05 menunjukkan signifikansi statistik, bukan praktis"),
+                     tags$li("Effect size sama pentingnya dengan signifikansi"),
+                     tags$li("Selalu pertimbangkan konteks domain saat interpretasi"),
+                     tags$li("Gunakan confidence interval untuk estimasi yang lebih informatif")
                    )
                  )
                )

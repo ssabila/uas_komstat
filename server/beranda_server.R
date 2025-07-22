@@ -77,8 +77,8 @@ output$population_pie_chart <- renderPlotly({
       
       if (nrow(clean_data) > 0) {
         # Hitung total populasi per region
-        region_pop <- aggregate(clean_data$POPULATION, 
-                                by = list(Region = clean_data$REGION), 
+        region_pop <- aggregate(clean_data$POPULATION,
+                                by = list(Region = clean_data$REGION),
                                 FUN = sum, na.rm = TRUE)
         names(region_pop) <- c("Region", "Total_Population")
         region_pop$Population_Million <- region_pop$Total_Population / 1000000
@@ -208,7 +208,7 @@ output$quick_stats <- renderText({
         stats_text <- paste0(stats_text, "\n🌏 Per Wilayah:\n")
         for (region in names(region_counts)) {
           percentage <- round((region_counts[region] / nrow(data)) * 100, 1)
-          stats_text <- paste0(stats_text, sprintf("  • %s: %d kabupaten/kota (%.1f%%)\n", 
+          stats_text <- paste0(stats_text, sprintf("  • %s: %d kabupaten/kota (%.1f%%)\n",
                                                    region, region_counts[region], percentage))
         }
       }
@@ -221,7 +221,7 @@ output$quick_stats <- renderText({
         top_islands <- head(island_counts, 3)
         for (i in 1:length(top_islands)) {
           percentage <- round((top_islands[i] / nrow(data)) * 100, 1)
-          stats_text <- paste0(stats_text, sprintf("  %d. %s: %d kabupaten/kota (%.1f%%)\n", 
+          stats_text <- paste0(stats_text, sprintf("  %d. %s: %d kabupaten/kota (%.1f%%)\n",
                                                    i, names(top_islands)[i], top_islands[i], percentage))
         }
       }
@@ -229,21 +229,21 @@ output$quick_stats <- renderText({
       # Statistik variabel utama
       stats_text <- paste0(stats_text, "\n=== VARIABEL UTAMA ===\n")
       
-      numeric_vars <- c("POVERTY", "POPULATION", "UNEMPLOYMENT", "NO_DIPLOMA", "AGED_65_PLUS", 
-                        "AGED_17_UNDER", "DISABLED", "SINGLE_PARENT", "MINORITY", "CROWDING", 
-                        "NO_VEHICLE", "GROUP_QUARTERS", "MOBILE_HOMES", "MULTI_UNIT", 
-                        "MEDIAN_HOME_VALUE", "MEDIAN_RENT", "MEDIAN_HH_INCOME", "PER_CAPITA_INCOME", 
+      numeric_vars <- c("POVERTY", "POPULATION", "UNEMPLOYMENT", "NO_DIPLOMA", "AGED_65_PLUS",
+                        "AGED_17_UNDER", "DISABLED", "SINGLE_PARENT", "MINORITY", "CROWDING",
+                        "NO_VEHICLE", "GROUP_QUARTERS", "MOBILE_HOMES", "MULTI_UNIT",
+                        "MEDIAN_HOME_VALUE", "MEDIAN_RENT", "MEDIAN_HH_INCOME", "PER_CAPITA_INCOME",
                         "NO_PLUMBING")
       
       available_vars <- intersect(numeric_vars, names(data))
       if (length(available_vars) > 0) {
-        for (var in head(available_vars, 6)) {  # Tampilkan 6 variabel karena box lebih panjang
+        for (var in head(available_vars, 6)) { # Tampilkan 6 variabel karena box lebih panjang
           if (var %in% names(data)) {
             var_mean <- mean(data[[var]], na.rm = TRUE)
             var_name <- switch(var,
                                "POVERTY" = "Kemiskinan",
                                "POPULATION" = "Populasi",
-                               "UNEMPLOYMENT" = "Pengangguran", 
+                               "UNEMPLOYMENT" = "Pengangguran",
                                "NO_DIPLOMA" = "Tanpa Diploma",
                                "AGED_65_PLUS" = "Usia 65+",
                                "AGED_17_UNDER" = "Usia <17",
@@ -273,141 +273,80 @@ output$quick_stats <- renderText({
   }
 })
 
-# BARU: Output untuk tabel top 5 populasi terbesar - UKURAN NORMAL
+# --- PERBAIKAN PADA TABEL TOP 5 POPULASI ---
 output$top_population_table <- DT::renderDataTable({
   data <- sovi_data()
   if (!is.null(data) && "POPULATION" %in% names(data)) {
     tryCatch({
-      # Siapkan data untuk ranking
       ranking_data <- data[!is.na(data$POPULATION), ]
+      cols_to_select <- intersect(c("DISTRICT_NAME", "PROVINCE_NAME", "POPULATION"), names(ranking_data))
       
-      # Ambil kolom yang diperlukan
-      cols_to_show <- c("DISTRICT_NAME", "PROVINCE_NAME", "POPULATION")
-      available_cols <- intersect(cols_to_show, names(ranking_data))
-      
-      if (length(available_cols) >= 2) {
-        # Buat ranking berdasarkan populasi
-        top_data <- ranking_data[order(ranking_data$POPULATION, decreasing = TRUE), available_cols]
+      if (length(cols_to_select) >= 2) {
+        top_data <- ranking_data[order(ranking_data$POPULATION, decreasing = TRUE), cols_to_select]
         top_data <- head(top_data, 5)
-        
-        # Format populasi dalam jutaan
         top_data$POPULATION <- paste0(round(top_data$POPULATION / 1000000, 2), "M")
         
-        # Rename kolom untuk display
-        names(top_data) <- c("Kabupaten/Kota", 
-                             if("PROVINCE_NAME" %in% available_cols) "Provinsi" else NULL,
-                             "Populasi")[1:length(available_cols)]
+        # Logika penamaan ulang kolom yang lebih aman
+        new_names <- c()
+        if ("DISTRICT_NAME" %in% names(top_data)) new_names <- c(new_names, "Kabupaten/Kota")
+        if ("PROVINCE_NAME" %in% names(top_data)) new_names <- c(new_names, "Provinsi")
+        if ("POPULATION" %in% names(top_data)) new_names <- c(new_names, "Populasi")
+        names(top_data) <- new_names
         
         DT::datatable(
           top_data,
-          options = list(
-            pageLength = 5,
-            dom = 't',
-            ordering = FALSE,
-            scrollX = FALSE,
-            scrollY = FALSE,
-            columnDefs = list(
-              list(className = 'dt-center', targets = c(2)),  # Center align populasi
-              list(className = 'dt-left', targets = c(0, 1))   # Left align nama
-            )
-          ),
-          rownames = FALSE,
-          class = 'cell-border stripe',
-          style = 'bootstrap4'
+          options = list(pageLength = 5, dom = 't', ordering = FALSE, scrollX = FALSE, scrollY = FALSE),
+          rownames = FALSE, class = 'cell-border stripe', style = 'bootstrap4'
         ) %>%
-          DT::formatStyle(
-            columns = names(top_data),
-            fontSize = '14px',
-            lineHeight = '1.4'
-          )
+          DT::formatStyle(columns = names(top_data), fontSize = '14px', lineHeight = '1.4')
       } else {
-        # Fallback jika kolom tidak tersedia
-        empty_df <- data.frame(
-          Status = "Data tidak tersedia untuk ranking populasi"
-        )
-        DT::datatable(empty_df, options = list(dom = 't'), rownames = FALSE)
+        DT::datatable(data.frame(Status = "Data tidak cukup untuk ranking populasi"), options = list(dom = 't'), rownames = FALSE)
       }
     }, error = function(e) {
-      error_df <- data.frame(
-        Error = paste("Error:", e$message)
-      )
-      DT::datatable(error_df, options = list(dom = 't'), rownames = FALSE)
+      DT::datatable(data.frame(Error = paste("Error:", e$message)), options = list(dom = 't'), rownames = FALSE)
     })
   } else {
-    loading_df <- data.frame(
-      Status = "Data sedang dimuat..."
-    )
-    DT::datatable(loading_df, options = list(dom = 't'), rownames = FALSE)
+    DT::datatable(data.frame(Status = "Data sedang dimuat..."), options = list(dom = 't'), rownames = FALSE)
   }
 }, server = FALSE)
 
-# BARU: Output untuk tabel top 5 kemiskinan tertinggi - UKURAN NORMAL
+# --- PERBAIKAN PADA TABEL TOP 5 KEMISKINAN ---
 output$top_poverty_table <- DT::renderDataTable({
   data <- sovi_data()
   if (!is.null(data) && "POVERTY" %in% names(data)) {
     tryCatch({
-      # Siapkan data untuk ranking
       ranking_data <- data[!is.na(data$POVERTY), ]
+      cols_to_select <- intersect(c("DISTRICT_NAME", "PROVINCE_NAME", "POVERTY"), names(ranking_data))
       
-      # Ambil kolom yang diperlukan
-      cols_to_show <- c("DISTRICT_NAME", "PROVINCE_NAME", "POVERTY")
-      available_cols <- intersect(cols_to_show, names(ranking_data))
-      
-      if (length(available_cols) >= 2) {
-        # Buat ranking berdasarkan kemiskinan
-        top_data <- ranking_data[order(ranking_data$POVERTY, decreasing = TRUE), available_cols]
+      if (length(cols_to_select) >= 2) {
+        top_data <- ranking_data[order(ranking_data$POVERTY, decreasing = TRUE), cols_to_select]
         top_data <- head(top_data, 5)
-        
-        # Format persentase kemiskinan
         top_data$POVERTY <- paste0(round(top_data$POVERTY, 1), "%")
         
-        # Rename kolom untuk display
-        names(top_data) <- c("Kabupaten/Kota", 
-                             if("PROVINCE_NAME" %in% available_cols) "Provinsi" else NULL,
-                             "Kemiskinan")[1:length(available_cols)]
+        # Logika penamaan ulang kolom yang lebih aman
+        new_names <- c()
+        if ("DISTRICT_NAME" %in% names(top_data)) new_names <- c(new_names, "Kabupaten/Kota")
+        if ("PROVINCE_NAME" %in% names(top_data)) new_names <- c(new_names, "Provinsi")
+        if ("POVERTY" %in% names(top_data)) new_names <- c(new_names, "Kemiskinan")
+        names(top_data) <- new_names
         
         DT::datatable(
           top_data,
-          options = list(
-            pageLength = 5,
-            dom = 't',
-            ordering = FALSE,
-            scrollX = FALSE,
-            scrollY = FALSE,
-            columnDefs = list(
-              list(className = 'dt-center', targets = c(2)),  # Center align kemiskinan
-              list(className = 'dt-left', targets = c(0, 1))   # Left align nama
-            )
-          ),
-          rownames = FALSE,
-          class = 'cell-border stripe',
-          style = 'bootstrap4'
+          options = list(pageLength = 5, dom = 't', ordering = FALSE, scrollX = FALSE, scrollY = FALSE),
+          rownames = FALSE, class = 'cell-border stripe', style = 'bootstrap4'
         ) %>%
-          DT::formatStyle(
-            columns = names(top_data),
-            fontSize = '14px',
-            lineHeight = '1.4'
-          )
+          DT::formatStyle(columns = names(top_data), fontSize = '14px', lineHeight = '1.4')
       } else {
-        # Fallback jika kolom tidak tersedia
-        empty_df <- data.frame(
-          Status = "Data tidak tersedia untuk ranking kemiskinan"
-        )
-        DT::datatable(empty_df, options = list(dom = 't'), rownames = FALSE)
+        DT::datatable(data.frame(Status = "Data tidak cukup untuk ranking kemiskinan"), options = list(dom = 't'), rownames = FALSE)
       }
     }, error = function(e) {
-      error_df <- data.frame(
-        Error = paste("Error:", e$message)
-      )
-      DT::datatable(error_df, options = list(dom = 't'), rownames = FALSE)
+      DT::datatable(data.frame(Error = paste("Error:", e$message)), options = list(dom = 't'), rownames = FALSE)
     })
   } else {
-    loading_df <- data.frame(
-      Status = "Data sedang dimuat..."
-    )
-    DT::datatable(loading_df, options = list(dom = 't'), rownames = FALSE)
+    DT::datatable(data.frame(Status = "Data sedang dimuat..."), options = list(dom = 't'), rownames = FALSE)
   }
 }, server = FALSE)
+
 
 # Handler untuk tombol "Panduan Pengguna"
 observeEvent(input$goto_guide, {

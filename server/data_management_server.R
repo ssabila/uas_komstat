@@ -1,97 +1,26 @@
-# Inisialisasi reactive values yang stabil
+# server/data_management_server.R - VERSI FINAL TANPA VISUALISASI & INTERPRETASI
+
+# ===== REACTIVE VALUES =====
 processed_data <- reactiveValues(
-  original = NULL,
   current = NULL,
+  original = NULL,
   operations = list(),
-  outliers = integer(0),
-  operation_log = character(0)
+  operation_log = character(0),
+  outliers = NULL,
+  last_outlier_var = NULL # Simpan variabel terakhir yang dicek
 )
 
-# Observer untuk inisialisasi data - DIPERBAIKI
+# Load data awal
 observe({
-  data <- sovi_data()
-  if (!is.null(data)) {
-    cat("Initializing processed data...\n")
-    processed_data$original <- data
-    processed_data$current <- data
-    processed_data$operation_log <- c("Data dimuat: 511 observasi, 24 variabel")
-  }
-})
-
-# Update pilihan variabel - DIPERBAIKI dengan error handling
-observe({
-  data <- processed_data$current
-  if (!is.null(data) && ncol(data) > 0) {
+  if (is.null(processed_data$current)) {
     tryCatch({
-      # Variabel numerik
-      numeric_vars <- names(data)[sapply(data, is.numeric)]
-      all_vars <- names(data)
-      
-      # Update choices dengan error handling
-      if (length(numeric_vars) > 0) {
-        updateSelectInput(session, "transform_var", choices = numeric_vars)
-        updateSelectInput(session, "categorize_var", choices = numeric_vars)
-        updateSelectInput(session, "outlier_var", choices = numeric_vars)
-        updateSelectInput(session, "viz_var", choices = numeric_vars)
-      }
-      
-      if (length(all_vars) > 0) {
-        updateSelectInput(session, "filter_var", choices = all_vars)
-      }
-    }, error = function(e) {
-      cat("Error updating choices:", e$message, "\n")
-    })
+      data <- sovi_data(); if (!is.null(data)) { processed_data$current <- data; processed_data$original <- data }
+    }, error = function(e) { cat("Error loading data:", e$message, "\n") })
   }
 })
 
-detect_outliers <- function(x, method = "iqr", iqr_mult = 1.5, z_thresh = 3) {
-  x_clean <- x[!is.na(x)]
-  if (length(x_clean) < 3) return(integer(0))
-  
-  if (method == "iqr") {
-    Q1 <- quantile(x_clean, 0.25)
-    Q3 <- quantile(x_clean, 0.75)
-    IQR_val <- Q3 - Q1
-    lower <- Q1 - iqr_mult * IQR_val
-    upper <- Q3 + iqr_mult * IQR_val
-    return(which(x < lower | x > upper))
-  } else if (method == "zscore") {
-    z_scores <- abs((x - mean(x_clean)) / sd(x_clean))
-    return(which(z_scores > z_thresh))
-  } else if (method == "modified_zscore") {
-    median_x <- median(x_clean)
-    mad_x <- mad(x_clean)
-    if (mad_x == 0) return(integer(0))
-    modified_z <- 0.6745 * (x - median_x) / mad_x
-    return(which(abs(modified_z) > 3.5))
-  }
-  return(integer(0))
-}
-
-impute_values <- function(x, outlier_indices, method = "median") {
-  x_imputed <- x
-  if (length(outlier_indices) > 0) {
-    valid_values <- x[-outlier_indices]
-    valid_values <- valid_values[!is.na(valid_values)]
-    
-    if (length(valid_values) == 0) return(x)
-    
-    replacement <- switch(method,
-                          "mean" = mean(valid_values),
-                          "median" = median(valid_values),
-                          "mode" = {
-                            tbl <- table(valid_values)
-                            as.numeric(names(tbl)[which.max(tbl)])
-                          },
-                          median(valid_values)
-    )
-    
-    x_imputed[outlier_indices] <- replacement
-  }
-  return(x_imputed)
-}
-
-output$data_info_summary <- renderText({
+# ===== STATUS DATA SUMMARY =====
+output$data_status_summary <- renderText({
   data <- processed_data$current
   if (!is.null(data)) {
     n_obs <- nrow(data)
@@ -99,609 +28,282 @@ output$data_info_summary <- renderText({
     n_numeric <- sum(sapply(data, is.numeric))
     n_categorical <- sum(sapply(data, function(x) is.character(x) || is.factor(x)))
     missing_pct <- round(100 * sum(is.na(data)) / (n_obs * n_vars), 2)
+    outliers_count <- if (!is.null(processed_data$outliers)) length(processed_data$outliers) else 0
     
-    paste(
-      "=== STATUS DATA ===",
-      paste("Observasi:", format(n_obs, big.mark = ",")),
-      paste("Variabel:", n_vars, "(", n_numeric, "numerik,", n_categorical, "kategori)"),
-      paste("Missing values:", missing_pct, "%"),
-      paste("Operasi diterapkan:", length(processed_data$operations)),
+    status_text <- paste(
+      "=== STATUS DATA TERKINI ===",
+      paste("📊 Total Observasi:", format(n_obs, big.mark = ",")),
+      paste("📋 Total Variabel:", n_vars, paste0("(", n_numeric, " numerik, ", n_categorical, " kategori)")),
+      paste("❌ Missing Values:", paste0(missing_pct, "%")),
+      paste("🔍 Outliers Terdeteksi:", outliers_count),
+      paste("⚙️ Operasi Diterapkan:", length(processed_data$operations)),
+      "",
+      "=== KUALITAS DATA ===",
+      paste("🟢 Data Quality:", if(missing_pct < 5) "Excellent" else if(missing_pct < 15) "Good" else "Needs Attention"),
+      paste("📈 Data Size:", if(n_obs > 1000) "Large" else if(n_obs > 100) "Medium" else "Small"),
       sep = "\n"
     )
+    
+    # Tambah informasi operasi terbaru
+    if (length(processed_data$operation_log) > 0) {
+      recent_op <- tail(processed_data$operation_log, 1)
+      status_text <- paste(status_text, "", "=== OPERASI TERBARU ===", recent_op, sep = "\n")
+    }
+    
+    return(status_text)
   } else {
-    "Data belum tersedia"
+    return("❌ Data belum tersedia atau gagal dimuat.\n\nPastikan file data SOVI tersedia dan dapat diakses.")
   }
 })
 
-# Value boxes - DIPERBAIKI
+# ===== VALUE BOXES (DIPERBAIKI) =====
 output$vbox_rows <- renderValueBox({
+  req(processed_data$current)
   valueBox(
-    value = if (!is.null(processed_data$current)) format(nrow(processed_data$current), big.mark = ",") else "0",
+    value = format(nrow(processed_data$current), big.mark = ","),
     subtitle = "Baris Data",
     icon = icon("table"),
-    color = "blue"
+    color = "primary"
   )
 })
 
 output$vbox_cols <- renderValueBox({
+  req(processed_data$current)
   valueBox(
-    value = if (!is.null(processed_data$current)) ncol(processed_data$current) else "0",
-    subtitle = "Kolom Data", 
+    value = ncol(processed_data$current),
+    subtitle = "Kolom Data",
     icon = icon("columns"),
-    color = "green"
+    color = "info"
   )
 })
 
 output$vbox_missing <- renderValueBox({
+  req(processed_data$current)
+  data <- processed_data$current
+  missing_pct <- round(100 * sum(is.na(data)) / (nrow(data) * ncol(data)), 1)
+  
   valueBox(
-    value = if (!is.null(processed_data$current)) {
-      paste0(round(100 * sum(is.na(processed_data$current)) / (nrow(processed_data$current) * ncol(processed_data$current)), 1), "%")
-    } else "0%",
+    value = paste0(missing_pct, "%"),
     subtitle = "Missing Values",
     icon = icon("exclamation-triangle"),
-    color = "yellow"
+    color = if(missing_pct < 5) "success" else if(missing_pct < 15) "warning" else "danger"
   )
 })
 
 output$vbox_outliers <- renderValueBox({
+  outliers_count <- if (!is.null(processed_data$outliers)) length(processed_data$outliers) else 0
+  
   valueBox(
-    value = if (!is.null(processed_data$outliers)) length(processed_data$outliers) else 0,
+    value = outliers_count,
     subtitle = "Outliers Terdeteksi",
     icon = icon("search"),
-    color = "red"
+    color = if(outliers_count == 0) "success" else if(outliers_count < 10) "warning" else "danger"
   )
 })
 
-# Tabel preview data
-output$data_preview_table <- DT::renderDataTable({
-  data <- processed_data$current
-  if (!is.null(data)) {
-    DT::datatable(
-      data,
-      options = list(
-        pageLength = 10,
-        scrollX = TRUE,
-        scrollY = "400px",
-        dom = 'frtip'
-      ),
-      rownames = FALSE
-    )
-  }
+# ===== TAMBAHAN: INFO BOX UNTUK STATUS OPERASI =====
+output$operation_status_box <- renderInfoBox({
+  ops_count <- length(processed_data$operations)
+  
+  infoBox(
+    title = "Status Operasi",
+    value = if(ops_count == 0) "Ready" else paste(ops_count, "Applied"),
+    subtitle = if(ops_count == 0) "Siap untuk transformasi data" else "Operasi telah diterapkan",
+    icon = icon("cogs"),
+    color = if(ops_count == 0) "primary" else "success",
+    fill = TRUE
+  )
 })
 
+# ===== DATA QUALITY ASSESSMENT =====
+output$data_quality_assessment <- renderText({
+  req(processed_data$current)
+  data <- processed_data$current
+  
+  n_obs <- nrow(data)
+  n_vars <- ncol(data)
+  numeric_vars <- sapply(data, is.numeric)
+  
+  missing_by_var <- sapply(data, function(x) sum(is.na(x)))
+  missing_pct_by_var <- round(100 * missing_by_var / n_obs, 1)
+  vars_with_missing <- sum(missing_by_var > 0)
+  
+  outlier_summary <- ""
+  if(sum(numeric_vars) > 0) {
+    numeric_data <- data[, numeric_vars, drop = FALSE]
+    total_outliers <- 0
+    
+    for(var in names(numeric_data)) {
+      values <- numeric_data[[var]]
+      clean_values <- values[!is.na(values)]
+      if(length(clean_values) > 1) { 
+        Q1 <- quantile(clean_values, 0.25)
+        Q3 <- quantile(clean_values, 0.75)
+        IQR <- Q3 - Q1
+        outliers <- sum(clean_values < (Q1 - 1.5 * IQR) | clean_values > (Q3 + 1.5 * IQR))
+        total_outliers <- total_outliers + outliers
+      }
+    }
+    outlier_summary <- paste("🔍 Estimasi outliers (IQR method):", total_outliers)
+  }
+  
+  quality_score <- 100
+  if(vars_with_missing > 0) quality_score <- quality_score - (vars_with_missing * 5)
+  if(any(missing_pct_by_var > 20, na.rm = TRUE)) quality_score <- quality_score - 20
+  if(n_obs < 30) quality_score <- quality_score - 15
+  quality_score <- max(0, quality_score) 
+  
+  quality_level <- if(quality_score >= 85) "EXCELLENT ⭐⭐⭐" else
+    if(quality_score >= 70) "GOOD ⭐⭐" else
+      if(quality_score >= 55) "FAIR ⭐" else "POOR ❌"
+  
+  assessment <- paste(
+    "=== PENILAIAN KUALITAS DATA ===",
+    paste("📊 Skor Kualitas:", round(quality_score), "/100 -", quality_level),
+    "",
+    "=== DETAIL ANALISIS ===",
+    paste("📋 Variabel dengan missing values:", vars_with_missing, "dari", n_vars),
+    if(vars_with_missing > 0) paste("❌ Missing terbanyak:", max(missing_pct_by_var, na.rm=T), "% pada variabel", names(which.max(missing_pct_by_var))) else "",
+    outlier_summary,
+    "",
+    "=== REKOMENDASI ===",
+    if(vars_with_missing > 0) "• Pertimbangkan imputasi untuk missing values" else "• Data lengkap, siap untuk analisis",
+    if(any(missing_pct_by_var > 20, na.rm=T)) "• Beberapa variabel memiliki missing values tinggi" else "",
+    if(quality_score < 70) "• Data perlu pembersihan sebelum analisis lanjutan" else "• Data berkualitas baik untuk analisis",
+    sep = "\n"
+  )
+  
+  return(assessment)
+})
+# ===== UI SELECTORS DINAMIS =====
+observe({
+  req(processed_data$current)
+  numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
+  all_vars <- names(processed_data$current)
+  updateSelectInput(session, "transform_var", choices = numeric_vars)
+  updateSelectInput(session, "categorize_var", choices = numeric_vars)
+  updateSelectInput(session, "outlier_var", choices = numeric_vars)
+  updateSelectInput(session, "filter_var", choices = all_vars)
+  # Selector untuk visualisasi tidak lagi diperlukan di sini karena UI dihapus
+})
+
+# ===== TRANSFORMASI, KATEGORISASI, OUTLIER, FILTER (Tidak Berubah) =====
 observeEvent(input$btn_transform, {
   req(processed_data$current, input$transform_var, input$transform_method)
-  
   tryCatch({
-    data <- processed_data$current
-    var_name <- input$transform_var
-    method <- input$transform_method
-    suffix <- if (!is.null(input$transform_suffix) && input$transform_suffix != "") {
-      input$transform_suffix
-    } else {
-      method
-    }
-    
-    values <- data[[var_name]]
-    
-    # Validasi data
-    if (all(is.na(values))) {
-      stop("Variabel tidak memiliki data valid")
-    }
-    
-    # Transformasi dengan validasi
-    transformed <- switch(method,
-                          "log" = {
-                            if (any(values <= 0, na.rm = TRUE)) {
-                              log(values + 1)
-                            } else {
-                              log(values)
-                            }
-                          },
-                          "sqrt" = {
-                            if (any(values < 0, na.rm = TRUE)) {
-                              stop("Tidak dapat menggunakan sqrt pada nilai negatif")
-                            }
-                            sqrt(values)
-                          },
-                          "square" = values^2,
-                          "standardize" = {
-                            mean_val <- mean(values, na.rm = TRUE)
-                            sd_val <- sd(values, na.rm = TRUE)
-                            if (sd_val == 0) stop("Standar deviasi = 0, tidak dapat standardisasi")
-                            (values - mean_val) / sd_val
-                          },
-                          "normalize" = {
-                            min_val <- min(values, na.rm = TRUE)
-                            max_val <- max(values, na.rm = TRUE)
-                            if (min_val == max_val) stop("Semua nilai sama, tidak dapat normalisasi")
-                            (values - min_val) / (max_val - min_val)
-                          }
-    )
-    
-    # Buat nama variabel baru
-    new_var_name <- paste0(var_name, "_", suffix)
-    
-    # Tambahkan ke data
-    processed_data$current[[new_var_name]] <- transformed
-    
-    # Log operasi
-    log_entry <- paste("Transformasi", method, "diterapkan pada", var_name, "→", new_var_name)
+    data <- processed_data$current; var_name <- input$transform_var; method <- input$transform_method
+    suffix <- if (!is.null(input$transform_suffix) && nzchar(input$transform_suffix)) input$transform_suffix else method
+    values <- data[[var_name]]; if (all(is.na(values))) stop("Variabel tidak memiliki data valid")
+    transformed <- switch(method, log={if(any(values<=0,na.rm=T))stop("Log memerlukan nilai > 0");log(values)}, log1p=log1p(values), sqrt={if(any(values<0,na.rm=T))stop("Sqrt memerlukan nilai >= 0");sqrt(values)}, square=values^2, inverse={if(any(values==0,na.rm=T))stop("Inverse tidak bisa untuk nilai 0");1/values}, standardize=as.numeric(scale(values)), normalize=(values-min(values,na.rm=T))/(max(values,na.rm=T)-min(values,na.rm=T)))
+    new_col_name <- paste0(var_name, "_", suffix); data[[new_col_name]] <- transformed; processed_data$current <- data
+    log_entry <- paste("✅ Transformasi:", method, "pada", var_name, "→", new_col_name)
     processed_data$operation_log <- c(processed_data$operation_log, log_entry)
-    processed_data$operations[[new_var_name]] <- list(
-      type = "transform",
-      original_var = var_name,
-      method = method,
-      timestamp = Sys.time()
-    )
-    
-    # Update UI - DIPERBAIKI menggunakan showNotification yang benar
-    showNotification("Transformasi berhasil diterapkan!", type = "message")
-    
-  }, error = function(e) {
-    showNotification(paste("Error:", e$message), type = "error")
-  })
+    shiny::showNotification(paste("✅ Transformasi berhasil!"), type = "default")
+  }, error = function(e) { shiny::showNotification(paste("❌ Error:", e$message), type = "error") })
 })
-
 observeEvent(input$btn_categorize, {
   req(processed_data$current, input$categorize_var, input$categorize_method)
-  
   tryCatch({
-    data <- processed_data$current
-    var_name <- input$categorize_var
-    method <- input$categorize_method
-    
-    values <- data[[var_name]]
-    clean_values <- values[!is.na(values)]
-    
-    if (length(clean_values) < 2) {
-      stop("Data tidak cukup untuk kategorisasi")
+    data <- processed_data$current; var_name <- input$categorize_var; method <- input$categorize_method
+    values <- data[[var_name]]; labels_str <- input$categorize_labels
+    custom_labels <- NULL; if (!is.null(labels_str) && nzchar(trimws(labels_str))) { custom_labels <- trimws(unlist(strsplit(labels_str, ","))) }
+    if (all(is.na(values))) stop("Variabel tidak memiliki data valid")
+    n_bins <- 0
+    if (method == "quantile") {
+      n_bins <- as.numeric(input$quantile_bins); if(is.na(n_bins)||n_bins<2||n_bins>10)stop("Jml kategori kuantil: 2-10")
+      if(!is.null(custom_labels)&&length(custom_labels)!=n_bins)stop(paste("Jml nama (",length(custom_labels),") != jml kategori (",n_bins,")"))
+      categories <- cut(values, breaks=quantile(values,probs=seq(0,1,length.out=n_bins+1),na.rm=T), labels=custom_labels%||%paste0("Q",1:n_bins), include.lowest=T)
+    } else if (method == "equal_width") {
+      n_bins <- as.numeric(input$equal_width_bins); if(is.na(n_bins)||n_bins<2||n_bins>10)stop("Jml kategori interval: 2-10")
+      if(!is.null(custom_labels)&&length(custom_labels)!=n_bins)stop(paste("Jml nama (",length(custom_labels),") != jml kategori (",n_bins,")"))
+      categories <- cut(values, breaks=n_bins, labels=custom_labels%||%paste0("Bin",1:n_bins), include.lowest=T)
+    } else if (method == "custom") {
+      breaks_str <- input$custom_breaks; if(is.null(breaks_str)||nzchar(breaks_str)==F)stop("Masukkan breakpoints")
+      breaks <- as.numeric(unlist(strsplit(breaks_str,","))); if(any(is.na(breaks))||length(breaks)<2)stop("Min. 2 breakpoints numerik")
+      n_bins <- length(breaks)-1
+      if(!is.null(custom_labels)&&length(custom_labels)!=n_bins)stop(paste("Jml nama (",length(custom_labels),") != jml kategori (",n_bins,")"))
+      categories <- cut(values, breaks=sort(unique(breaks)), labels=custom_labels, include.lowest=T)
     }
-    
-    # Tentukan breakpoints
-    if (method == "custom") {
-      req(input$custom_breaks)
-      breaks <- as.numeric(unlist(strsplit(input$custom_breaks, ",")))
-      breaks <- c(-Inf, sort(breaks), Inf)
-    } else {
-      n_breaks <- input$categorize_breaks
-      if (method == "quantile") {
-        breaks <- quantile(clean_values, probs = seq(0, 1, length.out = n_breaks + 1), na.rm = TRUE)
-        # Check for duplicate quantiles
-        if (length(unique(breaks)) < length(breaks)) {
-          method <- "equal"
-          breaks <- seq(min(clean_values), max(clean_values), length.out = n_breaks + 1)
-        }
-      } else { # equal
-        breaks <- seq(min(clean_values), max(clean_values), length.out = n_breaks + 1)
-      }
-    }
-    
-    # Tentukan labels
-    if (!is.null(input$categorize_labels) && input$categorize_labels != "") {
-      labels <- trimws(unlist(strsplit(input$categorize_labels, ",")))
-      if (length(labels) != (length(breaks) - 1)) {
-        labels <- paste0("Cat_", 1:(length(breaks) - 1))
-      }
-    } else {
-      labels <- paste0("Cat_", 1:(length(breaks) - 1))
-    }
-    
-    # Kategorisasi
-    categorized <- cut(values, breaks = breaks, labels = labels, include.lowest = TRUE)
-    
-    # Nama variabel baru
-    new_var_name <- paste0(var_name, "_cat")
-    
-    # Tambahkan ke data
-    processed_data$current[[new_var_name]] <- categorized
-    
-    # Log operasi
-    log_entry <- paste("Kategorisasi", method, "diterapkan pada", var_name, "→", new_var_name)
+    new_col_name <- paste0(var_name,"_cat"); data[[new_col_name]]<-categories; processed_data$current<-data
+    log_entry <- paste("✅ Kategorisasi:",method,"pada",var_name,"→",new_col_name)
     processed_data$operation_log <- c(processed_data$operation_log, log_entry)
-    processed_data$operations[[new_var_name]] <- list(
-      type = "categorize",
-      original_var = var_name,
-      method = method,
-      breaks = breaks,
-      labels = labels,
-      timestamp = Sys.time()
-    )
-    
-    showNotification("Kategorisasi berhasil diterapkan!", type = "message")
-    
-  }, error = function(e) {
-    showNotification(paste("Error:", e$message), type = "error")
-  })
+    shiny::showNotification("✅ Kategorisasi berhasil!", type="default")
+  }, error=function(e){shiny::showNotification(paste("❌ Error:",e$message),type="error")})
 })
-
 observeEvent(input$btn_detect_outliers, {
   req(processed_data$current, input$outlier_var, input$outlier_method)
-  
   tryCatch({
-    data <- processed_data$current
-    var_name <- input$outlier_var
-    method <- input$outlier_method
-    
-    values <- data[[var_name]]
-    
-    # Deteksi outlier berdasarkan metode
-    outlier_indices <- switch(method,
-                              "iqr" = detect_outliers(values, "iqr", input$iqr_multiplier %||% 1.5),
-                              "zscore" = detect_outliers(values, "zscore", input$zscore_threshold %||% 3),
-                              "modified_zscore" = detect_outliers(values, "modified_zscore")
-    )
-    
-    # Simpan hasil deteksi
-    processed_data$outliers <- outlier_indices
-    
-    # Log operasi
-    log_entry <- paste("Deteksi outlier dengan metode", method, "pada", var_name, ":", length(outlier_indices), "outlier ditemukan")
+    var_name <- input$outlier_var; method <- input$outlier_method; values <- processed_data$current[[var_name]]
+    valid_values <- values[!is.na(values)]; if(length(valid_values)<2)stop("Tidak cukup data valid")
+    outlier_indices <- switch(method, iqr={Q1<-quantile(valid_values,0.25);Q3<-quantile(valid_values,0.75);lower<-Q1-1.5*(Q3-Q1);upper<-Q3+1.5*(Q3-Q1);which(values<lower|values>upper)}, zscore={z_scores<-abs(scale(values));which(z_scores>3)}, modified_zscore={median_val<-median(valid_values);mad_val<-mad(valid_values,constant=1);if(mad_val==0)stop("MAD is zero");modified_z<-abs(0.6745*(values-median_val)/mad_val);which(modified_z>3.5)})
+    processed_data$outliers <- outlier_indices; processed_data$last_outlier_var <- var_name
+    log_entry <- paste("🔍 Deteksi:",method,"pada",var_name,"- ditemukan",length(outlier_indices),"outliers")
     processed_data$operation_log <- c(processed_data$operation_log, log_entry)
-    
-    showNotification(paste(length(outlier_indices), "outlier terdeteksi!"), type = "warning")
-    
-  }, error = function(e) {
-    showNotification(paste("Error:", e$message), type = "error")
-  })
+    shiny::showNotification(paste("🔍 Ditemukan",length(outlier_indices),"outliers."), type="default")
+  }, error=function(e){shiny::showNotification(paste("❌ Error:",e$message),type="error")})
 })
-
-observeEvent(input$btn_impute, {
-  req(processed_data$current, input$outlier_var, input$impute_method)
-  
-  if (is.null(processed_data$outliers) || length(processed_data$outliers) == 0) {
-    showNotification("Tidak ada outlier yang terdeteksi. Lakukan deteksi outlier terlebih dahulu.", type = "warning")
-    return()
+output$outlier_treatment_ui <- renderUI({
+  req(processed_data$outliers)
+  if (length(processed_data$outliers) > 0) {
+    tagList(h5("2. Penanganan Outlier"),p(paste("Ditemukan",length(processed_data$outliers),"outliers pada '",processed_data$last_outlier_var,"'.")),
+            radioButtons("outlier_treatment_method","Metode:",choices=list("Hapus Baris"="remove","Imputasi Batas (Cap)"="cap","Imputasi Mean"="mean","Imputasi Median"="median","Imputasi Modus"="mode"),selected="remove"),
+            actionButton("btn_treat_outliers","Terapkan Penanganan",class="btn-danger btn-block"))
   }
-  
+})
+observeEvent(input$btn_treat_outliers, {
+  req(processed_data$current, processed_data$outliers, input$outlier_treatment_method)
   tryCatch({
-    data <- processed_data$current
-    var_name <- input$outlier_var
-    method <- input$impute_method
-    outlier_indices <- processed_data$outliers
-    
-    values <- data[[var_name]]
-    
-    if (method == "remove") {
-      # Hapus baris dengan outlier
-      processed_data$current <- processed_data$current[-outlier_indices, ]
-      log_entry <- paste("Hapus", length(outlier_indices), "outlier dari", var_name)
+    data <- processed_data$current; indices <- processed_data$outliers; method <- input$outlier_treatment_method; var_name <- processed_data$last_outlier_var
+    if(method=="remove"){
+      data <- data[-indices,]; log_entry <- paste("🗑️ Hapus",length(indices),"outlier dari",var_name)
     } else {
-      # Imputasi
-      imputed_values <- impute_values(values, outlier_indices, method)
-      processed_data$current[[var_name]] <- imputed_values
-      
-      log_entry <- paste("Imputasi", length(outlier_indices), "outlier pada", var_name, "dengan metode", method)
+      clean_values <- data[[var_name]][-indices]; log_method_text <- ""
+      if(method=="cap"){
+        valid_values<-data[[var_name]][!is.na(data[[var_name]])]; Q1<-quantile(valid_values,0.25); Q3<-quantile(valid_values,0.75); lower<-Q1-1.5*(Q3-Q1); upper<-Q3+1.5*(Q3-Q1)
+        outlier_values <- data[indices, var_name]; data[indices, var_name] <- ifelse(outlier_values > upper, upper, lower); log_method_text <- "Imputasi (Cap)"
+      } else if (method=="mean"){ data[indices, var_name] <- mean(clean_values,na.rm=T); log_method_text <- "Imputasi (Mean)"
+      } else if (method=="median"){ data[indices, var_name] <- median(clean_values,na.rm=T); log_method_text <- "Imputasi (Median)"
+      } else if (method=="mode"){ calculate_mode<-function(x){ux<-unique(x[!is.na(x)]);ux[which.max(tabulate(match(x,ux)))]}; data[indices, var_name] <- calculate_mode(clean_values); log_method_text <- "Imputasi (Modus)"}
+      log_entry <- paste("🛠️", log_method_text, length(indices), "outlier pada", var_name)
     }
-    
-    # Log operasi
+    processed_data$current<-data; processed_data$outliers<-NULL; processed_data$last_outlier_var<-NULL
     processed_data$operation_log <- c(processed_data$operation_log, log_entry)
-    processed_data$operations[[paste0(var_name, "_imputed")]] <- list(
-      type = "impute",
-      original_var = var_name,
-      method = method,
-      n_outliers = length(outlier_indices),
-      timestamp = Sys.time()
-    )
-    
-    # Reset outliers
-    processed_data$outliers <- integer(0)
-    
-    showNotification("Imputasi berhasil diterapkan!", type = "message")
-    
-  }, error = function(e) {
-    showNotification(paste("Error:", e$message), type = "error")
-  })
+    shiny::showNotification("✅ Penanganan outlier berhasil!", type="default")
+  }, error=function(e){shiny::showNotification(paste("❌ Error:",e$message), type="error")})
 })
-
 output$dynamic_filter_controls <- renderUI({
-  req(input$filter_var)
-  
-  data <- processed_data$current
-  if (is.null(data)) return(NULL)
-  
-  var_name <- input$filter_var
-  
-  if (is.numeric(data[[var_name]])) {
-    values <- data[[var_name]][!is.na(data[[var_name]])]
-    if (length(values) == 0) return(p("Tidak ada data valid"))
-    
-    sliderInput("filter_range", 
-                paste("Range untuk", var_name),
-                min = min(values), 
-                max = max(values),
-                value = c(min(values), max(values)),
-                step = (max(values) - min(values)) / 100)
-  } else {
-    unique_vals <- unique(data[[var_name]][!is.na(data[[var_name]])])
-    if (length(unique_vals) == 0) return(p("Tidak ada data valid"))
-    
-    checkboxGroupInput("filter_categories",
-                       paste("Kategori untuk", var_name),
-                       choices = unique_vals,
-                       selected = unique_vals)
-  }
+  req(input$filter_var, processed_data$current); var_name <- input$filter_var; values <- processed_data$current[[var_name]]
+  if(is.numeric(values)){min_val<-min(values,na.rm=T);max_val<-max(values,na.rm=T);sliderInput("filter_range","Rentang nilai:",min=min_val,max=max_val,value=c(min_val,max_val))}else{unique_vals<-sort(unique(values[!is.na(values)]));checkboxGroupInput("filter_categories","Pilih kategori:",choices=unique_vals,selected=unique_vals)}
 })
-
 observeEvent(input$btn_filter, {
   req(processed_data$current, input$filter_var)
-  
   tryCatch({
-    data <- processed_data$current
-    var_name <- input$filter_var
-    
-    if (is.numeric(data[[var_name]]) && !is.null(input$filter_range)) {
-      # Filter numerik
-      min_val <- input$filter_range[1]
-      max_val <- input$filter_range[2]
-      
-      filtered_data <- data[!is.na(data[[var_name]]) & 
-                              data[[var_name]] >= min_val & 
-                              data[[var_name]] <= max_val, ]
-      
-      log_entry <- paste("Filter numerik pada", var_name, ": range [", min_val, ",", max_val, "]")
-      
-    } else if (!is.null(input$filter_categories)) {
-      # Filter kategori
-      selected_cats <- input$filter_categories
-      
-      filtered_data <- data[!is.na(data[[var_name]]) & 
-                              data[[var_name]] %in% selected_cats, ]
-      
-      log_entry <- paste("Filter kategori pada", var_name, ":", length(selected_cats), "kategori dipilih")
-    } else {
-      stop("Filter tidak dapat diterapkan")
-    }
-    
-    # Validasi hasil filter
-    if (nrow(filtered_data) == 0) {
-      stop("Filter menghasilkan data kosong")
-    }
-    
-    # Update data
-    n_before <- nrow(processed_data$current)
-    processed_data$current <- filtered_data
-    n_after <- nrow(filtered_data)
-    
-    # Log operasi
-    log_entry <- paste(log_entry, "-", n_before, "→", n_after, "baris")
+    data <- processed_data$current; var_name <- input$filter_var; values <- data[[var_name]]
+    if(is.numeric(values)){req(input$filter_range); rows_to_keep <- !is.na(values)&values>=input$filter_range[1]&values<=input$filter_range[2]; filter_desc <- paste("Rentang",input$filter_range[1],"-",input$filter_range[2])}else{req(input$filter_categories); rows_to_keep <- !is.na(values)&values%in%input$filter_categories; filter_desc <- paste("Kategori:",paste(input$filter_categories,collapse=", "))}
+    processed_data$current <- data[rows_to_keep,]; log_entry <- paste("🔽 Filter:",var_name,"-",filter_desc,"- hasil:",nrow(processed_data$current),"baris")
     processed_data$operation_log <- c(processed_data$operation_log, log_entry)
-    
-    showNotification(paste("Filter diterapkan:", n_after, "baris tersisa"), type = "message")
-    
-  }, error = function(e) {
-    showNotification(paste("Error:", e$message), type = "error")
-  })
+    shiny::showNotification("🔽 Filter diterapkan!", type="default")
+  }, error=function(e){shiny::showNotification(paste("❌ Error:",e$message),type="error")})
 })
+observeEvent(input$btn_reset_filter, { if(!is.null(processed_data$original)){processed_data$current<-processed_data$original;log_entry<-"🔄 Filter direset";processed_data$operation_log<-c(processed_data$operation_log,log_entry);shiny::showNotification("Filter direset!",type="default")}})
+observeEvent(input$btn_reset_all, { if(!is.null(processed_data$original)){processed_data$current<-processed_data$original;processed_data$operations<-list();processed_data$operation_log<-character(0);processed_data$outliers<-NULL;processed_data$last_outlier_var<-NULL;shiny::showNotification("Semua perubahan direset!",type="default")}})
 
-# Reset filter - DIPERBAIKI
-observeEvent(input$btn_reset_filter, {
-  if (!is.null(processed_data$original)) {
-    processed_data$current <- processed_data$original
-    processed_data$operation_log <- c(processed_data$operation_log, "Filter direset")
-    showNotification("Filter telah direset", type = "message")
-  }
-})
+# ===== TABEL PREVIEW DATA & STATS =====
+output$data_preview_table <- DT::renderDataTable({ req(processed_data$current); DT::datatable(processed_data$current, options = list(scrollX = TRUE, pageLength = 5), filter = 'top') })
 
-observeEvent(input$btn_reset_all, {
-  showModal(modalDialog(
-    title = "Konfirmasi Reset",
-    "Apakah Anda yakin ingin menghapus semua perubahan dan kembali ke data asli?",
-    footer = tagList(
-      modalButton("Batal"),
-      actionButton("confirm_reset", "Ya, Reset", class = "btn-danger")
-    )
-  ))
-})
-
-observeEvent(input$confirm_reset, {
-  tryCatch({
-    if (!is.null(processed_data$original)) {
-      processed_data$current <- processed_data$original
-      processed_data$operations <- list()
-      processed_data$outliers <- integer(0)
-      processed_data$operation_log <- c("Data direset ke kondisi awal")
-      
-      removeModal()
-      showNotification("Semua data telah direset!", type = "message")
-    }
-  }, error = function(e) {
-    removeModal()
-    showNotification(paste("Error reset:", e$message), type = "error")
-  })
-})
-
-output$descriptive_stats_table <- DT::renderDataTable({
-  data <- processed_data$current
-  if (!is.null(data)) {
-    tryCatch({
-      numeric_vars <- names(data)[sapply(data, is.numeric)]
-      
-      if (length(numeric_vars) > 0) {
-        stats_df <- data.frame(
-          Variabel = character(),
-          N = numeric(),
-          Mean = numeric(),
-          Median = numeric(),
-          SD = numeric(),
-          Min = numeric(),
-          Max = numeric(),
-          Missing = numeric(),
-          stringsAsFactors = FALSE
-        )
-        
-        for (var in numeric_vars) {
-          values <- data[[var]]
-          valid_values <- values[!is.na(values)]
-          
-          if (length(valid_values) > 0) {
-            stats_df <- rbind(stats_df, data.frame(
-              Variabel = var,
-              N = length(valid_values),
-              Mean = round(mean(valid_values), 3),
-              Median = round(median(valid_values), 3),
-              SD = round(sd(valid_values), 3),
-              Min = round(min(valid_values), 3),
-              Max = round(max(valid_values), 3),
-              Missing = sum(is.na(values)),
-              stringsAsFactors = FALSE
-            ))
-          }
-        }
-        
-        DT::datatable(
-          stats_df,
-          options = list(
-            pageLength = 15,
-            scrollX = TRUE,
-            dom = 'frtip'
-          ),
-          rownames = FALSE
-        )
-      }
-    }, error = function(e) {
-      NULL
-    })
-  }
-})
-
-output$visualization_plot <- renderPlot({
-  req(processed_data$current, input$viz_var, input$viz_type)
-  
-  tryCatch({
-    data <- processed_data$current
-    var_name <- input$viz_var
-    values <- data[[var_name]][!is.na(data[[var_name]])]
-    
-    if (length(values) == 0) {
-      plot(1, 1, type = "n", main = "Tidak ada data untuk divisualisasikan")
-      return()
-    }
-    
-    switch(input$viz_type,
-           "hist" = {
-             hist(values, 
-                  main = paste("Histogram", var_name),
-                  xlab = var_name,
-                  ylab = "Frekuensi",
-                  col = "lightblue",
-                  border = "white",
-                  breaks = min(30, length(unique(values))))
-           },
-           "box" = {
-             boxplot(values,
-                     main = paste("Boxplot", var_name),
-                     ylab = var_name,
-                     col = "lightgreen",
-                     border = "darkgreen")
-           },
-           "qq" = {
-             qqnorm(values, main = paste("Q-Q Plot", var_name))
-             qqline(values, col = "red", lwd = 2)
-           }
-    )
-  }, error = function(e) {
-    plot(1, 1, type = "n", main = paste("Error:", e$message))
-  })
-})
-
+# ===== LOG OPERASI =====
 output$operation_log <- renderText({
   if (length(processed_data$operation_log) > 0) {
-    paste(
-      "=== LOG OPERASI DATA ===\n",
-      paste(processed_data$operation_log, collapse = "\n"),
-      sep = "\n"
-    )
-  } else {
-    "Belum ada operasi yang dilakukan."
-  }
+    paste("=== LOG OPERASI DATA ===\n", paste(rev(processed_data$operation_log), collapse = "\n"), sep = "\n")
+  } else { "Belum ada operasi yang dilakukan." }
 })
 
-output$operation_interpretation <- renderText({
-  operations <- processed_data$operations
-  
-  if (length(operations) == 0) {
-    return("=== INTERPRETASI OPERASI ===\n\nBelum ada operasi yang dilakukan.\n\nGUNAKAN FITUR:\n1. TRANSFORMASI: Perbaiki distribusi data yang skew\n2. KATEGORISASI: Ubah data kontinyu menjadi kategori\n3. OUTLIER: Deteksi dan tangani data ekstrem\n4. FILTER: Fokus pada subset data tertentu")
-  }
-  
-  interpretation <- "=== INTERPRETASI OPERASI ===\n\n"
-  
-  # Analisis berdasarkan jenis operasi
-  transform_ops <- operations[sapply(operations, function(x) x$type == "transform")]
-  categorize_ops <- operations[sapply(operations, function(x) x$type == "categorize")]
-  impute_ops <- operations[sapply(operations, function(x) x$type == "impute")]
-  
-  if (length(transform_ops) > 0) {
-    interpretation <- paste0(interpretation, "TRANSFORMASI DITERAPKAN:\n")
-    for (op_name in names(transform_ops)) {
-      op <- transform_ops[[op_name]]
-      method_desc <- switch(op$method,
-                            "log" = "Logaritma (mengurangi skewness, stabilisasi variansi)",
-                            "sqrt" = "Akar kuadrat (mengurangi heteroskedastisitas)",
-                            "square" = "Kuadrat (memperkuat sinyal, meningkatkan variansi)",
-                            "standardize" = "Z-score (mean=0, sd=1, untuk perbandingan skala)",
-                            "normalize" = "Min-Max (range 0-1, untuk algoritma sensitif skala)",
-                            op$method
-      )
-      interpretation <- paste0(interpretation, "- ", op_name, ": ", method_desc, "\n")
-    }
-    interpretation <- paste0(interpretation, "\n")
-  }
-  
-  if (length(categorize_ops) > 0) {
-    interpretation <- paste0(interpretation, "KATEGORISASI DITERAPKAN:\n")
-    for (op_name in names(categorize_ops)) {
-      op <- categorize_ops[[op_name]]
-      method_desc <- switch(op$method,
-                            "quantile" = "berdasarkan persentil (distribusi seimbang)",
-                            "equal" = "berdasarkan interval sama (range seragam)",
-                            "custom" = "berdasarkan breakpoint khusus",
-                            op$method
-      )
-      interpretation <- paste0(interpretation, "- ", op_name, ": ", length(op$labels), " kategori ", method_desc, "\n")
-    }
-    interpretation <- paste0(interpretation, "\n")
-  }
-  
-  if (length(impute_ops) > 0) {
-    interpretation <- paste0(interpretation, "IMPUTASI OUTLIER:\n")
-    for (op_name in names(impute_ops)) {
-      op <- impute_ops[[op_name]]
-      interpretation <- paste0(interpretation, "- ", op$original_var, ": ", op$n_outliers, " outlier ditangani dengan ", op$method, "\n")
-    }
-    interpretation <- paste0(interpretation, "\n")
-  }
-  
-  # Rekomendasi
-  interpretation <- paste0(interpretation, "REKOMENDASI ANALISIS LANJUTAN:\n")
-  
-  if (length(transform_ops) > 0) {
-    interpretation <- paste0(interpretation, "✓ Uji normalitas pada variabel yang ditransformasi\n")
-  }
-  
-  if (length(categorize_ops) > 0) {
-    interpretation <- paste0(interpretation, "✓ Gunakan uji chi-square untuk analisis kategori\n")
-  }
-  
-  if (length(impute_ops) > 0) {
-    interpretation <- paste0(interpretation, "✓ Bandingkan hasil analisis sebelum dan sesudah imputasi\n")
-  }
-  
-  interpretation <- paste0(interpretation, "✓ Periksa korelasi antar variabel setelah preprocessing\n")
-  interpretation <- paste0(interpretation, "✓ Validasi hasil dengan domain expert\n")
-  
-  return(interpretation)
-})
 
+# ===== DOWNLOAD DATA =====
 output$btn_export_data <- downloadHandler(
-  filename = function() {
-    paste0("processed_data_", Sys.Date(), ".csv")
-  },
-  content = function(file) {
-    if (!is.null(processed_data$current)) {
-      write.csv(processed_data$current, file, row.names = FALSE)
-    }
-  }
+  filename = function() { paste("processed_data_", Sys.Date(), ".csv", sep = "") },
+  content = function(file) { if (!is.null(processed_data$current)) write.csv(processed_data$current, file, row.names = FALSE) }
 )
 
-cat("✓ Fixed data management server loaded successfully\n")
+# Custom infix operator
+`%||%` <- function(a, b) { if (!is.null(a)) a else b }

@@ -8,6 +8,7 @@ tagList(
     p("Uji ini digunakan untuk menganalisis proporsi (persentase) dari sebuah kategori spesifik dalam data Anda. Contoh: menguji apakah proporsi penduduk dengan pendidikan rendah lebih dari 20%.")
   ),
   fluidRow(
+    # --- Kolom Kiri: Pengaturan Uji ---
     column(4,
            box(
              title = "Pengaturan Uji",
@@ -17,11 +18,9 @@ tagList(
              selectInput("prop_test_type", "Pilih Jenis Uji:",
                          choices = list("Satu Proporsi (One-Proportion)" = "one_prop",
                                         "Dua Proporsi (Two-Proportion)" = "two_prop")),
-             # UI untuk memilih variabel utama
              uiOutput("prop_variable_selector"),
              helpText("Pilih variabel kategorik yang ingin Anda analisis."),
              
-             # UI untuk memilih kategori yang menjadi fokus
              uiOutput("prop_success_selector"),
              helpText("Pilih satu kategori dari variabel di atas yang proporsinya ingin diuji."),
              
@@ -38,21 +37,34 @@ tagList(
              actionButton("run_prop_test", "Jalankan Uji Proporsi", class = "btn-success", icon = icon("play"))
            )
     ),
+    # --- Kolom Kanan: Ringkasan Hasil Uji ---
     column(8,
            box(
              title = "Hasil Analisis Uji Proporsi",
              status = "success",
              solidHeader = TRUE,
              width = 12,
-             h4("Ringkasan Hasil Uji"),
-             verbatimTextOutput("prop_test_result_summary"),
+             verbatimTextOutput("prop_test_result_summary")
+           )
+    )
+  ),
+  # --- Baris Baru untuk Interpretasi dan Unduhan ---
+  fluidRow(
+    column(12,
+           box(
+             title = "Interpretasi dan Laporan",
+             status = "primary",
+             solidHeader = TRUE,
+             width = 12,
+             # Bagian Interpretasi
+             h4("Interpretasi Hasil Analisis"),
+             verbatimTextOutput("prop_test_interpretation"),
              hr(),
-             h4("Unduh Hasil"),
+             # Bagian Unduh
+             h4("Unduh Laporan Lengkap"),
+             p("Unduh ringkasan hasil beserta interpretasinya dalam format PDF atau Word."),
              radioButtons("proportion_format", "Pilih Format:", choices = list("PDF" = "pdf", "Word" = "docx"), inline = TRUE),
-             downloadButton("download_proportion_result", "Unduh"),
-             hr(),
-             h4("Interpretasi"),
-             verbatimTextOutput("prop_test_interpretation")
+             downloadButton("download_proportion_result", "Unduh Laporan", icon = icon("download"))
            )
     )
   )

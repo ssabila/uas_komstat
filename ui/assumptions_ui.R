@@ -86,8 +86,7 @@ tagList(
                                 "Pilih Format Download:", 
                                 choices = list(
                                   "📄 PDF" = "pdf", 
-                                  "📝 Word (.docx)" = "docx",
-                                  "🌐 HTML" = "html"
+                                  "📝 Word (.docx)" = "docx"
                                 ), 
                                 inline = FALSE,
                                 selected = "pdf")
@@ -162,8 +161,7 @@ tagList(
                                 "Pilih Format Download:", 
                                 choices = list(
                                   "📄 PDF" = "pdf", 
-                                  "📝 Word (.docx)" = "docx",
-                                  "🌐 HTML" = "html"
+                                  "📝 Word (.docx)" = "docx"
                                 ), 
                                 inline = FALSE,
                                 selected = "pdf")
@@ -180,88 +178,6 @@ tagList(
           )
         )
       )
-    )
-  ),
-  
-  # Tips Section
-  fluidRow(
-    style = "margin-top: 30px;",
-    column(12,
-           box(
-             title = "💡 Tips dan Interpretasi",
-             status = "success",
-             solidHeader = TRUE,
-             width = 12,
-             collapsible = TRUE,
-             collapsed = TRUE,
-             
-             fluidRow(
-               column(6,
-                      div(
-                        style = "background: #d4edda; padding: 15px; border-radius: 8px; margin-bottom: 15px;",
-                        h5("📊 Interpretasi Q-Q Plot:", style = "color: #155724; margin-top: 0;"),
-                        tags$ul(
-                          style = "color: #155724;",
-                          tags$li("Titik mengikuti garis diagonal → Data normal"),
-                          tags$li("Titik menyimpang dari garis → Data tidak normal"),
-                          tags$li("Pola melengkung → Data skewed"),
-                          tags$li("Titik tersebar acak → Heteroskedastis")
-                        )
-                      )
-               ),
-               column(6,
-                      div(
-                        style = "background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 15px;",
-                        h5("⚖️ Interpretasi Uji Levene:", style = "color: #856404; margin-top: 0;"),
-                        tags$ul(
-                          style = "color: #856404;",
-                          tags$li("p-value < 0.05 → Variansi tidak homogen"),
-                          tags$li("p-value ≥ 0.05 → Variansi homogen"),
-                          tags$li("Homogenitas penting untuk ANOVA"),
-                          tags$li("Gunakan Welch's t-test jika tidak homogen")
-                        )
-                      )
-               )
-             ),
-             
-             # Additional Tips
-             fluidRow(
-               column(12,
-                      div(
-                        style = "background: #d1ecf1; padding: 15px; border-radius: 8px; margin-top: 15px;",
-                        h5("🎯 Panduan Interpretasi Lengkap:", style = "color: #0c5460; margin-top: 0;"),
-                        
-                        div(
-                          style = "display: flex; justify-content: space-between; margin-top: 15px;",
-                          
-                          div(
-                            style = "flex: 1; margin-right: 15px;",
-                            h6("Shapiro-Wilk Test:", style = "color: #0c5460; margin-bottom: 8px;"),
-                            tags$ul(
-                              style = "color: #0c5460; font-size: 14px;",
-                              tags$li("p > 0.05: Data normal"),
-                              tags$li("p ≤ 0.05: Data tidak normal"),
-                              tags$li("Efektif untuk n < 5000"),
-                              tags$li("Sensitif terhadap outliers")
-                            )
-                          ),
-                          
-                          div(
-                            style = "flex: 1; margin-left: 15px;",
-                            h6("Levene Test:", style = "color: #0c5460; margin-bottom: 8px;"),
-                            tags$ul(
-                              style = "color: #0c5460; font-size: 14px;",
-                              tags$li("p > 0.05: Variansi homogen"),
-                              tags$li("p ≤ 0.05: Variansi tidak homogen"),
-                              tags$li("Robust terhadap non-normalitas"),
-                              tags$li("Prasyarat untuk ANOVA")
-                            )
-                          )
-                        )
-                      )
-               )
-             )
-           )
     )
   )
 )

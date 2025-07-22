@@ -2,456 +2,198 @@
 output$variance_variable_selector <- renderUI({
   req(processed_data$current)
   numeric_vars <- names(processed_data$current)[sapply(processed_data$current, is.numeric)]
-  selectInput("variance_var", 
-              "Pilih Variabel Numerik:", 
-              choices = numeric_vars)
+  selectInput("variance_var", "Pilih Variabel Numerik:", choices = numeric_vars)
 })
 
 output$variance_group_selector <- renderUI({
   req(processed_data$current, input$variance_test_type == "two_sample")
-  
-  # Filter variabel kategori yang valid (tepat 2 level)
   data <- processed_data$current
   valid_group_vars <- sapply(names(data), function(col_name) {
     x <- data[[col_name]]
     if (!is.character(x) && !is.factor(x)) return(FALSE)
-    
-    clean_x <- x[!is.na(x)]
-    if (length(clean_x) == 0) return(FALSE)
-    
-    unique_levels <- unique(clean_x)
-    if (length(unique_levels) != 2) return(FALSE)
-    
-    level_counts <- table(clean_x)
-    if (any(level_counts < 2)) return(FALSE)
-    
+    clean_x <- x[!is.na(x)]; if (length(clean_x) == 0) return(FALSE)
+    if (length(unique(clean_x)) != 2) return(FALSE)
     return(TRUE)
   })
-  
   cat_vars <- names(data)[valid_group_vars]
-  if (length(cat_vars) == 0) {
-    cat_vars <- c("Tidak ada variabel grup yang valid" = "")
-  }
-  
-  selectInput("variance_group_var", 
-              "Pilih Variabel Grup (2 Kategori):", 
-              choices = cat_vars)
+  if (length(cat_vars) == 0) cat_vars <- c("Tidak ada variabel grup yang valid" = "")
+  selectInput("variance_group_var", "Pilih Variabel Grup (2 Kategori):", choices = cat_vars)
 })
 
 # --- 2. FUNGSI UJI VARIANCE ---
-perform_variance_test <- function(data, variable, test_type, sigma2 = NULL, group_var = NULL, alternative = "two.sided", alpha = 0.05) {
-  
+perform_variance_test <- function(data, variable, test_type, sigma2=NULL, group_var=NULL, alternative="two.sided", alpha=0.05) {
   if (test_type == "one_sample") {
-    # Chi-square test untuk variance satu populasi
-    values <- data[[variable]][!is.na(data[[variable]])]
-    n <- length(values)
-    sample_var <- var(values)
-    
-    # Chi-square statistic
-    chi_stat <- (n - 1) * sample_var / sigma2
-    
-    # P-value berdasarkan alternative hypothesis
-    if (alternative == "two.sided") {
-      p_value <- 2 * min(pchisq(chi_stat, df = n-1), 1 - pchisq(chi_stat, df = n-1))
-    } else if (alternative == "greater") {
-      p_value <- 1 - pchisq(chi_stat, df = n-1)
-    } else { # less
-      p_value <- pchisq(chi_stat, df = n-1)
-    }
-    
-    # Confidence interval untuk variance
-    if (alternative == "two.sided") {
-      ci_lower <- (n-1) * sample_var / qchisq(1 - alpha/2, df = n-1)
-      ci_upper <- (n-1) * sample_var / qchisq(alpha/2, df = n-1)
-    } else {
-      ci_lower <- ifelse(alternative == "greater", 
-                         (n-1) * sample_var / qchisq(1 - alpha, df = n-1), 0)
-      ci_upper <- ifelse(alternative == "less", 
-                         (n-1) * sample_var / qchisq(alpha, df = n-1), Inf)
-    }
-    
-    result <- list(
-      test_type = "Chi-square test for variance",
-      statistic = chi_stat,
-      df = n - 1,
-      p_value = p_value,
-      sample_var = sample_var,
-      hypothesized_var = sigma2,
-      conf_int = c(ci_lower, ci_upper),
-      alternative = alternative,
-      alpha = alpha,
-      n = n
-    )
-    
-  } else { # two_sample
-    # F-test untuk perbandingan variance dua kelompok
-    complete_data <- data[complete.cases(data[c(variable, group_var)]), ]
-    groups <- unique(complete_data[[group_var]])
-    
-    group1_data <- complete_data[[variable]][complete_data[[group_var]] == groups[1]]
-    group2_data <- complete_data[[variable]][complete_data[[group_var]] == groups[2]]
-    
-    var1 <- var(group1_data)
-    var2 <- var(group2_data)
-    n1 <- length(group1_data)
-    n2 <- length(group2_data)
-    
-    # F statistic
-    f_stat <- var1 / var2
-    
-    # P-value berdasarkan alternative hypothesis
-    if (alternative == "two.sided") {
-      p_value <- 2 * min(pf(f_stat, df1 = n1-1, df2 = n2-1), 
-                         1 - pf(f_stat, df1 = n1-1, df2 = n2-1))
-    } else if (alternative == "greater") {
-      p_value <- 1 - pf(f_stat, df1 = n1-1, df2 = n2-1)
-    } else { # less
-      p_value <- pf(f_stat, df1 = n1-1, df2 = n2-1)
-    }
-    
-    # Confidence interval untuk ratio variance
-    if (alternative == "two.sided") {
-      f_lower <- qf(alpha/2, df1 = n1-1, df2 = n2-1)
-      f_upper <- qf(1 - alpha/2, df1 = n1-1, df2 = n2-1)
-      ci_lower <- f_stat / f_upper
-      ci_upper <- f_stat / f_lower
-    } else {
-      ci_lower <- ifelse(alternative == "greater", f_stat / qf(1 - alpha, df1 = n1-1, df2 = n2-1), 0)
-      ci_upper <- ifelse(alternative == "less", f_stat / qf(alpha, df1 = n1-1, df2 = n2-1), Inf)
-    }
-    
-    result <- list(
-      test_type = "F-test for equality of variances",
-      statistic = f_stat,
-      df1 = n1 - 1,
-      df2 = n2 - 1,
-      p_value = p_value,
-      var1 = var1,
-      var2 = var2,
-      group1 = groups[1],
-      group2 = groups[2],
-      n1 = n1,
-      n2 = n2,
-      conf_int = c(ci_lower, ci_upper),
-      alternative = alternative,
-      alpha = alpha
-    )
+    values <- data[[variable]][!is.na(data[[variable]])]; n <- length(values)
+    if (n < 2) stop("Data tidak cukup untuk menghitung varians.")
+    sample_var <- var(values); chi_stat <- (n - 1) * sample_var / sigma2
+    p_value <- if(alternative=="two.sided"){2*min(pchisq(chi_stat,df=n-1),1-pchisq(chi_stat,df=n-1))}else if(alternative=="greater"){1-pchisq(chi_stat,df=n-1)}else{pchisq(chi_stat,df=n-1)}
+    ci <- if(alternative=="two.sided"){c((n-1)*sample_var/qchisq(1-alpha/2,df=n-1),(n-1)*sample_var/qchisq(alpha/2,df=n-1))}else{c(ifelse(alternative=="greater",(n-1)*sample_var/qchisq(1-alpha,df=n-1),0),ifelse(alternative=="less",(n-1)*sample_var/qchisq(alpha,df=n-1),Inf))}
+    return(list(test_type="Chi-square test for variance",statistic=chi_stat,df=n-1,p_value=p_value,sample_var=sample_var,hypothesized_var=sigma2,conf_int=ci,alternative=alternative,alpha=alpha,n=n))
+  } else {
+    complete_data<-data[complete.cases(data[c(variable,group_var)]),]; groups<-unique(complete_data[[group_var]])
+    d1<-complete_data[[variable]][complete_data[[group_var]]==groups[1]]; d2<-complete_data[[variable]][complete_data[[group_var]]==groups[2]]
+    if(length(d1)<2||length(d2)<2)stop("Setiap grup harus memiliki minimal 2 observasi.")
+    var1<-var(d1);var2<-var(d2);n1<-length(d1);n2<-length(d2);f_stat<-var1/var2
+    p_value<-if(alternative=="two.sided"){2*min(pf(f_stat,df1=n1-1,df2=n2-1),1-pf(f_stat,df1=n1-1,df2=n2-1))}else if(alternative=="greater"){1-pf(f_stat,df1=n1-1,df2=n2-1)}else{pf(f_stat,df1=n1-1,df2=n2-1)}
+    ci<-if(alternative=="two.sided"){c(f_stat/qf(1-alpha/2,df1=n1-1,df2=n2-1),f_stat/qf(alpha/2,df1=n1-1,df2=n2-1))}else{c(ifelse(alternative=="greater",f_stat/qf(1-alpha,df1=n1-1,df2=n2-1),0),ifelse(alternative=="less",f_stat/qf(alpha,df1=n1-1,df2=n2-1),Inf))}
+    return(list(test_type="F-test for equality of variances",statistic=f_stat,df1=n1-1,df2=n2-1,p_value=p_value,var1=var1,var2=var2,group1=groups[1],group2=groups[2],n1=n1,n2=n2,conf_int=ci,alternative=alternative,alpha=alpha))
   }
-  
-  return(result)
 }
 
 # --- 3. LOGIKA UJI VARIANCE ---
 variance_results <- eventReactive(input$run_variance_test, {
   req(processed_data$current, input$variance_var, input$variance_test_type)
-  
   result <- tryCatch({
     if (input$variance_test_type == "one_sample") {
       req(input$variance_sigma2)
-      perform_variance_test(
-        data = processed_data$current,
-        variable = input$variance_var,
-        test_type = "one_sample",
-        sigma2 = input$variance_sigma2,
-        alternative = input$variance_alternative,
-        alpha = input$variance_alpha
-      )
+      perform_variance_test(data=processed_data$current, variable=input$variance_var, test_type="one_sample", sigma2=input$variance_sigma2, alternative=input$variance_alternative, alpha=input$variance_alpha)
     } else {
-      req(input$variance_group_var)
-      perform_variance_test(
-        data = processed_data$current,
-        variable = input$variance_var,
-        test_type = "two_sample",
-        group_var = input$variance_group_var,
-        alternative = input$variance_alternative,
-        alpha = input$variance_alpha
-      )
+      req(input$variance_group_var, nzchar(input$variance_group_var))
+      perform_variance_test(data=processed_data$current, variable=input$variance_var, test_type="two_sample", group_var=input$variance_group_var, alternative=input$variance_alternative, alpha=input$variance_alpha)
     }
-  }, error = function(e) {
-    showNotification(paste("Error dalam uji variance:", e$message), type = "error")
-    return(NULL)
-  })
-  
+  }, error = function(e) { showNotification(paste("Error:", e$message), type = "error"); NULL })
   analysis_results$variance <- result
   return(result)
 })
 
-# --- 4. OUTPUT HASIL ---
-output$variance_test_result <- renderPrint({
-  req(variance_results())
-  result <- variance_results()
-  
-  cat("=== HASIL UJI VARIANCE ===\n\n")
-  cat("Uji:", result$test_type, "\n")
-  
-  if (result$test_type == "Chi-square test for variance") {
-    cat("H₀: σ² =", result$hypothesized_var, "\n")
-    cat("H₁: σ²", switch(result$alternative, 
-                         "two.sided" = "≠", 
-                         "greater" = ">", 
-                         "less" = "<"), result$hypothesized_var, "\n\n")
-    
-    cat("Statistik Chi-square:", round(result$statistic, 4), "\n")
-    cat("Derajat bebas:", result$df, "\n")
-    cat("Sample variance:", round(result$sample_var, 4), "\n")
-    cat("Sample size:", result$n, "\n")
-    
-  } else {
-    cat("H₀: σ₁² = σ₂² (variance sama)\n")
-    cat("H₁: σ₁²", switch(result$alternative, 
-                          "two.sided" = "≠", 
-                          "greater" = ">", 
-                          "less" = "<"), "σ₂²\n\n")
-    
-    cat("Statistik F:", round(result$statistic, 4), "\n")
-    cat("Derajat bebas:", result$df1, ",", result$df2, "\n")
-    cat("Variance", result$group1, ":", round(result$var1, 4), "\n")
-    cat("Variance", result$group2, ":", round(result$var2, 4), "\n")
-    cat("Sample sizes:", result$n1, ",", result$n2, "\n")
-  }
-  
-  cat("P-value:", round(result$p_value, 6), "\n")
-  cat("Confidence interval (", (1-result$alpha)*100, "%):", 
-      "[", round(result$conf_int[1], 4), ",", round(result$conf_int[2], 4), "]\n")
-})
-
-output$variance_interpretation <- renderText({
-  req(variance_results())
-  result <- variance_results()
-  
-  # Format p-value dengan 3 desimal
-  p_value_formatted <- sprintf("%.3f", result$p_value)
-  alpha_formatted <- sprintf("%.3f", result$alpha)
-  
-  # Tentukan perbandingan p-value dengan alpha
-  comparison <- ifelse(result$p_value < result$alpha, "lebih kecil", "lebih besar")
-  
-  # Mulai interpretasi dengan line breaks yang tepat
-  interpretation <- paste0(
-    "=== INTERPRETASI HASIL ===\n\n",
-    "Berdasarkan uji yang dilakukan didapatkan p-value = ", p_value_formatted, 
-    " sehingga p-value ", comparison, " dari \n",
-    "tingkat signifikansi yang digunakan (", alpha_formatted, "). "
+# --- 4. FUNGSI PEMBANTU (HELPER FUNCTIONS) UNTUK TEKS ---
+generate_variance_summary_text <- function(result) {
+  req(result)
+  summary_lines <- c(
+    "=== HASIL UJI VARIANS ===",
+    paste("Uji:", result$test_type)
   )
+  if (result$test_type == "Chi-square test for variance") {
+    summary_lines <- c(summary_lines,
+                       paste("H₀: σ² =", result$hypothesized_var),
+                       paste("H₁: σ²", switch(result$alternative, "two.sided"="≠", "greater"=">", "less"="<"), result$hypothesized_var),
+                       "",
+                       paste("Statistik Chi-square:", round(result$statistic, 4)),
+                       paste("Derajat bebas:", result$df),
+                       paste("P-value:", round(result$p_value, 6))
+    )
+  } else {
+    summary_lines <- c(summary_lines,
+                       "H₀: σ₁² = σ₂² (variance sama)",
+                       paste("H₁: σ₁²", switch(result$alternative, "two.sided"="≠", "greater"=">", "less"="<"), "σ₂²"),
+                       "",
+                       paste("Statistik F:", round(result$statistic, 4)),
+                       paste("Derajat bebas:", result$df1, ",", result$df2),
+                       paste("P-value:", round(result$p_value, 6))
+    )
+  }
+  return(paste(summary_lines, collapse = "\n"))
+}
+
+generate_variance_interpretation_text <- function(result) {
+  req(result, !is.null(result$test_type))
+  p_val <- result$p_value; alpha <- result$alpha
+  decision_text <- sprintf("KEPUTUSAN: Karena p-value (%.4f) %s dari alpha (%.2f), maka H₀ %s.", p_val, ifelse(p_val < alpha, "<", "≥"), alpha, ifelse(p_val < alpha, "DITOLAK", "GAGAL DITOLAK"))
   
   if (result$test_type == "Chi-square test for variance") {
-    # Interpretasi untuk uji satu populasi
-    if (result$p_value < result$alpha) {
-      interpretation <- paste0(interpretation,
-                               "Oleh karena itu, cukup bukti untuk menolak \n",
-                               "hipotesis nol yang menyatakan bahwa varians populasi sama denganvarians yang diharapkan, yaitu ", result$hypothesized_var, ".\n",
-                               "Dengan demikian, dapat disimpulkan bahwa varians populasi berbeda secara signifikan\n",
-                               "dari nilai yang telah ditetapkan sebelumnya.\n\n"
-      )
-    } else {
-      interpretation <- paste0(interpretation,
-                               "Oleh karena itu, tidak cukup bukti untuk menolak \n",
-                               "hipotesis nol yang menyatakan bahwa varians populasi sama dengan varians yang diharapkan, yaitu", result$hypothesized_var, ". \n",
-                               "Dengan demikian,dapat disimpulkan bahwa tidak terdapat perbedaan varians yang signifikan\n",
-                               "dari nilai yang telah ditetapkan sebelumnya.\n\n"
-      )
-    }
-    
-    # Tambahan informasi untuk uji satu populasi
-    interpretation <- paste0(interpretation,
-                             "Informasi tambahan:\n",
-                             "- Varians sampel yang diperoleh: ", round(result$sample_var, 4), "\n",
-                             "- Varians populasi yang diharapkan: ", result$hypothesized_var, "\n",
-                             "- Confidence interval untuk varians populasi:\n",
-                             "  [", round(result$conf_int[1], 4), ", ", round(result$conf_int[2], 4), "]\n"
-    )
-    
+    conclusion_text <- if(p_val<alpha){sprintf("KESIMPULAN: Dengan tingkat kepercayaan %d%%, data memberikan cukup bukti untuk menyatakan\nbahwa varians populasi (σ²) secara signifikan berbeda dari nilai hipotesis (%.2f).", (1-alpha)*100, result$hypothesized_var)}else{sprintf("KESIMPULAN: Dengan tingkat kepercayaan %d%%, data tidak memberikan cukup bukti untuk menyatakan\nbahwa varians populasi (σ²) berbeda dari nilai hipotesis (%.2f).",(1-alpha)*100,result$hypothesized_var)}
   } else {
-    # Interpretasi untuk uji dua populasi
-    if (result$p_value < result$alpha) {
-      interpretation <- paste0(interpretation,
-                               "Oleh karena itu, cukup bukti untuk menolak hipotesis nol \n",
-                               "yang menyatakan bahwa kedua populasi memiliki varians yang sama.\n",
-                               "Dengan demikian, dapat disimpulkan bahwa terdapat perbedaan varians yang \n",
-                               "signifikan antara kedua populasi yang dibandingkan.\n\n"
-      )
-    } else {
-      interpretation <- paste0(interpretation,
-                               "Oleh karena itu, tidak cukup bukti untuk menolak hipotesis nol\n",
-                               "yang menyatakan bahwa kedua populasi memiliki varians yang sama.\n",
-                               "Dengan demikian, dapat disimpulkan bahwa tidak terdapat perbedaan varians yang\n",
-                               "signifikan antarakedua populasi yang dibandingkan.\n\n"
-      )
-    }
-    
-    # Tambahan informasi untuk uji dua populasi
-    interpretation <- paste0(interpretation,
-                             "Informasi tambahan:\n",
-                             "- Varians grup ", result$group1, ": ", round(result$var1, 4), "\n",
-                             "- Varians grup ", result$group2, ": ", round(result$var2, 4), "\n",
-                             "- Rasio varians (σ₁²/σ₂²): ", round(result$statistic, 4), "\n",
-                             "- Confidence interval untuk rasio varians:\n",
-                             "  [", round(result$conf_int[1], 4), ", ", round(result$conf_int[2], 4), "]\n"
-    )
+    conclusion_text <- if(p_val<alpha){sprintf("KESIMPULAN: Dengan tingkat kepercayaan %d%%, data memberikan cukup bukti untuk menyatakan\nbahwa terdapat perbedaan varians yang signifikan antara grup '%s' dan '%s'.",(1-alpha)*100, result$group1,result$group2)}else{sprintf("KESIMPULAN: Dengan tingkat kepercayaan %d%%, data tidak memberikan cukup bukti untuk menyatakan\nadanya perbedaan varians yang signifikan antara grup '%s' dan '%s'.",(1-alpha)*100,result$group1,result$group2)}
   }
-  
-  return(interpretation)
-})
+  return(paste("=== INTERPRETASI HASIL UJI STATISTIK ===\n\n", decision_text, "\n\n", conclusion_text))
+}
 
-# --- 5. STATISTIK DESKRIPTIF ---
+generate_variance_vis_interpretation_text <- function(result) {
+  req(result, !is.null(result$test_type))
+  p_val <- result$p_value; alpha <- result$alpha
+  if (result$test_type == "Chi-square test for variance") {
+    text <- if(p_val<alpha){sprintf("Hasil uji statistik menunjukkan varians sampel (%.2f) berbeda signifikan dari varians hipotesis (%.2f).\nHal ini mungkin terlihat dari lebar boxplot atau sebaran histogram yang tidak sesuai dengan yang diharapkan.",result$sample_var,result$hypothesized_var)}else{sprintf("Hasil uji statistik tidak menemukan perbedaan signifikan antara varians sampel (%.2f) dan varians hipotesis (%.2f).\nSecara visual, lebar boxplot dan sebaran histogram konsisten dengan hasil ini.",result$sample_var,result$hypothesized_var)}
+  } else {
+    text <- if(p_val<alpha){larger_group <- if(result$var1 > result$var2) result$group1 else result$group2; sprintf("Hasil F-test (p=%.4f) menunjukkan ada perbedaan varians yang signifikan.\nIni didukung secara visual, di mana boxplot grup '%s' tampak lebih lebar,\nmenandakan sebaran data yang lebih besar.", p_val, larger_group)}else{sprintf("Hasil F-test (p=%.4f) menunjukkan tidak ada perbedaan varians yang signifikan.\nSecara visual, boxplot untuk kedua grup memiliki lebar dan sebaran yang relatif sama,\nsejalan dengan hasil uji.",p_val)}
+  }
+  return(paste("ANALISIS VISUAL:\n", text))
+}
+
+
+# --- 5. RENDER OUTPUT KE UI ---
+output$variance_test_result <- renderPrint({ cat(generate_variance_summary_text(variance_results())) })
+output$variance_interpretation <- renderText({ generate_variance_interpretation_text(variance_results()) })
+output$variance_visualization_interpretation <- renderText({ generate_variance_vis_interpretation_text(variance_results()) })
+
+
+# --- 6. STATISTIK DESKRIPTIF & VISUALISASI ---
 output$variance_descriptive_stats <- DT::renderDataTable({
-  req(variance_results(), input$variance_var)
-  
-  data <- processed_data$current
-  
-  if (input$variance_test_type == "one_sample") {
-    values <- data[[input$variance_var]][!is.na(data[[input$variance_var]])]
-    stats_df <- data.frame(
-      Statistik = c("N", "Mean", "Variance", "Std Dev", "Min", "Max"),
-      Nilai = c(
-        length(values),
-        round(mean(values), 4),
-        round(var(values), 4),
-        round(sd(values), 4),
-        round(min(values), 4),
-        round(max(values), 4)
-      )
-    )
-  } else {
-    req(input$variance_group_var)
-    complete_data <- data[complete.cases(data[c(input$variance_var, input$variance_group_var)]), ]
-    groups <- unique(complete_data[[input$variance_group_var]])
-    
-    group1_data <- complete_data[[input$variance_var]][complete_data[[input$variance_group_var]] == groups[1]]
-    group2_data <- complete_data[[input$variance_var]][complete_data[[input$variance_group_var]] == groups[2]]
-    
-    stats_df <- data.frame(
-      Statistik = c("N", "Mean", "Variance", "Std Dev", "Min", "Max"),
-      Group1 = c(
-        length(group1_data),
-        round(mean(group1_data), 4),
-        round(var(group1_data), 4),
-        round(sd(group1_data), 4),
-        round(min(group1_data), 4),
-        round(max(group1_data), 4)
-      ),
-      Group2 = c(
-        length(group2_data),
-        round(mean(group2_data), 4),
-        round(var(group2_data), 4),
-        round(sd(group2_data), 4),
-        round(min(group2_data), 4),
-        round(max(group2_data), 4)
-      )
-    )
-    
-    names(stats_df)[2:3] <- paste0(c("Group_", "Group_"), groups)
-  }
-  
-  DT::datatable(stats_df, options = list(dom = 't'), rownames = FALSE)
+  req(variance_results(), input$variance_var); data <- processed_data$current
+  if (input$variance_test_type=="one_sample"){df<-data.frame(Statistik=c("N","Mean","Variance","Std Dev"),Nilai=c(length(data[[input$variance_var]][!is.na(data[[input$variance_var]])]),round(mean(data[[input$variance_var]],na.rm=T),4),round(var(data[[input$variance_var]],na.rm=T),4),round(sd(data[[input$variance_var]],na.rm=T),4)))}else{req(input$variance_group_var);groups<-unique(data[[input$variance_group_var]]);d1<-data[[input$variance_var]][data[[input$variance_group_var]]==groups[1]];d2<-data[[input$variance_var]][data[[input$variance_group_var]]==groups[2]];df<-data.frame(Statistik=c("N","Mean","Variance","Std Dev"),G1=c(length(d1),round(mean(d1),4),round(var(d1),4),round(sd(d1),4)),G2=c(length(d2),round(mean(d2),4),round(var(d2),4),round(sd(d2),4)));names(df)[2:3]<-groups}
+  DT::datatable(df, options=list(dom='t'), rownames=FALSE)
 })
-
-# --- 6. VISUALISASI ---
 output$variance_boxplot <- renderPlot({
-  req(processed_data$current, input$variance_var)
-  
-  data <- processed_data$current
-  
-  if (input$variance_test_type == "one_sample") {
-    values <- data[[input$variance_var]][!is.na(data[[input$variance_var]])]
-    boxplot(values, main = paste("Boxplot untuk", input$variance_var),
-            ylab = input$variance_var, col = "lightblue")
-  } else {
-    req(input$variance_group_var)
-    complete_data <- data[complete.cases(data[c(input$variance_var, input$variance_group_var)]), ]
-    
-    boxplot(complete_data[[input$variance_var]] ~ complete_data[[input$variance_group_var]],
-            main = paste("Boxplot", input$variance_var, "berdasarkan", input$variance_group_var),
-            xlab = input$variance_group_var,
-            ylab = input$variance_var,
-            col = c("lightblue", "lightcoral"))
-  }
+  req(processed_data$current, input$variance_var); data <- processed_data$current
+  if (input$variance_test_type=="one_sample"){boxplot(data[[input$variance_var]],main=paste("Boxplot untuk",input$variance_var),ylab=input$variance_var,col="lightblue")}else{req(input$variance_group_var);boxplot(data[[input$variance_var]]~data[[input$variance_group_var]],main=paste("Boxplot",input$variance_var,"berdasarkan",input$variance_group_var),xlab=input$variance_group_var,ylab=input$variance_var,col=c("lightblue","lightcoral"))}
 })
-
 output$variance_histogram <- renderPlot({
-  req(processed_data$current, input$variance_var)
-  
-  data <- processed_data$current
-  
-  if (input$variance_test_type == "one_sample") {
-    values <- data[[input$variance_var]][!is.na(data[[input$variance_var]])]
-    hist(values, main = paste("Histogram untuk", input$variance_var),
-         xlab = input$variance_var, col = "lightblue", breaks = 20)
-  } else {
-    req(input$variance_group_var)
-    complete_data <- data[complete.cases(data[c(input$variance_var, input$variance_group_var)]), ]
-    groups <- unique(complete_data[[input$variance_group_var]])
-    
-    par(mfrow = c(1, 2))
-    for (i in 1:2) {
-      group_data <- complete_data[[input$variance_var]][complete_data[[input$variance_group_var]] == groups[i]]
-      hist(group_data, 
-           main = paste("Histogram", groups[i]),
-           xlab = input$variance_var,
-           col = c("lightblue", "lightcoral")[i],
-           breaks = 15)
-    }
-    par(mfrow = c(1, 1))
-  }
+  req(processed_data$current, input$variance_var); data <- processed_data$current
+  if (input$variance_test_type=="one_sample"){hist(data[[input$variance_var]],main=paste("Histogram untuk",input$variance_var),xlab=input$variance_var,col="lightblue",breaks=20)}else{req(input$variance_group_var);groups<-unique(data[[input$variance_group_var]]);par(mfrow=c(1,2));for(i in 1:2){hist(data[[input$variance_var]][data[[input$variance_group_var]]==groups[i]],main=paste("Histogram",groups[i]),xlab=input$variance_var,col=c("lightblue","lightcoral")[i],breaks=15)};par(mfrow=c(1,1))}
 })
 
-# --- 7. DOWNLOAD HASIL ---
+
+# --- 7. LOGIKA UNDUH ---
 output$download_variance_result <- downloadHandler(
   filename = function() {
-    paste("hasil-uji-variance-", Sys.Date(), ".", input$variance_format, sep = "")
+    paste("laporan-uji-varians-", Sys.Date(), ".", input$variance_format, sep = "")
   },
   content = function(file) {
-    req(analysis_results$variance)
+    req(variance_results())
     
-    result <- analysis_results$variance
+    # Simpan plot ke file temporer
+    temp_dir <- tempdir()
+    boxplot_path <- file.path(temp_dir, "boxplot.png")
+    histogram_path <- file.path(temp_dir, "histogram.png")
     
-    # Format p-value dengan 3 desimal untuk download
-    p_value_formatted <- sprintf("%.3f", result$p_value)
-    alpha_formatted <- sprintf("%.3f", result$alpha)
+    png(boxplot_path, width=7, height=5, units='in', res=300); {
+      output$variance_boxplot()
+    }; dev.off()
     
-    text_content <- capture.output({
-      cat("=== HASIL UJI VARIANCE ===\n\n")
-      cat("Uji:", result$test_type, "\n")
-      
-      if (result$test_type == "Chi-square test for variance") {
-        cat("Statistik Chi-square:", round(result$statistic, 4), "\n")
-        cat("Derajat bebas:", result$df, "\n")
-        cat("Sample variance:", round(result$sample_var, 4), "\n")
-      } else {
-        cat("Statistik F:", round(result$statistic, 4), "\n")
-        cat("Derajat bebas:", result$df1, ",", result$df2, "\n")
-        cat("Variance", result$group1, ":", round(result$var1, 4), "\n")
-        cat("Variance", result$group2, ":", round(result$var2, 4), "\n")
-      }
-      
-      cat("P-value:", p_value_formatted, "\n")
-      cat("Tingkat signifikansi:", alpha_formatted, "\n")
-      
-      # Interpretasi untuk download
-      if (result$test_type == "Chi-square test for variance") {
-        if (result$p_value < result$alpha) {
-          cat("Kesimpulan: Varians populasi berbeda secara signifikan dari nilai yang ditetapkan\n")
-        } else {
-          cat("Kesimpulan: Tidak terdapat perbedaan varians yang signifikan dari nilai yang ditetapkan\n")
-        }
-      } else {
-        if (result$p_value < result$alpha) {
-          cat("Kesimpulan: Terdapat perbedaan varians yang signifikan antara kedua populasi\n")
-        } else {
-          cat("Kesimpulan: Tidak terdapat perbedaan varians yang signifikan antara kedua populasi\n")
-        }
-      }
-    })
+    png(histogram_path, width=8, height=4, units='in', res=300); {
+      output$variance_histogram()
+    }; dev.off()
+    
+    # Panggil helper function untuk mendapatkan semua teks
+    result_text <- generate_variance_summary_text(variance_results())
+    interpretation_text <- generate_variance_interpretation_text(variance_results())
+    vis_interpretation_text <- generate_variance_vis_interpretation_text(variance_results())
+    
+    # Gabungkan semua teks menjadi satu blok untuk dikirim ke Rmd
+    full_text <- paste(
+      "### 1. Hasil Uji Statistik",
+      "```",
+      result_text,
+      "```",
+      "\n\n### 2. Interpretasi Hasil",
+      "```",
+      interpretation_text,
+      "```",
+      "\n\n### 3. Interpretasi Visualisasi",
+      "```",
+      vis_interpretation_text,
+      "```",
+      sep = "\n"
+    )
+    
+    params <- list(
+      report_title = "Laporan Hasil Uji Varians",
+      text_output = full_text,
+      plot_boxplot_path = boxplot_path,
+      plot_histogram_path = histogram_path
+    )
     
     rmarkdown::render(
       input = "text_report.Rmd",
       output_file = file,
-      output_format = if(input$variance_format == "pdf") "pdf_document" else "word_document",
-      params = list(
-        report_title = "Hasil Uji Variance",
-        text_output = paste(text_content, collapse = "\n")
-      ),
+      output_format = if (input$variance_format == "pdf") "pdf_document" else "word_document",
+      params = params,
       envir = new.env(parent = globalenv())
     )
   }
 )
+
+
+
+
+
+

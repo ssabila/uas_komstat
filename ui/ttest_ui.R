@@ -1,5 +1,6 @@
 # ui/ttest_ui.R
 tagList(
+  # --- Kotak Judul Halaman ---
   box(
     title = "Uji Beda Rata-Rata (t-Test)",
     status = "primary",
@@ -7,7 +8,10 @@ tagList(
     width = 12,
     p("Gunakan halaman ini untuk membandingkan rata-rata (mean) dari satu atau dua kelompok. Pastikan asumsi normalitas data terpenuhi sebelum melakukan uji ini.")
   ),
+  
+  # --- Baris untuk Pengaturan dan Hasil Uji ---
   fluidRow(
+    # --- Kolom Kiri: Pengaturan Uji ---
     column(4,
            box(
              title = "Pengaturan Uji",
@@ -33,21 +37,33 @@ tagList(
              actionButton("run_ttest", "Jalankan Uji t-Test", class = "btn-success", icon = icon("play"))
            )
     ),
+    
+    # --- Kolom Kanan: Ringkasan Hasil & Unduh ---
     column(8,
            box(
              title = "Hasil Analisis t-Test",
              status = "success",
              solidHeader = TRUE,
              width = 12,
-             h4("Ringkasan Hasil Uji"),
-             verbatimTextOutput("ttest_result_summary"),
+             verbatimTextOutput("ttest_result_summary")
+           )
+    )
+  ),
+  
+  # --- Baris Baru: Kotak Interpretasi (Full-Width) ---
+  fluidRow(
+    column(12,
+           box(
+             title = "Interpretasi Hasil",
+             status = "primary",
+             solidHeader = TRUE,
+             width = 12,
+             verbatimTextOutput("ttest_interpretation"),
              hr(),
-             h4("Unduh Hasil"),
+             h4("Unduh Laporan Lengkap"),
+             p("Unduh ringkasan hasil beserta interpretasinya dalam format PDF atau Word."),
              radioButtons("ttest_format", "Pilih Format:", choices = list("PDF" = "pdf", "Word" = "docx"), inline = TRUE),
-             downloadButton("download_ttest_result", "Unduh"),
-             hr(),
-             h4("Interpretasi"),
-             verbatimTextOutput("ttest_interpretation")
+             downloadButton("download_ttest_result", "Unduh Laporan", icon = icon("download"))
            )
     )
   )

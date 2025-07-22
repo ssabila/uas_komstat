@@ -33,40 +33,18 @@ output$homogeneity_group_selector <- renderUI({
   
   valid_group_vars <- sapply(names(data), function(col_name) {
     x <- data[[col_name]]
-    
-    # Harus berupa karakter atau faktor
-    if (!is.character(x) && !is.factor(x)) {
-      return(FALSE)
-    }
-    
-    # Hapus nilai NA untuk pengecekan
+    if (!is.character(x) && !is.factor(x)) return(FALSE)
     clean_x <- x[!is.na(x)]
-    
-    # Harus ada data setelah menghapus NA
-    if (length(clean_x) == 0) {
-      return(FALSE)
-    }
-    
-    # Hitung jumlah level unik
+    if (length(clean_x) == 0) return(FALSE)
     unique_levels <- unique(clean_x)
-    
-    # Harus memiliki 2-10 level (tidak terlalu sedikit, tidak terlalu banyak)
-    if (length(unique_levels) < 2 || length(unique_levels) > 10) {
-      return(FALSE)
-    }
-    
-    # Setiap level harus memiliki minimal 2 observasi
+    if (length(unique_levels) < 2 || length(unique_levels) > 10) return(FALSE)
     level_counts <- table(clean_x)
-    if (any(level_counts < 2)) {
-      return(FALSE)
-    }
-    
+    if (any(level_counts < 2)) return(FALSE)
     return(TRUE)
   })
   
   cat_vars <- names(data)[valid_group_vars]
   
-  # Jika tidak ada variabel yang valid, berikan pesan
   if (length(cat_vars) == 0) {
     cat_vars <- c("Tidak ada variabel grup yang valid" = "")
   }
@@ -78,7 +56,6 @@ output$homogeneity_group_selector <- renderUI({
 normality_results <- eventReactive(input$run_normality_test, {
   req(processed_data$current, input$normality_var)
   
-  # Tambahkan error handling
   result <- tryCatch({
     test_normality(processed_data$current, input$normality_var, method = "shapiro")
   }, error = function(e) {
@@ -98,7 +75,6 @@ normality_results <- eventReactive(input$run_normality_test, {
 homogeneity_results <- eventReactive(input$run_homogeneity_test, {
   req(processed_data$current, input$homogeneity_var, input$homogeneity_group)
   
-  # VALIDASI AWAL SEBELUM UJI
   if (input$homogeneity_group == "" || input$homogeneity_group == "Tidak ada variabel grup yang valid") {
     result <- list(
       test = "Levene Test",
@@ -110,67 +86,9 @@ homogeneity_results <- eventReactive(input$run_homogeneity_test, {
     return(result)
   }
   
-  # Tambahkan error handling yang lebih komprehensif
   result <- tryCatch({
-    
-    # PRE-CHECK: Pastikan data memenuhi syarat
-    data <- processed_data$current
-    var <- input$homogeneity_var
-    group_var <- input$homogeneity_group
-    
-    cat("=== DEBUGGING UJI HOMOGENITAS ===\n")
-    cat("Variabel dependen:", var, "\n")
-    cat("Variabel grup:", group_var, "\n")
-    
-    # Check apakah variabel ada
-    if (!var %in% names(data) || !group_var %in% names(data)) {
-      stop("Variabel yang dipilih tidak ditemukan dalam data")
-    }
-    
-    # Check tipe data
-    if (!is.numeric(data[[var]])) {
-      stop("Variabel dependen harus berupa numerik")
-    }
-    
-    # Check data grup
-    group_data <- data[[group_var]]
-    cat("Tipe data grup:", class(group_data), "\n")
-    cat("Jumlah total observasi:", length(group_data), "\n")
-    cat("Jumlah NA di grup:", sum(is.na(group_data)), "\n")
-    
-    # Clean data untuk analisis
-    clean_idx <- complete.cases(data[c(var, group_var)])
-    clean_data <- data[clean_idx, ]
-    
-    cat("Jumlah observasi setelah cleaning:", nrow(clean_data), "\n")
-    
-    if (nrow(clean_data) < 3) {
-      stop("Data tidak cukup untuk analisis (minimal 3 observasi)")
-    }
-    
-    # Check grup
-    group_levels <- unique(clean_data[[group_var]])
-    cat("Level grup:", paste(group_levels, collapse = ", "), "\n")
-    cat("Jumlah level:", length(group_levels), "\n")
-    
-    if (length(group_levels) < 2) {
-      stop("Variabel grup harus memiliki minimal 2 kategori")
-    }
-    
-    # Check ukuran setiap grup
-    group_counts <- table(clean_data[[group_var]])
-    cat("Ukuran setiap grup:\n")
-    print(group_counts)
-    
-    if (any(group_counts < 2)) {
-      stop("Setiap grup harus memiliki minimal 2 observasi")
-    }
-    
-    # Jalankan uji homogenitas
     test_homogeneity(processed_data$current, input$homogeneity_var, input$homogeneity_group, method = "levene")
-    
   }, error = function(e) {
-    cat("ERROR:", e$message, "\n")
     showNotification(paste("Error pada uji homogenitas:", e$message), type = "error", duration = 10)
     return(list(
       test = "Levene Test",
@@ -184,12 +102,11 @@ homogeneity_results <- eventReactive(input$run_homogeneity_test, {
   return(result)
 })
 
-# --- 3. TAMPILKAN HASIL DENGAN INTERPRETASI PROFESIONAL ---
+# --- 3. TAMPILKAN HASIL ---
 output$normality_test_result <- renderPrint({
   req(normality_results())
   result <- normality_results()
   
-  # Format output yang lebih informatif
   cat("=== HASIL UJI NORMALITAS SHAPIRO-WILK ===\n")
   cat("Variabel yang diuji:", input$normality_var, "\n")
   cat("\nHipotesis:\n")
@@ -200,416 +117,252 @@ output$normality_test_result <- renderPrint({
   if (!is.na(result$statistic)) {
     cat("Hasil Pengujian:\n")
     cat("Statistik W:", round(result$statistic, 6), "\n")
-    cat("P-value:", round(result$p_value, 6), "\n\n")
-    
-    # Interpretasi profesional
+    cat("P-value:", format.pval(result$p_value, eps = 1e-6, digits = 6), "\n\n")
     cat("=== INTERPRETASI ===\n")
     if (result$p_value < 0.05) {
-      cat(sprintf("Berdasarkan hasil pengujian Shapiro-Wilk, diperoleh nilai p-value sebesar %.6f (< 0.05), 
-sehingga keputusan yang diambil adalah TOLAK H₀. 
-
-Kesimpulan: Dengan tingkat kepercayaan 95%%, terdapat cukup bukti untuk menyatakan bahwa 
-variabel %s TIDAK berdistribusi normal.", 
-                  result$p_value, input$normality_var))
+      cat(sprintf("Dengan p-value = %s (< 0.05), H₀ ditolak. Terdapat cukup bukti untuk menyatakan bahwa data variabel '%s' TIDAK berdistribusi normal.", 
+                  format.pval(result$p_value, eps = 1e-6, digits = 6), input$normality_var))
     } else {
-      cat(sprintf("Berdasarkan hasil pengujian Shapiro-Wilk, diperoleh nilai p-value sebesar %.6f (≥ 0.05), 
-sehingga keputusan yang diambil adalah GAGAL TOLAK H₀. 
-
-Kesimpulan: Dengan tingkat kepercayaan 95%%, tidak terdapat cukup bukti untuk menyatakan 
-bahwa variabel %s tidak berdistribusi normal. Data dapat diasumsikan berdistribusi normal.
-
-Catatan: Hasil ini mendukung penggunaan metode statistik parametrik untuk analisis lanjutan.", 
-                  result$p_value, input$normality_var))
+      cat(sprintf("Dengan p-value = %s (≥ 0.05), H₀ gagal ditolak. Tidak cukup bukti untuk menyatakan bahwa data variabel '%s' tidak berdistribusi normal. Asumsi normalitas terpenuhi.", 
+                  format.pval(result$p_value, eps = 1e-6, digits = 6), input$normality_var))
     }
   } else {
-    cat("Hasil pengujian tidak tersedia.")
+    cat("Hasil pengujian tidak tersedia atau terjadi error.")
   }
 })
 
-# Perbaiki output Q-Q plot
 output$qq_plot <- renderPlot({
   req(processed_data$current, input$normality_var)
   
   tryCatch({
-    # Pastikan fungsi create_qqplot tersedia
-    if (!exists("create_qqplot")) {
-      source("modules/visualization_functions.R")
-    }
-    
     create_qqplot(processed_data$current, input$normality_var)
-    
   }, error = function(e) {
-    # Fallback error handling
-    data_col <- processed_data$current[[input$normality_var]]
-    clean_data <- data_col[!is.na(data_col)]
-    
-    if(length(clean_data) > 0) {
-      # Create simple Q-Q plot
-      par(mfrow = c(1, 1), mar = c(4, 4, 3, 2))
-      qqnorm(clean_data, 
-             main = paste("Q-Q Plot:", input$normality_var),
-             xlab = "Theoretical Quantiles", 
-             ylab = "Sample Quantiles",
-             pch = 16, col = "steelblue")
-      qqline(clean_data, col = "red", lwd = 2)
-      
-      # Add grid
-      grid(col = "lightgray", lty = "dotted")
-      
-      # Add interpretation text
-      cor_test <- cor.test(qnorm(ppoints(length(clean_data))), sort(clean_data))
-      r_value <- cor_test$estimate
-      
-      legend("topleft", 
-             legend = c(
-               paste("n =", length(clean_data)),
-               paste("r =", round(r_value, 3)),
-               if(r_value > 0.95) "Normal" else if(r_value > 0.90) "Mendekati Normal" else "Tidak Normal"
-             ),
-             bty = "n", cex = 0.9)
-      
-    } else {
-      # Show error message
-      plot(1, 1, type = "n", 
-           main = "Error: Tidak dapat membuat Q-Q plot",
-           xlab = "", ylab = "", axes = FALSE)
-      text(1, 1, paste("Error:", e$message), col = "red", cex = 1.2)
-      box()
-    }
+    plot(1, 1, type = "n", main = "Error Membuat Plot", xlab = "", ylab = "", axes = FALSE)
+    text(1, 1, paste("Error:", e$message), col = "red", cex = 1.2)
   })
 }, height = 400)
-
-# reactive value untuk menyimpan plot
-qq_plot_data <- reactiveVal(NULL)
-
-# Update observeEvent untuk menyimpan plot data
-observeEvent(input$run_normality_test, {
-  req(processed_data$current, input$normality_var)
-  
-  # Simpan data untuk plot
-  qq_plot_data(list(
-    data = processed_data$current,
-    variable = input$normality_var,
-    timestamp = Sys.time()
-  ))
-})
 
 output$homogeneity_test_result <- renderPrint({
   req(homogeneity_results())
   result <- homogeneity_results()
   
-  # Format output yang lebih informatif
   cat("=== HASIL UJI HOMOGENITAS VARIANSI (LEVENE TEST) ===\n")
   cat("Variabel dependen:", input$homogeneity_var, "\n")
   cat("Variabel grup:", input$homogeneity_group, "\n")
   cat("\nHipotesis:\n")
-  cat("H₀: Variansi antar grup homogen (sama)\n")
-  cat("H₁: Minimal terdapat satu grup dengan variansi yang berbeda\n")
+  cat("H₀: Variansi antar grup adalah homogen (sama)\n")
+  cat("H₁: Variansi antar grup tidak homogen (berbeda)\n")
   cat("Tingkat signifikansi (α): 0.05\n\n")
   
   if (!is.na(result$statistic)) {
     cat("Hasil Pengujian:\n")
     cat("Statistik F:", round(result$statistic, 6), "\n")
-    
-    if ("df1" %in% names(result) && !is.na(result$df1)) {
-      cat("Derajat bebas 1:", result$df1, "\n")
-      cat("Derajat bebas 2:", result$df2, "\n")
-    }
-    
-    cat("P-value:", round(result$p_value, 6), "\n")
-    
-    if ("n_total" %in% names(result)) {
-      cat("Jumlah observasi:", result$n_total, "\n")
-      cat("Jumlah grup:", result$n_groups, "\n")
-    }
-    
-    cat("\n=== INTERPRETASI ===\n")
+    cat("P-value:", format.pval(result$p_value, eps = 1e-6, digits = 6), "\n\n")
+    cat("=== INTERPRETASI ===\n")
     if (result$p_value < 0.05) {
-      cat(sprintf("Berdasarkan hasil uji Levene, diperoleh nilai F = %.4f dengan p-value = %.6f (< 0.05), 
-sehingga keputusan yang diambil adalah TOLAK H₀.
-
-Kesimpulan: Dengan tingkat kepercayaan 95%%, terdapat cukup bukti untuk menyatakan bahwa 
-variansi variabel %s TIDAK HOMOGEN antar grup %s.", 
-                  result$statistic, result$p_value, input$homogeneity_var, input$homogeneity_group))
+      cat(sprintf("Dengan p-value = %s (< 0.05), H₀ ditolak. Terdapat cukup bukti untuk menyatakan bahwa variansi variabel '%s' TIDAK HOMOGEN antar grup '%s'.", 
+                  format.pval(result$p_value, eps = 1e-6, digits = 6), input$homogeneity_var, input$homogeneity_group))
     } else {
-      cat(sprintf("Berdasarkan hasil uji Levene, diperoleh nilai F = %.4f dengan p-value = %.6f (≥ 0.05), 
-sehingga keputusan yang diambil adalah GAGAL TOLAK H₀.
-
-Kesimpulan: Dengan tingkat kepercayaan 95%%, tidak terdapat cukup bukti untuk menyatakan 
-bahwa variansi variabel %s berbeda antar grup %s. Variansi dapat diasumsikan homogen.
-
-Catatan: Hasil ini mendukung penggunaan metode ANOVA dan t-test standar untuk analisis lanjutan.", 
-                  result$statistic, result$p_value, input$homogeneity_var, input$homogeneity_group))
+      cat(sprintf("Dengan p-value = %s (≥ 0.05), H₀ gagal ditolak. Tidak cukup bukti untuk menyatakan bahwa variansi berbeda. Asumsi homogenitas variansi TERPENUHI.", 
+                  format.pval(result$p_value, eps = 1e-6, digits = 6), input$homogeneity_var, input$homogeneity_group))
     }
   } else {
-    cat("\nHasil pengujian tidak tersedia atau terjadi error dalam analisis.")
+    cat("Hasil pengujian tidak tersedia atau terjadi error.")
   }
 })
 
-# --- 4. STATUS VALIDASI HOMOGENITAS ---
-output$homogeneity_validation_status <- renderUI({
-  validation <- homogeneity_validation()
-  
-  if (!is.null(validation)) {
-    if (validation$valid) {
-      div(
-        icon("check-circle", style = "color: #28a745;"),
-        span("Data siap untuk diuji", style = "color: #28a745;"),
-        br(),
-        span(paste("Total observasi:", validation$n_total), style = "font-size: 12px;"),
-        br(),
-        span(paste("Jumlah grup:", validation$n_groups), style = "font-size: 12px;")
-      )
-    } else {
-      div(
-        icon("exclamation-triangle", style = "color: #dc3545;"),
-        span("Data belum siap:", style = "color: #dc3545;"),
-        br(),
-        tags$ul(
-          style = "font-size: 12px; margin-top: 5px;",
-          lapply(validation$errors, function(err) tags$li(err))
-        )
-      )
-    }
-  } else {
-    div(
-      icon("info-circle", style = "color: #6c757d;"),
-      span("Pilih variabel untuk validasi", style = "color: #6c757d;")
-    )
-  }
-})
+# --- 4. LOGIKA UNDUH ---
 
-# --- 5. LOGIKA UNDUH ---
-# Update download handler untuk mendukung HTML
+# ## --- UJI NORMALITAS --- ##
 output$download_normality_result <- downloadHandler(
   filename = function() { 
-    ext <- switch(input$normality_format,
-                  "pdf" = "pdf",
-                  "docx" = "docx", 
-                  "html" = "html")
-    paste("hasil-uji-normalitas-", Sys.Date(), ".", ext, sep = "") 
+    ext <- switch(input$normality_format, "pdf" = "pdf", "docx" = "docx", "html" = "html")
+    paste0("hasil-uji-normalitas-", Sys.Date(), ".", ext) 
   },
   content = function(file) {
     req(analysis_results$normality)
     
-    # Buat temporary directory untuk file
     temp_dir <- tempdir()
     plot_file <- file.path(temp_dir, "qq_plot.png")
     
-    # Simpan Q-Q plot sebagai file
     tryCatch({
-      if (!is.null(qq_plot_data())) {
-        qq_plot <- create_qqplot(qq_plot_data()$data, qq_plot_data()$variable)
-        ggsave(plot_file, plot = qq_plot, width = 10, height = 6, dpi = 300, bg = "white")
-      }
+      qq_plot_obj <- create_qqplot(processed_data$current, input$normality_var)
+      ggsave(plot_file, plot = qq_plot_obj, width = 8, height = 6, dpi = 300, bg = "white")
     }, error = function(e) {
-      # Create simple base R plot if ggplot fails
-      png(plot_file, width = 800, height = 600, res = 150, bg = "white")
-      data_col <- qq_plot_data()$data[[qq_plot_data()$variable]]
-      clean_data <- data_col[!is.na(data_col)]
-      
-      if(length(clean_data) > 0) {
-        qqnorm(clean_data, main = paste("Q-Q Plot:", qq_plot_data()$variable))
-        qqline(clean_data, col = "red", lwd = 2)
-      }
+      png(plot_file, width = 800, height = 600, res = 150)
+      data_col <- processed_data$current[[input$normality_var]]
+      qqnorm(data_col[!is.na(data_col)], main = paste("Q-Q Plot:", input$normality_var))
+      qqline(data_col[!is.na(data_col)], col = "red", lwd = 2)
       dev.off()
     })
     
     result <- analysis_results$normality
-    
-    # Tentukan output format berdasarkan pilihan user
     output_format <- switch(input$normality_format,
                             "pdf" = "pdf_document",
-                            "docx" = "word_document", 
-                            "html" = "html_document")
+                            "docx" = "word_document")
     
-    # Create temporary Rmd file
     temp_rmd <- tempfile(fileext = ".Rmd")
     
-    # Konten Rmd yang diperbaiki untuk semua format
-    rmd_content <- paste0(
-      "---\n",
-      "title: 'Hasil Uji Normalitas Shapiro-Wilk'\n",
-      "date: '", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "'\n",
-      "output:\n",
+    rmd_content <- paste(
+      "---",
+      "title: 'Laporan Hasil Uji Normalitas Shapiro-Wilk'",
+      paste0("date: '", format(Sys.time(), "%A, %d %B %Y %H:%M:%S"), "'"),
+      "output:",
       if(input$normality_format == "pdf") {
-        "  pdf_document:\n    latex_engine: xelatex\n    toc: true\n    number_sections: true\n"
+        "  pdf_document:\n    latex_engine: xelatex\n    toc: true"
       } else if(input$normality_format == "docx") {
-        "  word_document:\n    toc: true\n    number_sections: true\n"
-      } else {
-        "  html_document:\n    theme: flatly\n    toc: true\n    toc_float: true\n    number_sections: true\n    df_print: paged\n"
+        "  word_document:\n    toc: true"
       },
-      "---\n\n",
-      
-      # CSS untuk HTML
-      if(input$normality_format == "html") {
-        paste0(
-          "<style>\n",
-          "body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }\n",
-          ".header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }\n",
-          ".result-box { background: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 15px 0; border-radius: 5px; }\n",
-          ".interpretation { background: #d4edda; padding: 15px; border-left: 4px solid #28a745; border-radius: 5px; }\n",
-          ".plot-container { text-align: center; margin: 20px 0; }\n",
-          "img { max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 8px; }\n",
-          "</style>\n\n"
-        )
-      } else "",
-      
-      # Header yang menarik untuk HTML
-      if(input$normality_format == "html") {
-        paste0(
-          "<div class='header'>\n",
-          "<h1 style='margin:0;'>📊 Hasil Uji Normalitas Shapiro-Wilk</h1>\n",
-          "<p style='margin:5px 0 0 0; opacity: 0.9;'>Analisis Statistik - ", format(Sys.time(), "%d %B %Y"), "</p>\n",
-          "</div>\n\n"
-        )
-      } else "",
-      
-      "## 📋 Informasi Uji\n\n",
-      "- **Variabel yang diuji:** ", input$normality_var, "\n",
-      "- **Tanggal analisis:** ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n",
-      "- **Jenis uji:** Shapiro-Wilk Test\n",
-      "- **Software:** R Statistical Computing\n\n",
-      
-      "## 🎯 Hipotesis\n\n",
-      "- **H₀ (Hipotesis Nol):** Data berdistribusi normal\n",
-      "- **H₁ (Hipotesis Alternatif):** Data tidak berdistribusi normal\n",
-      "- **Tingkat signifikansi (α):** 0.05\n\n",
-      
-      if(input$normality_format == "html") "<div class='result-box'>\n" else "",
-      "## 📊 Hasil Pengujian\n\n",
-      if (!is.na(result$statistic)) paste("- **Statistik W:** ", round(result$statistic, 6), "\n") else "",
-      if (!is.na(result$p_value)) paste("- **P-value:** ", round(result$p_value, 6), "\n") else "",
-      "- **Jumlah observasi:** ", length(qq_plot_data()$data[[input$normality_var]][!is.na(qq_plot_data()$data[[input$normality_var]])]), "\n\n",
-      if(input$normality_format == "html") "</div>\n\n" else "",
-      
-      "## 📈 Q-Q Plot\n\n",
-      if(input$normality_format == "html") "<div class='plot-container'>\n" else "",
-      if(file.exists(plot_file)) {
-        if(input$normality_format == "html") {
-          paste0("![Q-Q Plot](", plot_file, "){width=80%}\n\n")
-        } else {
-          paste0("![Q-Q Plot](", plot_file, ")\n\n")
-        }
-      } else "",
-      if(input$normality_format == "html") "</div>\n\n" else "",
-      
-      if(input$normality_format == "html") "<div class='interpretation'>\n" else "",
-      "## 🔍 Interpretasi\n\n",
-      result$interpretation, "\n\n",
-      if(input$normality_format == "html") "</div>\n\n" else "",
-      
-      "## 📝 Kesimpulan\n\n",
+      "---",
+      "",
+      "## 1. Ringkasan Analisis",
+      paste("- **Variabel yang diuji:**", input$normality_var),
+      paste("- **Jenis Uji:** Shapiro-Wilk"),
+      paste("- **Tingkat Signifikansi (α):** 0.05"),
+      "",
+      "## 2. Hipotesis",
+      "- **H₀ (Hipotesis Nol):** Data berdistribusi normal.",
+      "- **H₁ (Hipotesis Alternatif):** Data tidak berdistribusi normal.",
+      "",
+      "## 3. Hasil Pengujian",
+      if (!is.na(result$statistic)) paste("- **Statistik W:**", round(result$statistic, 6)) else "",
+      if (!is.na(result$p_value)) paste("- **P-value:**", format.pval(result$p_value, eps = 1e-6, digits = 6)) else "",
+      "",
+      "## 4. Plot Diagnostik",
+      "### Quantile-Quantile (Q-Q) Plot",
+      "Plot Q-Q digunakan untuk membandingkan distribusi data sampel dengan distribusi normal teoritis. Jika data berdistribusi normal, titik-titik akan mendekati garis lurus.",
+      "",
+      if(file.exists(plot_file)) paste0("![Q-Q Plot untuk ", input$normality_var, "](", plot_file, ")") else "Plot tidak tersedia.",
+      "",
+      "## 5. Interpretasi dan Kesimpulan",
       if(result$p_value < 0.05) {
-        paste0("Berdasarkan hasil uji Shapiro-Wilk dengan **p-value = ", round(result$p_value, 6), 
-               " < 0.05**, keputusan yang diambil adalah **TOLAK H₀**. ",
-               "Dengan tingkat kepercayaan 95%, data variabel '", input$normality_var, "' **TIDAK berdistribusi normal**.\n\n",
-               "**Rekomendasi:**\n",
-               "- Gunakan uji statistik non-parametrik\n",
-               "- Pertimbangkan transformasi data\n",
-               "- Hati-hati dalam interpretasi hasil regresi linear")
+        paste0("Berdasarkan hasil uji Shapiro-Wilk, diperoleh **p-value = ", format.pval(result$p_value, eps = 1e-6, digits = 6), " (< 0.05)**. ",
+               "Oleh karena itu, **keputusan yang diambil adalah menolak H₀**. ",
+               "Dengan tingkat kepercayaan 95%, terdapat cukup bukti statistik untuk menyimpulkan bahwa data pada variabel **'", input$normality_var, "' TIDAK berdistribusi normal**.",
+               "")
       } else {
-        paste0("Berdasarkan hasil uji Shapiro-Wilk dengan **p-value = ", round(result$p_value, 6), 
-               " ≥ 0.05**, keputusan yang diambil adalah **GAGAL TOLAK H₀**. ",
-               "Dengan tingkat kepercayaan 95%, data variabel '", input$normality_var, "' dapat diasumsikan **berdistribusi normal**.\n\n",
-               "**Rekomendasi:**\n",
-               "- Aman menggunakan uji statistik parametrik\n",
-               "- Dapat melanjutkan dengan analisis regresi linear\n",
-               "- Sesuai untuk uji t-test dan ANOVA")
+        paste0("Berdasarkan hasil uji Shapiro-Wilk, diperoleh **p-value = ", format.pval(result$p_value, eps = 1e-6, digits = 6), " (≥ 0.05)**. ",
+               "Oleh karena itu, **keputusan yang diambil adalah gagal menolak H₀**. ",
+               "Dengan tingkat kepercayaan 95%, tidak terdapat cukup bukti statistik untuk menyatakan bahwa data pada variabel **'", input$normality_var, "' tidak berdistribusi normal**. Asumsi normalitas dapat dianggap terpenuhi.",
+               "")
       },
-      "\n\n",
-      
-      "---\n\n",
-      "*Laporan ini dibuat secara otomatis oleh SOVI Dashboard pada ", format(Sys.time(), "%d %B %Y pukul %H:%M:%S"), "*"
+      "",
+      "---",
+      paste0("*Laporan ini dibuat secara otomatis pada ", format(Sys.time(), "%d %B %Y, %H:%M:%S"), ".*"),
+      sep = "\n"
     )
     
-    # Write Rmd content
     writeLines(rmd_content, temp_rmd)
     
-    # Render laporan
     tryCatch({
       rmarkdown::render(
         input = temp_rmd,
         output_file = file,
         output_format = output_format,
-        quiet = TRUE,
-        envir = new.env(parent = globalenv())
+        quiet = TRUE
       )
-      
-      showNotification("Laporan berhasil dibuat!", type = "success", duration = 3)
-      
+      showNotification("Laporan berhasil dibuat!", type = "message")
     }, error = function(e) {
-      showNotification(paste("Error saat membuat laporan:", e$message), type = "error")
-      
-      # Fallback: create simple text file
-      simple_content <- paste(
-        "=== HASIL UJI NORMALITAS SHAPIRO-WILK ===",
-        paste("Variabel yang diuji:", input$normality_var),
-        paste("Tanggal:", Sys.Date()),
-        "",
-        "Hasil Pengujian:",
-        if (!is.na(result$statistic)) paste("Statistik W:", round(result$statistic, 6)) else "",
-        if (!is.na(result$p_value)) paste("P-value:", round(result$p_value, 6)) else "",
-        "",
-        "Interpretasi:",
-        result$interpretation,
-        sep = "\n"
-      )
-      writeLines(simple_content, file)
+      showNotification(paste("Error membuat laporan:", e$message), type = "error")
     })
     
-    # Clean up temporary files
     if(file.exists(plot_file)) unlink(plot_file)
     if(file.exists(temp_rmd)) unlink(temp_rmd)
   }
 )
 
+# ## --- UJI HOMOGENITAS (DIPERBAIKI) --- ##
 output$download_homogeneity_result <- downloadHandler(
   filename = function() { 
-    paste("hasil-uji-homogenitas-", Sys.Date(), ".", input$homogeneity_format, sep = "") 
+    ext <- switch(input$homogeneity_format, "pdf" = "pdf", "docx" = "docx", "html" = "html")
+    paste0("hasil-uji-homogenitas-", Sys.Date(), ".", ext) 
   },
   content = function(file) {
     req(analysis_results$homogeneity)
     
     result <- analysis_results$homogeneity
-    text_content <- paste(
-      "=== HASIL UJI HOMOGENITAS VARIANSI (LEVENE TEST) ===",
-      paste("Variabel dependen:", input$homogeneity_var),
-      paste("Variabel grup:", input$homogeneity_group),
+    
+    # Menentukan format output untuk rmarkdown::render
+    output_format <- switch(input$homogeneity_format,
+                            "pdf" = "pdf_document",
+                            "docx" = "word_document")
+    
+    # Membuat file Rmd sementara
+    temp_rmd <- tempfile(fileext = ".Rmd")
+    
+    # Membuat konten R Markdown secara dinamis
+    rmd_content <- paste(
+      "---",
+      "title: 'Laporan Hasil Uji Homogenitas Variansi (Levene Test)'",
+      paste0("date: '", format(Sys.time(), "%A, %d %B %Y %H:%M:%S"), "'"),
+      "output:",
+      if(input$homogeneity_format == "pdf") {
+        "  pdf_document:\n    latex_engine: xelatex\n    toc: true"
+      } else if(input$homogeneity_format == "docx") {
+        "  word_document:\n    toc: true"
+      },
+      "---",
       "",
-      "Hipotesis:",
-      "H₀: Variansi antar grup homogen (sama)",
-      "H₁: Minimal terdapat satu grup dengan variansi yang berbeda",
-      "Tingkat signifikansi (α): 0.05",
+      "## 1. Ringkasan Analisis",
+      paste("- **Variabel Dependen:**", input$homogeneity_var),
+      paste("- **Variabel Grup:**", input$homogeneity_group),
+      paste("- **Jenis Uji:** Levene Test"),
+      paste("- **Tingkat Signifikansi (α):** 0.05"),
       "",
-      "Hasil Pengujian:",
-      if (!is.na(result$statistic)) paste("Statistik F:", round(result$statistic, 6)) else "",
-      if (!is.na(result$p_value)) paste("P-value:", round(result$p_value, 6)) else "",
+      "## 2. Hipotesis",
+      "- **H₀ (Hipotesis Nol):** Variansi variabel dependen adalah sama (homogen) di semua grup.",
+      "- **H₁ (Hipotesis Alternatif):** Setidaknya ada satu grup yang memiliki variansi yang berbeda (tidak homogen).",
       "",
-      "Interpretasi:",
-      result$interpretation,
+      "## 3. Hasil Pengujian",
+      if (!is.na(result$statistic)) paste("- **Statistik F:**", round(result$statistic, 6)) else "Statistik F: Tidak tersedia",
+      if ("df1" %in% names(result) && !is.na(result$df1)) paste("- **Derajat Bebas (df1, df2):**", result$df1, ",", result$df2) else "",
+      if (!is.na(result$p_value)) paste("- **P-value:**", format.pval(result$p_value, eps = 1e-6, digits = 6)) else "P-value: Tidak tersedia",
+      "",
+      "## 4. Interpretasi dan Kesimpulan",
+      if(is.na(result$p_value) || is.na(result$statistic)){
+        "**Analisis tidak dapat diselesaikan.** Pastikan variabel yang dipilih sudah benar dan data memenuhi syarat untuk pengujian."
+      } else if(result$p_value < 0.05) {
+        paste0("Berdasarkan hasil Levene Test, diperoleh **p-value = ", format.pval(result$p_value, eps = 1e-6, digits = 6), " (< 0.05)**. ",
+               "Oleh karena itu, **keputusan yang diambil adalah menolak H₀**. ",
+               "Dengan tingkat kepercayaan 95%, terdapat cukup bukti statistik untuk menyimpulkan bahwa variansi variabel **'", input$homogeneity_var, "' TIDAK HOMOGEN** di antara grup pada variabel **'", input$homogeneity_group, "'**.",
+               "")
+      } else {
+        paste0("Berdasarkan hasil Levene Test, diperoleh **p-value = ", format.pval(result$p_value, eps = 1e-6, digits = 6), " (≥ 0.05)**. ",
+               "Oleh karena itu, **keputusan yang diambil adalah gagal menolak H₀**. ",
+               "Dengan tingkat kepercayaan 95%, tidak terdapat cukup bukti statistik untuk menyatakan bahwa variansi variabel **'", input$homogeneity_var, "' berbeda** di antara grup pada variabel **'", input$homogeneity_group, "'**. Asumsi homogenitas variansi **dapat dianggap terpenuhi**.",
+               "")
+      },
+      "",
+      "---",
+      paste0("*Laporan ini dibuat secara otomatis pada ", format(Sys.time(), "%d %B %Y, %H:%M:%S"), ".*"),
       sep = "\n"
     )
     
+    # Menulis konten ke file Rmd sementara
+    writeLines(rmd_content, temp_rmd)
+    
+    # Merender laporan
     tryCatch({
       rmarkdown::render(
-        input = "text_report.Rmd", 
+        input = temp_rmd,
         output_file = file,
-        output_format = if(input$homogeneity_format == "pdf") "pdf_document" else "word_document",
-        params = list(
-          report_title = "Hasil Uji Homogenitas Variansi", 
-          text_output = text_content
-        ),
-        envir = new.env(parent = globalenv())
+        output_format = output_format,
+        quiet = TRUE
       )
+      showNotification("Laporan berhasil dibuat!", type = "message")
     }, error = function(e) {
-      showNotification(paste("Error saat membuat laporan:", e$message), type = "error")
+      showNotification(paste("Error saat membuat laporan:", e$message), type = "error", duration = 10)
     })
+    
+    # Membersihkan file sementara
+    if(file.exists(temp_rmd)) unlink(temp_rmd)
   }
 )
 
-# Helper Function
-validate_homogeneity_inputs <- function(data, dep_var, group_var) {
+# --- VALIDASI & STATUS ---
+
+
+validate_homogeneity_inputs <- validate_homogeneity_inputs <- function(data, dep_var, group_var) {
   errors <- character(0)
   
   # Check if variables exist
@@ -665,13 +418,21 @@ validate_homogeneity_inputs <- function(data, dep_var, group_var) {
   ))
 }
 
-# Validasi Reactive
 homogeneity_validation <- reactive({
   req(processed_data$current, input$homogeneity_var, input$homogeneity_group)
-  
   if (input$homogeneity_group == "" || input$homogeneity_group == "Tidak ada variabel grup yang valid") {
     return(list(valid = FALSE, errors = "Pilih variabel grup yang valid"))
   }
-  
   validate_homogeneity_inputs(processed_data$current, input$homogeneity_var, input$homogeneity_group)
+})
+
+output$homogeneity_validation_status <- renderUI({
+  validation <- homogeneity_validation()
+  if (validation$valid) {
+    div(icon("check-circle", style = "color: #28a745;"), span("Data siap untuk diuji", style = "color: #28a745;"))
+  } else {
+    div(icon("exclamation-triangle", style = "color: #dc3545;"),
+        span("Data belum siap:", style = "color: #dc3545;"),
+        tags$ul(style = "font-size: 12px; margin-top: 5px;", lapply(validation$errors, tags$li)))
+  }
 })

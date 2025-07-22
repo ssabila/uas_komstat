@@ -12,7 +12,6 @@ library(shinyjs)
 library(here)
 library(e1071)
 library(reshape2)
-library(bs4Dash)
 
 source("requirements.R")
 

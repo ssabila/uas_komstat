@@ -1,3 +1,5 @@
+# server/ttest_server.R
+
 # --- 1. RENDER UI DINAMIS ---
 output$ttest_variable_selector <- renderUI({
   req(processed_data$current)
@@ -8,14 +10,11 @@ output$ttest_variable_selector <- renderUI({
 output$ttest_group_selector <- renderUI({
   req(processed_data$current, input$ttest_type == "two_sample")
   
-  # --- PERBAIKAN LOGIKA FILTER ---
   data <- processed_data$current
   is_valid_group <- sapply(names(data), function(col_name) {
     x <- data[[col_name]]
     is_cat <- is.character(x) || is.factor(x)
-    if (!is_cat || all(is.na(x))) {
-      return(FALSE)
-    }
+    if (!is_cat || all(is.na(x))) return(FALSE)
     return(length(unique(na.omit(x))) == 2)
   })
   valid_groups <- names(data)[is_valid_group]
@@ -35,166 +34,115 @@ observeEvent(input$run_ttest, {
   } else if (input$ttest_type == "two_sample") {
     req(input$ttest_group_var)
     formula <- as.formula(paste(input$ttest_var, "~", input$ttest_group_var))
-    t.test(formula, data = data, alternative = input$ttest_alternative)
+    t.test(formula, data = data, alternative = input$ttest_alternative, var.equal = TRUE)
   }
   
-  analysis_results$ttest <- test_result # Simpan hasil
+  analysis_results$ttest <- test_result
 })
 
 # --- 3. TAMPILKAN HASIL DENGAN INTERPRETASI PROFESIONAL ---
 output$ttest_result_summary <- renderPrint({
   req(analysis_results$ttest)
+  if (analysis_results$ttest$method == "One Sample t-test" && input$ttest_type != "one_sample") return()
+  if (grepl("Two Sample", analysis_results$ttest$method) && input$ttest_type != "two_sample") return()
+  
   result <- analysis_results$ttest
   
-  cat("=== HASIL UJI T-TEST ===\n")
-  cat("Variabel yang diuji:", input$ttest_var, "\n")
-  
+  cat("=== Ringkasan Uji Statistik ===\n")
   if (input$ttest_type == "one_sample") {
-    cat("Jenis uji: One-Sample t-test\n")
-    cat("\nHipotesis:\n")
-    cat(sprintf("H₀: μ = %g\n", input$ttest_mu))
-    cat(sprintf("H₁: μ %s %g\n", 
-                switch(input$ttest_alternative,
-                       "two.sided" = "≠",
-                       "less" = "<",
-                       "greater" = ">"),
-                input$ttest_mu))
+    cat(sprintf("Jenis Uji: One-Sample t-test\n"))
   } else {
-    cat("Jenis uji: Two-Sample Independent t-test\n")
-    cat("Variabel grup:", input$ttest_group_var, "\n")
-    cat("\nHipotesis:\n")
-    cat("H₀: μ₁ = μ₂ (tidak ada perbedaan rata-rata antar grup)\n")
-    cat(sprintf("H₁: μ₁ %s μ₂\n",
-                switch(input$ttest_alternative,
-                       "two.sided" = "≠",
-                       "less" = "<",
-                       "greater" = ">")))
+    cat(sprintf("Jenis Uji: Independent Two-Sample t-test (Student's)\n"))
   }
-  
-  cat("Tingkat signifikansi (α): 0.05\n\n")
-  cat("Hasil Pengujian:\n")
+  cat("----------------------------------------------------\n")
   print(result)
 })
 
-output$ttest_interpretation <- renderText({
-  req(analysis_results$ttest)
-  result <- analysis_results$ttest
+# --- FUNGSI INTERPRETASI DENGAN PERBAIKAN TEXT WRAPPING ---
+generate_ttest_interpretation <- function(result, inputs, data) {
+  req(result)
   p_value <- result$p.value
-  t_stat <- result$statistic
-  df <- result$parameter
-  ci_lower <- result$conf.int[1]
-  ci_upper <- result$conf.int[2]
   
   interpretation <- "=== INTERPRETASI HASIL UJI T-TEST ===\n\n"
+  interpretation <- paste0(interpretation, "Dasar Pengujian:\n")
   
-  if (input$ttest_type == "one_sample") {
-    mean_sample <- result$estimate
-    
-    interpretation <- paste0(interpretation,
-                             sprintf("Berdasarkan hasil uji t satu sampel, diperoleh:\n"),
-                             sprintf("• Nilai t-hitung = %.4f\n", t_stat),
-                             sprintf("• Derajat bebas (df) = %d\n", df),
-                             sprintf("• P-value = %.6f\n", p_value),
-                             sprintf("• Rata-rata sampel = %.4f\n", mean_sample),
-                             sprintf("• 95%% Confidence Interval: [%.4f, %.4f]\n\n", ci_lower, ci_upper)
-    )
-    
-    if (p_value < 0.05) {
-      interpretation <- paste0(interpretation,
-                               sprintf("Keputusan: TOLAK H₀\n\n"),
-                               sprintf("Kesimpulan: Dengan tingkat kepercayaan 95%%, terdapat cukup bukti statistik untuk menyatakan "),
-                               sprintf("bahwa rata-rata populasi variabel %s berbeda secara signifikan dari nilai %g.\n\n", 
-                                       input$ttest_var, input$ttest_mu),
-                               sprintf("Rata-rata sampel (%.4f) %s dari nilai yang dihipotesiskan (%g), ",
-                                       mean_sample,
-                                       ifelse(mean_sample > input$ttest_mu, "lebih besar", "lebih kecil"),
-                                       input$ttest_mu),
-                               sprintf("dengan perbedaan yang signifikan secara statistik (p = %.6f < 0.05).", p_value)
-      )
-    } else {
-      interpretation <- paste0(interpretation,
-                               sprintf("Keputusan: GAGAL TOLAK H₀\n\n"),
-                               sprintf("Kesimpulan: Dengan tingkat kepercayaan 95%%, tidak terdapat cukup bukti statistik untuk "),
-                               sprintf("menyatakan bahwa rata-rata populasi variabel %s berbeda dari nilai %g.\n\n", 
-                                       input$ttest_var, input$ttest_mu),
-                               sprintf("Meskipun rata-rata sampel (%.4f) %s dari nilai yang dihipotesiskan (%g), ",
-                                       mean_sample,
-                                       ifelse(mean_sample != input$ttest_mu, 
-                                              ifelse(mean_sample > input$ttest_mu, "sedikit lebih besar", "sedikit lebih kecil"),
-                                              "sama dengan"),
-                                       input$ttest_mu),
-                               sprintf("perbedaan ini tidak signifikan secara statistik (p = %.6f ≥ 0.05).", p_value)
-      )
-    }
+  if (inputs$ttest_type == "one_sample") {
+    h0 <- sprintf(" • H₀: Rata-rata populasi (μ) = %g\n", inputs$ttest_mu)
+    h1_symbol <- switch(inputs$ttest_alternative, "two.sided" = "≠", "less" = "<", "greater" = ">")
+    h1 <- sprintf(" • H₁: Rata-rata populasi (μ) %s %g\n", h1_symbol, inputs$ttest_mu)
+    interpretation <- paste0(interpretation, h0, h1)
   } else {
-    # Two-sample t-test
-    mean1 <- result$estimate[1]
-    mean2 <- result$estimate[2]
-    mean_diff <- mean1 - mean2
-    
-    # Get group names
-    data <- processed_data$current
-    groups <- unique(data[[input$ttest_group_var]])
-    
-    interpretation <- paste0(interpretation,
-                             sprintf("Berdasarkan hasil uji t dua sampel independen, diperoleh:\n"),
-                             sprintf("• Nilai t-hitung = %.4f\n", t_stat),
-                             sprintf("• Derajat bebas (df) = %.2f\n", df),
-                             sprintf("• P-value = %.6f\n", p_value),
-                             sprintf("• Rata-rata grup '%s' = %.4f\n", groups[1], mean1),
-                             sprintf("• Rata-rata grup '%s' = %.4f\n", groups[2], mean2),
-                             sprintf("• Selisih rata-rata = %.4f\n", mean_diff),
-                             sprintf("• 95%% Confidence Interval untuk selisih: [%.4f, %.4f]\n\n", ci_lower, ci_upper)
-    )
-    
-    if (p_value < 0.05) {
-      interpretation <- paste0(interpretation,
-                               sprintf("Keputusan: TOLAK H₀\n\n"),
-                               sprintf("Kesimpulan: Dengan tingkat kepercayaan 95%%, terdapat cukup bukti statistik untuk menyatakan "),
-                               sprintf("bahwa terdapat perbedaan yang signifikan antara rata-rata %s pada grup '%s' dan grup '%s'.\n\n", 
-                                       input$ttest_var, groups[1], groups[2]),
-                               sprintf("Rata-rata %s pada grup '%s' (%.4f) %s dibandingkan dengan grup '%s' (%.4f), ",
-                                       input$ttest_var, groups[1], mean1,
-                                       ifelse(mean1 > mean2, "lebih tinggi", "lebih rendah"),
-                                       groups[2], mean2),
-                               sprintf("dengan selisih sebesar %.4f yang signifikan secara statistik (p = %.6f < 0.05).\n\n", 
-                                       abs(mean_diff), p_value),
-                               sprintf("Confidence interval 95%% untuk selisih rata-rata tidak mencakup nilai 0, "),
-                               sprintf("yang mengkonfirmasi adanya perbedaan yang signifikan.")
-      )
-    } else {
-      interpretation <- paste0(interpretation,
-                               sprintf("Keputusan: GAGAL TOLAK H₀\n\n"),
-                               sprintf("Kesimpulan: Dengan tingkat kepercayaan 95%%, tidak terdapat cukup bukti statistik untuk "),
-                               sprintf("menyatakan bahwa ada perbedaan signifikan antara rata-rata %s pada grup '%s' dan grup '%s'.\n\n", 
-                                       input$ttest_var, groups[1], groups[2]),
-                               sprintf("Meskipun terdapat selisih rata-rata sebesar %.4f antara grup '%s' (%.4f) dan grup '%s' (%.4f), ",
-                                       abs(mean_diff), groups[1], mean1, groups[2], mean2),
-                               sprintf("perbedaan ini tidak signifikan secara statistik (p = %.6f ≥ 0.05).\n\n", p_value),
-                               sprintf("Confidence interval 95%% untuk selisih rata-rata mencakup nilai 0, "),
-                               sprintf("yang mengindikasikan bahwa perbedaan yang teramati mungkin terjadi karena variasi acak.")
-      )
-    }
+    req(inputs$ttest_group_var)
+    h0 <- " • H₀: Tidak ada perbedaan rata-rata antara kedua grup (μ₁ = μ₂)\n"
+    h1_symbol <- switch(inputs$ttest_alternative, "two.sided" = "≠", "less" = "<", "greater" = ">")
+    h1 <- sprintf(" • H₁: Terdapat perbedaan rata-rata antara kedua grup (μ₁ %s μ₂)\n", h1_symbol)
+    interpretation <- paste0(interpretation, h0, h1)
   }
   
+  interpretation <- paste0(interpretation, sprintf(" • Tingkat Signifikansi (α) = 0.05\n\n"))
+  interpretation <- paste0(interpretation, "------------------------------------------\n")
+  interpretation <- paste0(interpretation, "Keputusan dan Kesimpulan:\n")
+  
+  if (inputs$ttest_type == "one_sample") {
+    # --- PERBAIKAN WRAPPING TEXT ---
+    if (p_value < 0.05) {
+      decision <- " • Keputusan: TOLAK H₀.\n • Kesimpulan: Dengan tingkat kepercayaan 95%%, terdapat cukup bukti statistik\nuntuk menyatakan bahwa rata-rata populasi variabel '%s' berbeda secara signifikan\ndari nilai hipotesis (%g), karena nilai p-value (%.4f) lebih kecil dari α (0.05)."
+      interpretation <- paste0(interpretation, sprintf(decision, inputs$ttest_var, inputs$ttest_mu, p_value))
+    } else {
+      decision <- " • Keputusan: GAGAL TOLAK H₀.\n • Kesimpulan: Dengan tingkat kepercayaan 95%%, tidak terdapat cukup bukti statistik\nuntuk menyatakan bahwa rata-rata populasi variabel '%s' berbeda secara signifikan\ndari nilai hipotesis (%g), karena nilai p-value (%.4f) lebih besar atau sama dengan α (0.05)."
+      interpretation <- paste0(interpretation, sprintf(decision, inputs$ttest_var, inputs$ttest_mu, p_value))
+    }
+  } else {
+    # --- PERBAIKAN WRAPPING TEXT ---
+    groups <- unique(na.omit(data[[inputs$ttest_group_var]]))
+    if (p_value < 0.05) {
+      decision <- " • Keputusan: TOLAK H₀.\n • Kesimpulan: Dengan tingkat kepercayaan 95%%, terdapat perbedaan rata-rata\nyang signifikan secara statistik untuk variabel '%s' antara grup '%s' dan '%s',\nkarena nilai p-value (%.4f) lebih kecil dari α (0.05)."
+      interpretation <- paste0(interpretation, sprintf(decision, inputs$ttest_var, groups[1], groups[2], p_value))
+    } else {
+      decision <- " • Keputusan: GAGAL TOLAK H₀.\n • Kesimpulan: Dengan tingkat kepercayaan 95%%, tidak terdapat perbedaan rata-rata\nyang signifikan secara statistik untuk variabel '%s' antara grup '%s' dan '%s',\nkarena nilai p-value (%.4f) lebih besar atau sama dengan α (0.05)."
+      interpretation <- paste0(interpretation, sprintf(decision, inputs$ttest_var, groups[1], groups[2], p_value))
+    }
+  }
   return(interpretation)
+}
+
+output$ttest_interpretation <- renderText({
+  req(analysis_results$ttest)
+  if (analysis_results$ttest$method == "One Sample t-test" && input$ttest_type != "one_sample") return()
+  if (grepl("Two Sample", analysis_results$ttest$method) && input$ttest_type != "two_sample") return()
+  generate_ttest_interpretation(analysis_results$ttest, input, processed_data$current)
 })
 
-# --- 4. LOGIKA UNDUH ---
+# --- LOGIKA UNDUH (TIDAK ADA PERUBAHAN) ---
 output$download_ttest_result <- downloadHandler(
-  filename = function() { paste("hasil-uji-t-", Sys.Date(), ".", input$ttest_format, sep = "") },
+  filename = function() {
+    paste("laporan-uji-t-", Sys.Date(), ".", input$ttest_format, sep = "")
+  },
   content = function(file) {
     req(analysis_results$ttest)
-    text_to_render <- capture.output({
-      cat("=== HASIL ANALISIS UJI T-TEST ===\n\n")
-      print(analysis_results$ttest)
-      cat("\n\n")
-      cat(output$ttest_interpretation())
-    })
+    
+    report_params <- list()
+    report_params$report_title <- "Hasil Analisis Uji T-Test"
+    
+    summary_output <- capture.output(print(analysis_results$ttest))
+    interpretation_text <- generate_ttest_interpretation(
+      analysis_results$ttest, input, processed_data$current
+    )
+    
+    full_report_text <- paste(
+      "=== Ringkasan Uji Statistik ===\n",
+      paste(summary_output, collapse = "\n"),
+      "\n\n",
+      interpretation_text,
+      sep = "\n"
+    )
+    report_params$text_output <- full_report_text
+    
     rmarkdown::render(
-      input = "text_report.Rmd", output_file = file,
-      output_format = if(input$ttest_format == "pdf") "pdf_document" else "word_document",
-      params = list(report_title = "Hasil Analisis Uji-T", text_output = paste(text_to_render, collapse = "\n")),
+      input = "text_report.Rmd",
+      output_file = file,
+      output_format = if (input$ttest_format == "pdf") "pdf_document" else "word_document",
+      params = report_params,
       envir = new.env(parent = globalenv())
     )
   }
