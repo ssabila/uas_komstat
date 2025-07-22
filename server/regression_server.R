@@ -529,23 +529,23 @@ output$regression_interpretation <- renderText({
         if (grepl("(?i)(populasi|population)", var)) {
           # Variabel populasi (satuan: jiwa)
           paste("Koefisien", var, "sebesar", sprintf("%.6f", coeff_value), 
-                "menunjukkan bahwa \nsetiap tambahan satu jiwa", var, 
-                "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
+                "menunjukkan bahwa setiap tambahan satu jiwa", var, 
+                "akan\n", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
                 input$reg_dep_var, "sebesar", sprintf("%.6f", abs(coeff_value)), 
                 "persen, \ndengan asumsi variabel lain tetap konstan.")
         } else if (grepl("(?i)(family.*size|familysize|ukuran.*keluarga|size.*family)", var)) {
           # Variabel family size (satuan: orang)
           paste("Koefisien", var, "sebesar", sprintf("%.3f", coeff_value), 
-                "menunjukkan bahwa \nsetiap tambahan satu orang dalam", var, 
-                "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
-                input$reg_dep_var, "\nsebesar", sprintf("%.3f", abs(coeff_value)), 
+                "menunjukkan bahwa setiap tambahan satu orang dalam", var, 
+                "akan\n", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
+                input$reg_dep_var, "sebesar", sprintf("%.3f", abs(coeff_value)), 
                 "persen, \ndengan asumsi variabel lain tetap konstan.")
         } else {
           # Variabel dengan satuan persen (default)
           paste("Koefisien", var, "sebesar", sprintf("%.3f", coeff_value), 
-                "mengindikasikan bahwa \nsetiap kenaikan satu persen\n", var, 
-                "akan", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
-                input$reg_dep_var, "\nsebesar", sprintf("%.3f", abs(coeff_value)), 
+                "mengindikasikan bahwa setiap kenaikan satu persen\n", var, 
+                "akan\n", if(coeff_value > 0) "meningkatkan" else "menurunkan", 
+                input$reg_dep_var, "sebesar", sprintf("%.3f", abs(coeff_value)), 
                 "persen, \ndengan asumsi variabel lain tetap konstan.")
         }
       })
@@ -558,8 +558,8 @@ output$regression_interpretation <- renderText({
       "Nilai R² sebesar", sprintf("%.3f", r_squared), 
       "menunjukkan bahwa", sprintf("%.1f", r_squared * 100), 
       "% variasi", input$reg_dep_var, 
-      "dapat dijelaskan oleh", paste(input$reg_indep_vars, collapse = ", "), 
-      ", \nsementara sisanya", sprintf("%.1f", (1 - r_squared) * 100), 
+      "dapat dijelaskan \noleh", paste(input$reg_indep_vars, collapse = ", "), 
+      ". \nSementara sisanya", sprintf("%.1f", (1 - r_squared) * 100), 
       "% dijelaskan oleh faktor lain yang tidak dimasukkan dalam model."
     )
     

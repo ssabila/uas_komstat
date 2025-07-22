@@ -1,5 +1,5 @@
 fluidPage(
-  # Header box
+  # Header box (existing)
   box(
     title = "Peta Distribusi Spasial",
     status = "primary",
@@ -11,7 +11,7 @@ fluidPage(
     uiOutput("map_variable_selector")
   ),
   
-  # Layout dengan peta dan panel statistik
+  # Layout dengan peta dan panel statistik (existing)
   fluidRow(
     # Kolom peta
     column(
@@ -37,6 +37,23 @@ fluidPage(
         height = "700px",
         style = "overflow-y: auto;",
         uiOutput("district_info_panel")
+      )
+    )
+  ),
+  
+  fluidRow(
+    column(
+      width = 12,
+      box(
+        title = "Interpretasi Visualisasi Peta",
+        status = "warning",
+        solidHeader = TRUE,
+        width = NULL,
+        height = "auto",
+        style = "margin-top: 15px;",
+        
+        # Konten interpretasi dinamis
+        uiOutput("map_interpretation_content")
       )
     )
   )

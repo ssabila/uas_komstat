@@ -34,7 +34,7 @@ tagList(
       style = "padding-right: 15px;",
       
       box(
-        title = "🔬 Uji Normalitas (Shapiro-Wilk)",
+        title = "Uji Normalitas (Shapiro-Wilk)",
         status = "info",
         solidHeader = TRUE,
         width = 12,
@@ -69,7 +69,7 @@ tagList(
         # Q-Q Plot Section
         div(
           style = "margin-bottom: 20px;",
-          h4("📈 Plot Q-Q", style = "color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 10px;"),
+          h4("Plot Q-Q", style = "color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 10px;"),
           div(
             style = "background: #ffffff; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; margin-top: 15px;",
             plotOutput("qq_plot", height = "350px")
@@ -111,15 +111,15 @@ tagList(
       style = "padding-left: 15px;",
       
       box(
-        title = "⚖️ Uji Homogenitas Variansi (Levene)",
-        status = "warning",
+        title = "Uji Homogenitas Variansi (Levene)",
+        status = "info",
         solidHeader = TRUE,
         width = 12,
         style = "min-height: 900px;",
         
         # Input Section
         div(
-          style = "background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;",
+          style = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;",
           h5(" Pengaturan Uji", style = "margin-top: 0; color: #856404;"),
           uiOutput("homogeneity_variable_selector"),
           uiOutput("homogeneity_group_selector"),

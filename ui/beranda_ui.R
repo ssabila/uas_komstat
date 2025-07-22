@@ -3,7 +3,7 @@ fluidRow(
   # Header dengan informasi utama
   column(12,
          box(
-           title = "Selamat Datang di Dashboard Kerentanan Sosial Indonesia 2017", 
+           title = "SOVI EXPLORE : Kerentanan Sosial Indonesia 2017", 
            status = "primary", 
            solidHeader = TRUE,
            width = 12,
@@ -80,12 +80,10 @@ fluidRow(
            solidHeader = TRUE,
            width = 12,
            tags$ul(
-             tags$li("Mengidentifikasi pola dan distribusi kerentanan sosial di Indonesia"),
-             tags$li("Menganalisis hubungan antar variabel sosial ekonomi"),
-             tags$li("Melakukan uji statistik untuk validasi hipotesis"),
-             tags$li("Memberikan rekomendasi kebijakan berdasarkan temuan analisis"),
-             tags$li("Menyediakan visualisasi interaktif untuk eksplorasi data"),
-             tags$li(strong("BARU:"), " Analisis perbandingan antar provinsi dan pulau")
+             tags$li("Menyajikan gamabran umum kerentanan sosial melalui visual data yang informatif"),
+             tags$li("Menyediakan fitur visualisasi data berupa grafik dan peta untuk memudahkan interpretasi data."),
+             tags$li("Melakukan analisis statistik inferensia untuk mengetahui keterbandingan data antar kelompok."),
+             tags$li("Mengidentifikasi pengaruh variabel sosial-ekonomi terhadap tingkat kemiskinan menggunakan analisis regresi linear.")
            )
          ),
          
@@ -97,8 +95,7 @@ fluidRow(
            width = 12,
            tags$p(tags$strong("Dataset Utama:")),
            tags$ul(
-             tags$li("SOVI Data: Data kerentanan sosial kabupaten/kota"),
-             tags$li("Distance Matrix: Matriks jarak antar wilayah")
+             tags$li("SOVI Data: Data kerentanan sosial kabupaten/kota")
            ),
            tags$p(tags$strong("Variabel Geografis Baru:")),
            tags$ul(

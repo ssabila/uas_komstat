@@ -124,7 +124,7 @@ output$distribution_map <- renderLeaflet({
     map_values
   ) %>% lapply(htmltools::HTML)
   
-  # RENDER PETA DENGAN CARA TRADISIONAL (PALING STABIL)
+  # RENDER PETA DENGAN CARA TRADISIONAL
   leaflet_map <- leaflet(merged_data) %>%
     addTiles() %>%
     setView(lng = 118, lat = -2, zoom = 5) %>%
@@ -297,16 +297,6 @@ output$district_info_panel <- renderUI({
               )
             )
         }, server = FALSE)
-      ),
-      
-      # Rangkuman
-      div(
-        style = "margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 8px;",
-        h5("Rangkuman"),
-        p("Kabupaten/kota ini memiliki karakteristik kerentanan sosial yang bervariasi. 
-          Gunakan informasi di atas untuk analisis lebih lanjut."),
-        actionButton("close_stats", "Tutup", 
-                     style = "background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px;")
       )
     )
   )
@@ -318,3 +308,187 @@ observeEvent(input$close_stats, {
   map_click_data$selected_district <- NULL
   map_click_data$district_data <- NULL
 })
+
+output$map_interpretation_content <- renderUI({
+  req(input$map_var, processed_data$current)
+  
+  variable <- input$map_var
+  data <- processed_data$current
+  
+  # Hitung statistik dasar
+  if (!is.numeric(data[[variable]])) {
+    return(div(
+      style = "padding: 15px; text-align: center;",
+      h4("Interpretasi tidak tersedia untuk variabel non-numerik", style = "color: #6c757d;")
+    ))
+  }
+  
+  # Statistik dasar
+  var_data <- data[[variable]][!is.na(data[[variable]])]
+  mean_val <- mean(var_data)
+  min_val <- min(var_data)
+  max_val <- max(var_data)
+  
+  # Generate interpretasi berdasarkan nama variabel
+  interpretation <- generate_simple_interpretation(variable, mean_val, min_val, max_val, data)
+  
+  div(
+    style = "padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #ffc107;",
+    
+    # Header interpretasi
+    div(
+      style = "margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #dee2e6;",
+      h4(paste("Interpretasi Peta:", toupper(variable)), 
+         style = "color: #495057; margin: 0; font-size: 18px;"),
+      p(style = "color: #6c757d; margin: 5px 0 0 0; font-size: 14px;",
+        "Analisis berdasarkan visualisasi choropleth dan distribusi spasial data")
+    ),
+    
+    # Konten interpretasi utama
+    div(
+      style = "line-height: 1.6; color: #495057;",
+      HTML(interpretation)
+    ),
+    
+    # Footer dengan informasi tambahan
+    div(
+      style = "margin-top: 15px; padding-top: 10px; border-top: 1px solid #dee2e6; color: #6c757d; font-size: 13px;",
+      p(strong("Catatan: "), 
+        "Interpretasi ini dihasilkan secara otomatis berdasarkan distribusi data. ",
+        "Klik pada wilayah di peta untuk informasi detail kabupaten/kota tertentu.",
+        style = "margin: 0;")
+    )
+  )
+})
+
+# Fungsi untuk generate interpretasi sederhana
+generate_simple_interpretation <- function(variable, mean_val, min_val, max_val, data) {
+  
+  # Interpretasi berdasarkan nama variabel
+  if (grepl("POVERTY|poverty", variable, ignore.case = TRUE)) {
+    interpretation <- paste0(
+      "<div style='margin-bottom: 15px;'>",
+      "<h5 style='color: #dc3545; margin-bottom: 10px;'><strong>Pola Distribusi Kemiskinan</strong></h5>",
+      "<p><strong>Berdasarkan visualisasi peta choropleth, terlihat bahwa wilayah Indonesia bagian Timur, ",
+      "khususnya Provinsi Papua, Papua Barat, dan Nusa Tenggara Timur (NTT), menunjukkan konsentrasi warna ",
+      "yang lebih gelap, yang mengindikasikan tingkat kemiskinan yang relatif lebih tinggi dibandingkan ",
+      "wilayah lain.</strong> Rata-rata nasional kemiskinan adalah <span style='color: #dc3545; font-weight: bold;'>",
+      sprintf("%.2f%%", mean_val), "</span> dengan rentang dari ",
+      sprintf("%.2f%%", min_val), " hingga ", sprintf("%.2f%%", max_val), "%.</p>",
+      "</div>",
+      
+      "<div style='margin-bottom: 15px;'>",
+      "<h5 style='color: #28a745; margin-bottom: 10px;'><strong>Disparitas Regional</strong></h5>",
+      "<p><strong>Sebaliknya, sebagian besar kabupaten/kota di Pulau Jawa, terutama DKI Jakarta, Jawa Barat, ",
+      "dan Jawa Timur, tampak memiliki warna yang lebih terang, yang mencerminkan tingkat kemiskinan yang lebih rendah.</strong> ",
+      "Pola ini menunjukkan adanya disparitas ekonomi yang signifikan antar wilayah.</p>",
+      "</div>",
+      
+      "<div style='margin-bottom: 15px;'>",
+      "<h5 style='color: #ffc107; margin-bottom: 10px;'><strong>Implikasi Kebijakan</strong></h5>",
+      "<p><strong>Distribusi spasial ini memperlihatkan adanya disparitas regional yang signifikan. ",
+      "Wilayah-wilayah di bagian Barat dan Tengah cenderung lebih sejahtera secara ekonomi dibandingkan wilayah Timur.</strong> ",
+      "Pola ini mengisyaratkan ketimpangan pembangunan dan akses terhadap layanan dasar yang masih belum merata di seluruh wilayah Indonesia.</p>",
+      "</div>",
+      
+      "<div>",
+      "<h5 style='color: #6c757d; margin-bottom: 10px;'><strong>Variasi Intra-Regional</strong></h5>",
+      "<p><strong>Peta juga mengungkapkan bahwa meskipun berada dalam provinsi yang secara agregat tergolong miskin, ",
+      "beberapa kabupaten tertentu dapat memiliki tingkat kemiskinan yang relatif lebih rendah.</strong> ",
+      "Hal ini menunjukkan adanya variasi intra-regional yang penting untuk diperhatikan dalam perumusan kebijakan berbasis wilayah. ",
+      "Pendekatan pembangunan perlu disesuaikan dengan karakteristik spesifik masing-masing daerah.</p>",
+      "</div>"
+    )
+    
+  } else if (grepl("POPULATION|population", variable, ignore.case = TRUE)) {
+    total_pop <- sum(data$POPULATION, na.rm = TRUE) / 1000000  # dalam juta
+    interpretation <- paste0(
+      "<div style='margin-bottom: 15px;'>",
+      "<h5 style='color: #007bff; margin-bottom: 10px;'><strong>Pola Distribusi Populasi</strong></h5>",
+      "<p><strong>Visualisasi menunjukkan konsentrasi populasi yang tinggi di Pulau Jawa, terutama di wilayah ",
+      "metropolitan seperti Jakarta, Surabaya, dan Bandung.</strong> Total populasi nasional mencapai ",
+      "<span style='color: #007bff; font-weight: bold;'>", sprintf("%.1f juta jiwa", total_pop), 
+      "</span> dengan rata-rata ", sprintf("%.0f ribu jiwa", mean_val/1000), " per kabupaten/kota.</p>",
+      "</div>",
+      
+      "<div style='margin-bottom: 15px;'>",
+      "<h5 style='color: #28a745; margin-bottom: 10px;'><strong>Ketimpangan Demografis</strong></h5>",
+      "<p><strong>Wilayah Indonesia Barat, khususnya Jawa, menampung sebagian besar penduduk Indonesia ",
+      "dengan kepadatan yang sangat tinggi, sementara wilayah Indonesia Timur relatif jarang penduduk.</strong> ",
+      "Pola ini mencerminkan ketimpangan demografis yang perlu menjadi pertimbangan dalam perencanaan pembangunan dan distribusi sumber daya.</p>",
+      "</div>",
+      
+      "<div>",
+      "<h5 style='color: #ffc107; margin-bottom: 10px;'><strong>Implikasi Pembangunan</strong></h5>",
+      "<p><strong>Distribusi populasi yang tidak merata ini berdampak pada kebutuhan infrastruktur, layanan publik, ",
+      "dan peluang ekonomi.</strong> Wilayah dengan populasi tinggi memerlukan investasi infrastruktur yang masif, ",
+      "sementara wilayah dengan populasi rendah memerlukan strategi khusus untuk memastikan akses layanan dasar.</p>",
+      "</div>"
+    )
+    
+  } else if (grepl("EDUCATION|education", variable, ignore.case = TRUE)) {
+    interpretation <- paste0(
+      "<div style='margin-bottom: 15px;'>",
+      "<h5 style='color: #17a2b8; margin-bottom: 10px;'><strong>Pola Distribusi Pendidikan</strong></h5>",
+      "<p><strong>Visualisasi menunjukkan kesenjangan akses dan kualitas pendidikan antar wilayah di Indonesia.</strong> ",
+      "Wilayah urban dan pulau-pulau dengan infrastruktur yang lebih baik umumnya menunjukkan indikator pendidikan yang lebih tinggi. ",
+      "Rata-rata nasional adalah <span style='color: #17a2b8; font-weight: bold;'>", sprintf("%.2f", mean_val), "</span>.</p>",
+      "</div>",
+      
+      "<div style='margin-bottom: 15px;'>",
+      "<h5 style='color: #28a745; margin-bottom: 10px;'><strong>Implikasi Pembangunan SDM</strong></h5>",
+      "<p><strong>Disparitas pendidikan yang terlihat dalam peta ini berimplikasi langsung pada kualitas sumber daya manusia </strong>",
+      "dan kemampuan daya saing regional. Wilayah dengan indikator pendidikan rendah memerlukan perhatian khusus ",
+      "dalam hal penyediaan fasilitas pendidikan, tenaga pengajar, dan program bantuan pendidikan.</p>",
+      "</div>"
+    )
+    
+  } else if (grepl("HEALTH|health", variable, ignore.case = TRUE)) {
+    interpretation <- paste0(
+      "<div style='margin-bottom: 15px;'>",
+      "<h5 style='color: #dc3545; margin-bottom: 10px;'><strong>Pola Distribusi Kesehatan</strong></h5>",
+      "<p><strong>Peta menunjukkan variasi akses dan kualitas layanan kesehatan antar wilayah.</strong> ",
+      "Wilayah terpencil dan pulau-pulau kecil umumnya menghadapi tantangan lebih besar dalam penyediaan layanan kesehatan. ",
+      "Indikator rata-rata nasional adalah <span style='color: #dc3545; font-weight: bold;'>", sprintf("%.2f", mean_val), "</span>.</p>",
+      "</div>",
+      
+      "<div>",
+      "<h5 style='color: #ffc107; margin-bottom: 10px;'><strong>Prioritas Kebijakan Kesehatan</strong></h5>",
+      "<p><strong>Distribusi yang tidak merata ini mengindikasikan perlunya strategi khusus untuk meningkatkan ",
+      "akses dan kualitas layanan kesehatan di wilayah tertinggal.</strong> Program telemedicine, mobile health services, ",
+      "dan penguatan fasilitas kesehatan dasar menjadi prioritas untuk mengurangi kesenjangan ini.</p>",
+      "</div>"
+    )
+    
+  } else {
+    # Interpretasi generik untuk variabel lainnya
+    variable_name <- gsub("_", " ", variable)
+    interpretation <- paste0(
+      "<div style='margin-bottom: 15px;'>",
+      "<h5 style='color: #6c757d; margin-bottom: 10px;'><strong>Pola Distribusi ", tools::toTitleCase(tolower(variable_name)), "</strong></h5>",
+      "<p><strong>Berdasarkan visualisasi peta choropleth, terlihat adanya variasi spasial yang signifikan ",
+      "dalam distribusi ", tolower(variable_name), " di seluruh wilayah Indonesia.</strong> ",
+      "Nilai rata-rata nasional adalah <span style='color: #007bff; font-weight: bold;'>",
+      sprintf("%.2f", mean_val), "</span> dengan rentang dari ",
+      sprintf("%.2f", min_val), " hingga ", sprintf("%.2f", max_val), ".</p>",
+      "</div>",
+      
+      "<div style='margin-bottom: 15px;'>",
+      "<h5 style='color: #28a745; margin-bottom: 10px;'><strong>Analisis Regional</strong></h5>",
+      "<p><strong>Peta menunjukkan adanya pengelompokan wilayah dengan karakteristik serupa, ",
+      "mengindikasikan pengaruh faktor geografis, ekonomi, atau kebijakan regional.</strong> ",
+      "Pola distribusi ini dapat memberikan wawasan penting untuk pengembangan strategi yang tepat sasaran.</p>",
+      "</div>",
+      
+      "<div>",
+      "<h5 style='color: #ffc107; margin-bottom: 10px;'><strong>Rekomendasi Analisis</strong></h5>",
+      "<p><strong>Distribusi spasial yang beragam ini menunjukkan perlunya pendekatan yang disesuaikan ",
+      "dengan kondisi lokal masing-masing wilayah.</strong> ",
+      "Disarankan untuk melakukan analisis lebih lanjut terhadap faktor-faktor yang mempengaruhi variasi ini ",
+      "guna mengembangkan intervensi yang efektif dan berkelanjutan.</p>",
+      "</div>"
+    )
+  }
+  
+  return(interpretation)
+}
