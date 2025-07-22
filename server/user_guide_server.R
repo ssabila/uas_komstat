@@ -1,7 +1,7 @@
 # server/user_guide_server.R
 # Handler untuk navigasi cepat di tab panduan pengguna
 
-# ======= NAVIGASI CEPAT =======
+#  NAVIGASI CEPAT 
 # Handler untuk tombol Data (Manajemen Data)
 observeEvent(input$guide_nav_data, {
   updateTabItems(session, "sidebar", "data_management")
@@ -38,7 +38,7 @@ observeEvent(input$guide_nav_download, {
   showNotification("Navigasi ke Download Center", type = "message", duration = 2)
 })
 
-# ======= KONTEN DINAMIS PANDUAN =======
+#  KONTEN DINAMIS PANDUAN 
 # Render konten dinamis berdasarkan tab yang aktif
 output$guide_content <- renderUI({
   # Konten default atau dinamis bisa ditambahkan di sini
@@ -46,7 +46,7 @@ output$guide_content <- renderUI({
   return(NULL)
 })
 
-# ======= NOTIFIKASI BANTUAN =======
+#  NOTIFIKASI BANTUAN 
 # Observer untuk memberikan tips kontekstual
 observe({
   # Tips berdasarkan tab yang sedang aktif di sidebar
@@ -57,7 +57,7 @@ observe({
   }
 })
 
-# ======= LOGGING NAVIGASI =======
+#  LOGGING NAVIGASI 
 # Optional: Log navigasi untuk analisis penggunaan
 navigation_log <- reactiveValues(
   history = character(0),

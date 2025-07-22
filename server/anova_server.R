@@ -1,11 +1,9 @@
-# server/anova_server.R - DIPERBAIKI LENGKAP
-
 # Load required libraries
 library(ggplot2)
 library(plotly)
-library(car)  # For Levene's test if needed
-library(dplyr)  # For data manipulation
-library(DT)  # For data tables
+library(car)  
+library(dplyr)  
+library(DT) 
 
 # ===== HELPER FUNCTIONS FOR ANOVA =====
 
@@ -790,14 +788,7 @@ output$posthoc_plot <- renderPlotly({
   })
 })
 
-# --- 8. LOGIKA UNDUH YANG DIPERBAIKI ---
-# server/anova_server.R - Tambahkan ini di bagian akhir file
-
-# ===== DOWNLOAD FUNCTIONALITY FOR ANOVA =====
-
-# server/anova_server.R - Auto-run Tukey saat download jika diperlukan
-
-# ===== SMART DOWNLOAD FUNCTIONALITY WITH AUTO TUKEY =====
+# --- 8. LOGIKA UNDUH ---
 
 # Helper function untuk check apakah ANOVA signifikan
 is_anova_significant <- function(anova_results) {
@@ -987,7 +978,6 @@ generate_tukey_interpretation_text <- function(posthoc_results) {
   return(paste("=== INTERPRETASI UJI POST HOC TUKEY HSD ===\n\n", posthoc_results$interpretation))
 }
 
-# SMART download handler - otomatis jalankan Tukey jika diperlukan
 output$download_anova_result <- downloadHandler(
   filename = function() {
     paste("laporan-anova-lengkap-", Sys.Date(), ".", input$anova_download_format, sep = "")
@@ -1070,7 +1060,7 @@ output$download_anova_result <- downloadHandler(
                            type = "warning", duration = 5)
         }
       } else {
-        showNotification("📄 Laporan ANOVA berhasil dibuat. Tukey HSD tidak diperlukan (hasil tidak signifikan).", 
+        showNotification("Laporan ANOVA berhasil dibuat. Tukey HSD tidak diperlukan (hasil tidak signifikan).", 
                          type = "message", duration = 4)
       }
       

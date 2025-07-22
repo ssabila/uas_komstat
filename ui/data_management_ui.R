@@ -1,4 +1,4 @@
-# ui/data_management_ui.R - Versi Lengkap dan Diperbaiki
+# ui/data_management_ui.R
 
 fluidRow(
   # Header informasi
@@ -87,9 +87,9 @@ fluidRow(
                  textInput("custom_breaks", "Breakpoints (pisahkan koma):", placeholder = "e.g., 0,10,20,30")
                ),
                
-               # --- PENAMBAHAN FUNGSI PENAMAAN KATEGORI ---
+               #   PENAMBAHAN FUNGSI PENAMAAN KATEGORI  
                textInput("categorize_labels", "Nama Kategori (opsional, pisahkan koma):", placeholder = "Contoh: Rendah,Sedang,Tinggi"),
-               # --- AKHIR PENAMBAHAN ---
+               #   AKHIR PENAMBAHAN  
                
                actionButton("btn_categorize", "Buat Kategori", class = "btn-success btn-block")
              ),

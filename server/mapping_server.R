@@ -212,7 +212,7 @@ output$district_info_panel <- renderUI({
   div(
     # Header
     div(
-      style = "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+      style = "background: linear-gradient(135deg, #B30000 0%, #FDD49E 100%); 
                color: white; padding: 15px; border-radius: 8px 8px 0 0; margin-bottom: 15px;",
       h3(style = "margin: 0; text-align: center;", 
          paste("Kabupaten/Kota:", district_id)),

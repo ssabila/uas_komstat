@@ -1,6 +1,6 @@
 # ui/ttest_ui.R
 tagList(
-  # --- Kotak Judul Halaman ---
+  #   Kotak Judul Halaman  
   box(
     title = "Uji Beda Rata-Rata (t-Test)",
     status = "primary",
@@ -9,9 +9,9 @@ tagList(
     p("Gunakan halaman ini untuk membandingkan rata-rata (mean) dari satu atau dua kelompok. Pastikan asumsi normalitas data terpenuhi sebelum melakukan uji ini.")
   ),
   
-  # --- Baris untuk Pengaturan dan Hasil Uji ---
+  #   Baris untuk Pengaturan dan Hasil Uji  
   fluidRow(
-    # --- Kolom Kiri: Pengaturan Uji ---
+    #   Kolom Kiri: Pengaturan Uji  
     column(4,
            box(
              title = "Pengaturan Uji",
@@ -38,7 +38,7 @@ tagList(
            )
     ),
     
-    # --- Kolom Kanan: Ringkasan Hasil & Unduh ---
+    #   Kolom Kanan: Ringkasan Hasil & Unduh  
     column(8,
            box(
              title = "Hasil Analisis t-Test",
@@ -50,7 +50,7 @@ tagList(
     )
   ),
   
-  # --- Baris Baru: Kotak Interpretasi (Full-Width) ---
+  #   Baris Baru: Kotak Interpretasi (Full-Width)  
   fluidRow(
     column(12,
            box(

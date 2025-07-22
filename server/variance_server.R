@@ -133,11 +133,6 @@ output$variance_histogram <- renderPlot({
 
 
 # --- 7. LOGIKA UNDUH ---
-# PERBAIKAN UNTUK server/variance_server.R
-# Bagian: LOGIKA UNDUH (Ganti bagian yang ada dengan kode ini)
-
-# PERBAIKAN UNTUK server/variance_server.R
-# Bagian: LOGIKA UNDUH (Ganti bagian yang ada dengan kode ini)
 
 output$download_variance_result <- downloadHandler(
   filename = function() {
@@ -147,13 +142,12 @@ output$download_variance_result <- downloadHandler(
     req(variance_results())
     
     # TAMBAHKAN: Progress notification untuk user experience yang lebih baik
-    showNotification("📋 Sedang menyiapkan laporan...", type = "message", duration = 3)
+    showNotification("Sedang menyiapkan laporan...", type = "message", duration = 3)
     
     # Gunakan pendekatan yang sama dengan assumptions - buat R Markdown secara langsung
     temp_dir <- tempdir()
     plot_file <- file.path(temp_dir, "variance_plots.png")
     
-    # PERBAIKAN: Buat plot dengan resolusi rendah untuk kecepatan
     tryCatch({
       png(plot_file, width = 800, height = 600, res = 150)
       
@@ -196,7 +190,7 @@ output$download_variance_result <- downloadHandler(
       dev.off()
     })
     
-    showNotification("📊 Sedang memproses hasil analisis...", type = "message", duration = 2)
+    showNotification("Sedang memproses hasil analisis...", type = "message", duration = 2)
     
     # Ambil hasil analisis
     result <- variance_results()
@@ -211,7 +205,6 @@ output$download_variance_result <- downloadHandler(
     
     temp_rmd <- tempfile(fileext = ".Rmd")
     
-    # PERBAIKAN: Gunakan format R Markdown langsung seperti assumptions
     rmd_content <- paste(
       "---",
       "title: 'Laporan Hasil Uji Varians'",
@@ -251,7 +244,7 @@ output$download_variance_result <- downloadHandler(
     
     writeLines(rmd_content, temp_rmd)
     
-    showNotification("🔄 Sedang menyusun dokumen final...", type = "message", duration = 2)
+    showNotification("Sedang menyusun dokumen final...", type = "message", duration = 2)
     
     # PERBAIKAN: Render dengan error handling yang baik
     tryCatch({

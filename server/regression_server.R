@@ -1,5 +1,5 @@
-# server/regression_server.R - VERSI DIPERBAIKI DENGAN INTERPRETASI LENGKAP
-# Fungsi helper untuk generate interpretasi (tambahkan di awal regression_server.R)
+# server/regression_server.R 
+# Fungsi helper untuk generate interpretasi
 generate_regression_interpretation <- function(model, reg_dep_var, reg_indep_vars) {
   if (is.null(model)) {
     return("Model regresi belum dibuat.")
@@ -51,7 +51,7 @@ generate_regression_interpretation <- function(model, reg_dep_var, reg_indep_var
     )
   }
   
-  # --- BAGIAN 2: INTERPRETASI KOEFISIEN ---
+# BAGIAN 2: INTERPRETASI KOEFISIEN
   coeff_interpretation <- ""
   
   if (length(significant_vars) > 0) {
@@ -373,7 +373,6 @@ output$homoscedasticity_interpretation <- renderPrint({
   
   if (!is.null(model)) {
     tryCatch({
-      # Memastikan package 'lmtest' terinstal
       if (requireNamespace("lmtest", quietly = TRUE)) {
         bp_test <- lmtest::bptest(model)
         
@@ -410,7 +409,6 @@ output$homoscedasticity_interpretation <- renderPrint({
       cat("Error dalam uji homoskedastisitas:", e$message)
     })
   } else {
-    # Pesan ini seharusnya tidak muncul jika grafik sudah ada, tapi ini adalah fallback yang baik.
     cat("Model regresi belum dibuat. Klik 'Bangun Model' terlebih dahulu.")
   }
 })
@@ -614,9 +612,7 @@ output$regression_interpretation <- renderText({
   }
 })
 
-# --- 6. LOGIKA UNDUH - DIPERBAIKI ---
-# Contoh di dalam regression_server.R
-# GANTIKAN SELURUH BLOK INI DI FILE SERVER REGRESI ANDA
+# --- 6. LOGIKA UNDUH ---
 
 output$download_regression_summary <- downloadHandler(
   filename = function() {
@@ -635,18 +631,15 @@ output$download_regression_summary <- downloadHandler(
     # Ringkasan Model
     summary_text <- capture.output(summary(model))
     
-    # Interpretasi (hanya panggil fungsi satu kali)
+    # Interpretasi
     interpretation_text_raw <- generate_regression_interpretation(
       model, 
       input$reg_dep_var, 
       input$reg_indep_vars
     )
     
-    # Format teks interpretasi agar ramah Markdown (memaksa ganti baris)
+    # Format teks interpretasi
     interpretation_text_formatted <- gsub("\\n", "  \n", interpretation_text_raw)
-    
-    # Hapus panggilan fungsi yang berulang
-    # interpretation_text <- generate_regression_interpretation(...) # <-- DIHAPUS
     
     # Uji Asumsi
     normality_test_text <- tryCatch(
@@ -682,11 +675,8 @@ output$download_regression_summary <- downloadHandler(
       "```",
       "",
       "### 2. Interpretasi Model",
-      "", # <-- Beri spasi untuk kerapian
-      # --- PERBAIKAN UTAMA ---
-      # Blok kode (```) DIHAPUS dan gunakan variabel yang sudah diformat
+      "", 
       paste(interpretation_text_formatted, collapse = "\n"),
-      # --- SELESAI ---
       "",
       "### 3. Hasil Uji Asumsi Klasik",
       "#### 3.1. Uji Normalitas Residual (Shapiro-Wilk)",

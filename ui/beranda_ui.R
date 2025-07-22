@@ -1,4 +1,4 @@
-# ui/beranda_ui.R - Versi yang Diperbaiki dengan status valid
+# ui/beranda_ui.R
 fluidRow(
   # Header dengan informasi utama
   column(12,
@@ -14,7 +14,7 @@ fluidRow(
                style = "font-size: 16px; margin-top: 15px;"),
              div(
                style = "background: #e3f2fd; padding: 15px; border-radius: 8px; margin-top: 15px;",
-               h4("📚 Panduan Lengkap Tersedia!", style = "color: #1976d2; margin-top: 0;"),
+               h4("Panduan Lengkap Tersedia!", style = "color: #1976d2; margin-top: 0;"),
                p(style = "color: #1976d2;", "Kunjungi tab "),
                actionButton("goto_guide", "Panduan Pengguna", 
                             class = "btn-info btn-sm",

@@ -43,13 +43,13 @@ tagList(
         # Input Section
         div(
           style = "background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;",
-          h5("📊 Pengaturan Uji", style = "margin-top: 0; color: #495057;"),
+          h5(" Pengaturan Uji", style = "margin-top: 0; color: #495057;"),
           uiOutput("normality_variable_selector"),
           
           div(
             style = "text-align: center; margin-top: 15px;",
             actionButton("run_normality_test", 
-                         "🚀 Jalankan Uji Normalitas", 
+                         " Jalankan Uji Normalitas", 
                          class = "btn-success btn-lg", 
                          icon = icon("play"),
                          style = "padding: 10px 30px; font-weight: bold;")
@@ -59,7 +59,7 @@ tagList(
         # Results Section
         div(
           style = "margin-bottom: 20px;",
-          h4("📋 Hasil Uji Statistik", style = "color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 10px;"),
+          h4(" Hasil Uji Statistik", style = "color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 10px;"),
           div(
             style = "background: #ffffff; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; margin-top: 15px;",
             verbatimTextOutput("normality_test_result")
@@ -79,7 +79,7 @@ tagList(
         # Download Section
         div(
           style = "background: #e9ecef; padding: 20px; border-radius: 8px; border-top: 3px solid #17a2b8;",
-          h4("💾 Unduh Hasil", style = "margin-top: 0; color: #495057;"),
+          h4(" Unduh Hasil", style = "margin-top: 0; color: #495057;"),
           fluidRow(
             column(7,
                    radioButtons("normality_format", 
@@ -120,21 +120,21 @@ tagList(
         # Input Section
         div(
           style = "background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px;",
-          h5("📊 Pengaturan Uji", style = "margin-top: 0; color: #856404;"),
+          h5(" Pengaturan Uji", style = "margin-top: 0; color: #856404;"),
           uiOutput("homogeneity_variable_selector"),
           uiOutput("homogeneity_group_selector"),
           
           # Status Validasi
           div(
             style = "margin: 15px 0; padding: 12px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #ffc107;",
-            h6("🔍 Status Validasi:", style = "margin-top: 0; color: #856404;"),
+            h6("  Status Validasi:", style = "margin-top: 0; color: #856404;"),
             uiOutput("homogeneity_validation_status")
           ),
           
           div(
             style = "text-align: center; margin-top: 15px;",
             actionButton("run_homogeneity_test", 
-                         "🚀 Jalankan Uji Homogenitas", 
+                         " Jalankan Uji Homogenitas", 
                          class = "btn-success btn-lg", 
                          icon = icon("play"),
                          style = "padding: 10px 30px; font-weight: bold;")
@@ -144,7 +144,7 @@ tagList(
         # Results Section
         div(
           style = "margin-bottom: 20px;",
-          h4("📋 Hasil Uji Statistik", style = "color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 10px;"),
+          h4(" Hasil Uji Statistik", style = "color: #495057; border-bottom: 2px solid #dee2e6; padding-bottom: 10px;"),
           div(
             style = "background: #ffffff; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; margin-top: 15px; min-height: 300px;",
             verbatimTextOutput("homogeneity_test_result")
@@ -154,7 +154,7 @@ tagList(
         # Download Section
         div(
           style = "background: #e9ecef; padding: 20px; border-radius: 8px; border-top: 3px solid #ffc107; margin-top: auto;",
-          h4("💾 Unduh Hasil", style = "margin-top: 0; color: #495057;"),
+          h4(" Unduh Hasil", style = "margin-top: 0; color: #495057;"),
           fluidRow(
             column(7,
                    radioButtons("homogeneity_format", 

@@ -172,40 +172,40 @@ output$population_pie_chart <- renderPlotly({
   }
 })
 
-# BARU: Output untuk statistik cepat - VERSI LENGKAP DENGAN BOX YANG DIPERPANJANG
+# Output untuk statistik cepat
 output$quick_stats <- renderText({
   data <- sovi_data()
   if (!is.null(data)) {
     tryCatch({
-      stats_text <- "=== STATISTIK CEPAT ===\n\n"
+      stats_text <- "STATISTIK CEPAT\n\n"
       
       # Total kabupaten/kota
-      stats_text <- paste0(stats_text, sprintf("📍 Total Kabupaten/Kota: %d\n", nrow(data)))
+      stats_text <- paste0(stats_text, sprintf("Total Kabupaten/Kota: %d\n", nrow(data)))
       
       # Total provinsi
       if ("PROVINCE_NAME" %in% names(data)) {
         n_provinces <- length(unique(data$PROVINCE_NAME[!is.na(data$PROVINCE_NAME)]))
-        stats_text <- paste0(stats_text, sprintf("🗺️  Total Provinsi: %d\n", n_provinces))
+        stats_text <- paste0(stats_text, sprintf(" Total Provinsi: %d\n", n_provinces))
       }
       
       # Total populasi
       if ("POPULATION" %in% names(data)) {
         total_pop <- sum(data$POPULATION, na.rm = TRUE)
-        stats_text <- paste0(stats_text, sprintf("👥 Total Populasi: %.1f juta jiwa\n", total_pop / 1000000))
+        stats_text <- paste0(stats_text, sprintf("Total Populasi: %.1f juta jiwa\n", total_pop / 1000000))
       }
       
       # Rata-rata kemiskinan
       if ("POVERTY" %in% names(data)) {
         avg_poverty <- mean(data$POVERTY, na.rm = TRUE)
-        stats_text <- paste0(stats_text, sprintf("💰 Rata-rata Kemiskinan: %.1f%%\n", avg_poverty))
+        stats_text <- paste0(stats_text, sprintf("Rata-rata Kemiskinan: %.1f%%\n", avg_poverty))
       }
       
-      stats_text <- paste0(stats_text, "\n=== DISTRIBUSI WILAYAH ===\n")
+      stats_text <- paste0(stats_text, "\n  DISTRIBUSI WILAYAH  \n")
       
       # Distribusi per region
       if ("REGION" %in% names(data)) {
         region_counts <- table(data$REGION[!is.na(data$REGION)])
-        stats_text <- paste0(stats_text, "\n🌏 Per Wilayah:\n")
+        stats_text <- paste0(stats_text, "\nPer Wilayah:\n")
         for (region in names(region_counts)) {
           percentage <- round((region_counts[region] / nrow(data)) * 100, 1)
           stats_text <- paste0(stats_text, sprintf("  • %s: %d kabupaten/kota (%.1f%%)\n",
@@ -217,7 +217,7 @@ output$quick_stats <- renderText({
       if ("ISLAND_GROUP" %in% names(data)) {
         island_counts <- table(data$ISLAND_GROUP[!is.na(data$ISLAND_GROUP)])
         island_counts <- sort(island_counts, decreasing = TRUE)
-        stats_text <- paste0(stats_text, "\n🏝️  Top 3 Kelompok Pulau:\n")
+        stats_text <- paste0(stats_text, "\n  Top 3 Kelompok Pulau:\n")
         top_islands <- head(island_counts, 3)
         for (i in 1:length(top_islands)) {
           percentage <- round((top_islands[i] / nrow(data)) * 100, 1)
@@ -227,7 +227,7 @@ output$quick_stats <- renderText({
       }
       
       # Statistik variabel utama
-      stats_text <- paste0(stats_text, "\n=== VARIABEL UTAMA ===\n")
+      stats_text <- paste0(stats_text, "\n  VARIABEL UTAMA  \n")
       
       numeric_vars <- c("POVERTY", "POPULATION", "UNEMPLOYMENT", "NO_DIPLOMA", "AGED_65_PLUS",
                         "AGED_17_UNDER", "DISABLED", "SINGLE_PARENT", "MINORITY", "CROWDING",
@@ -261,7 +261,7 @@ output$quick_stats <- renderText({
         }
       }
       
-      stats_text <- paste0(stats_text, sprintf("\n📊 Terakhir diperbarui: %s", format(Sys.time(), "%Y-%m-%d %H:%M")))
+      stats_text <- paste0(stats_text, sprintf("\nTerakhir diperbarui: %s", format(Sys.time(), "%Y-%m-%d %H:%M")))
       
       return(stats_text)
       
@@ -273,7 +273,7 @@ output$quick_stats <- renderText({
   }
 })
 
-# --- PERBAIKAN PADA TABEL TOP 5 POPULASI ---
+# TABEL TOP 5 POPULASI
 output$top_population_table <- DT::renderDataTable({
   data <- sovi_data()
   if (!is.null(data) && "POPULATION" %in% names(data)) {
@@ -310,7 +310,7 @@ output$top_population_table <- DT::renderDataTable({
   }
 }, server = FALSE)
 
-# --- PERBAIKAN PADA TABEL TOP 5 KEMISKINAN ---
+# TABEL TOP 5 KEMISKINAN
 output$top_poverty_table <- DT::renderDataTable({
   data <- sovi_data()
   if (!is.null(data) && "POVERTY" %in% names(data)) {

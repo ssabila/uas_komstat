@@ -37,10 +37,8 @@ fluidPage(
              h4("Buat dan Unduh Laporan Analisis"),
              p("Fitur ini akan menghasilkan laporan lengkap dari semua analisis yang telah dilakukan."),
              
-             # --- PERUBAHAN DI SINI ---
              selectInput("download_report_format", "Pilih Format Laporan:",
                          choices = list("PDF" = "pdf", "Word" = "docx")),
-             # --- AKHIR PERUBAHAN ---
              
              downloadButton("download_report", "Unduh Laporan", class = "btn-success")
            )

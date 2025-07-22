@@ -1,4 +1,4 @@
-# ui/regression_ui.R - VERSI DIPERBAIKI UNTUK UJI ASUMSI LENGKAP
+# ui/regression_ui.R
 
 tagList(
   # Kotak Header Utama
@@ -114,7 +114,7 @@ tagList(
         # Asumsi 1: Normalitas Residual
         div(
           style = "background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;",
-          h5("1. 📊 Normalitas Residual"),
+          h5("1. Normalitas Residual"),
           p("Residual harus berdistribusi normal. Gunakan Q-Q plot dan uji Shapiro-Wilk."),
           plotOutput("regression_qqplot", height = "300px"),
           br(),
@@ -125,7 +125,7 @@ tagList(
         # Asumsi 2: Homoskedastisitas
         div(
           style = "background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;",
-          h5("2. 📈 Homoskedastisitas (Variansi Konstan)"),
+          h5("2. Homoskedastisitas (Variansi Konstan)"),
           p("Variansi residual harus konstan. Gunakan plot Residuals vs Fitted dan uji Breusch-Pagan."),
           plotOutput("regression_residual_plot", height = "300px"),
           verbatimTextOutput("homoscedasticity_interpretation")
@@ -134,16 +134,14 @@ tagList(
         # Asumsi 3: Independensi Residual (Autokorelasi)
         div(
           style = "background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;",
-          h5("3. 🔗 Independensi Residual (Tidak Ada Autokorelasi)"),
+          h5("3. Autokorelasi"),
           p("Residual tidak boleh berkorelasi satu sama lain. Gunakan uji Durbin-Watson."),
           verbatimTextOutput("independence_interpretation") # Output untuk Durbin-Watson
         ),
         
-        # Asumsi 4: Tidak Ada Multikolinearitas Serius
-        # PENAMBAHAN: Blok baru untuk uji multikolinearitas
         div(
           style = "background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #dee2e6;",
-          h5("4. ⛓️ Multikolinearitas"),
+          h5("4. Multikolinearitas"),
           p("Antar variabel independen tidak boleh saling berkorelasi tinggi. Gunakan Variance Inflation Factor (VIF)."),
           verbatimTextOutput("multikolinearitas_vif") # Output untuk VIF
         ),
@@ -164,7 +162,7 @@ tagList(
         br(),
         div(
           style = "background: #d1ecf1; padding: 15px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #bee5eb;",
-          h4("💡 Interpretasi Hasil Regresi", style = "margin-top: 0; color: #0c5460;"),
+          h4("Interpretasi Hasil Regresi", style = "margin-top: 0; color: #0c5460;"),
           p("Analisis mendalam terhadap koefisien, signifikansi, dan kualitas model regresi.", 
             style = "color: #0c5460; margin-bottom: 0;")
         ),

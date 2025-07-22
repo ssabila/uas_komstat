@@ -40,7 +40,7 @@ observeEvent(input$run_ttest, {
   analysis_results$ttest <- test_result
 })
 
-# --- 3. TAMPILKAN HASIL DENGAN INTERPRETASI PROFESIONAL ---
+# --- 3. TAMPILKAN HASIL DENGAN INTERPRETASI  ---
 output$ttest_result_summary <- renderPrint({
   req(analysis_results$ttest)
   if (analysis_results$ttest$method == "One Sample t-test" && input$ttest_type != "one_sample") return()
@@ -58,7 +58,7 @@ output$ttest_result_summary <- renderPrint({
   print(result)
 })
 
-# --- FUNGSI INTERPRETASI DENGAN PERBAIKAN TEXT WRAPPING ---
+# --- FUNGSI INTERPRETASI  ---
 generate_ttest_interpretation <- function(result, inputs, data) {
   req(result)
   p_value <- result$p.value
@@ -113,7 +113,7 @@ output$ttest_interpretation <- renderText({
   generate_ttest_interpretation(analysis_results$ttest, input, processed_data$current)
 })
 
-# --- LOGIKA UNDUH (TIDAK ADA PERUBAHAN) ---
+# --- LOGIKA UNDUH ---
 output$download_ttest_result <- downloadHandler(
   filename = function() {
     paste("laporan-uji-t-", Sys.Date(), ".", input$ttest_format, sep = "")

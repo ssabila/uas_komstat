@@ -8,7 +8,7 @@ tagList(
     p("Uji ini digunakan untuk menganalisis proporsi (persentase) dari sebuah kategori spesifik dalam data Anda. Contoh: menguji apakah proporsi penduduk dengan pendidikan rendah lebih dari 20%.")
   ),
   fluidRow(
-    # --- Kolom Kiri: Pengaturan Uji ---
+    #   Kolom Kiri: Pengaturan Uji  
     column(4,
            box(
              title = "Pengaturan Uji",
@@ -37,7 +37,7 @@ tagList(
              actionButton("run_prop_test", "Jalankan Uji Proporsi", class = "btn-success", icon = icon("play"))
            )
     ),
-    # --- Kolom Kanan: Ringkasan Hasil Uji ---
+    #   Kolom Kanan: Ringkasan Hasil Uji  
     column(8,
            box(
              title = "Hasil Analisis Uji Proporsi",
@@ -48,7 +48,7 @@ tagList(
            )
     )
   ),
-  # --- Baris Baru untuk Interpretasi dan Unduhan ---
+  #   Baris Baru untuk Interpretasi dan Unduhan  
   fluidRow(
     column(12,
            box(

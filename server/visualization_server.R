@@ -194,7 +194,7 @@ output$data_interpretation <- renderUI({
     # Generate HTML output
     HTML(paste0(
       "<div style='padding: 10px;'>",
-      "<h4 style='color: #2c3e50; margin-bottom: 15px;'>📊 Analisis ", input$vis_var, "</h4>",
+      "<h4 style='color: #2c3e50; margin-bottom: 15px;'> Analisis ", input$vis_var, "</h4>",
       
       "<div style='background: #ecf0f1; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
       "<strong>Statistik Deskriptif:</strong><br>",
@@ -239,11 +239,11 @@ output$data_interpretation <- renderUI({
       } else "",
       
       "<div style='background: #fdedec; padding: 10px; border-radius: 5px;'>",
-      "<strong>💡 Rekomendasi Analisis:</strong><br>",
+      "<strong> Rekomendasi Analisis:</strong><br>",
       if(is.numeric(normality_test) && normality_test > 0.05) {
         "• Gunakan uji parametrik (t-test, ANOVA)<br>• Regresi linear dapat diterapkan"
       } else {
-        "• Pertimbangkan uji non-parametrik<br>• Transformasi data mungkin diperlukan<br>• Hati-hati dalam interpretasi regresi"
+        "• Transformasi data mungkin diperlukan<br>• Hati-hati dalam interpretasi regresi"
       },
       "</div>",
       "</div>"
@@ -336,11 +336,11 @@ output$correlation_interpretation <- renderUI({
   # Generate HTML output
   HTML(paste0(
     "<div style='padding: 10px;'>",
-    "<h4 style='color: #2c3e50; margin-bottom: 15px;'>🔗 Analisis Korelasi Lengkap</h4>",
+    "<h4 style='color: #2c3e50; margin-bottom: 15px;'>Analisis Korelasi Lengkap</h4>",
     
     # Ringkasan umum
     "<div style='background: #e8f6f3; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
-    "<strong>📈 Ringkasan Korelasi:</strong><br>",
+    "<strong>Ringkasan Korelasi:</strong><br>",
     "• Total pasangan variabel: ", nrow(cor_analysis), "<br>",
     "• Korelasi sangat kuat (≥0.8): ", very_strong, "<br>",
     "• Korelasi kuat (0.6-0.8): ", strong, "<br>",
@@ -351,7 +351,7 @@ output$correlation_interpretation <- renderUI({
     
     # Korelasi terkuat
     "<div style='background: #fdf2e9; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
-    "<strong>💪 Korelasi Terkuat (Absolut):</strong><br>",
+    "<strong>Korelasi Terkuat (Absolut):</strong><br>",
     "• <span style='color: #d35400; font-weight: bold;'>", strongest_abs$var1, " ↔ ", strongest_abs$var2, "</span><br>",
     "• Nilai: ", round(strongest_abs$correlation, 3), "<br>",
     "• Interpretasi: ", 
@@ -363,7 +363,7 @@ output$correlation_interpretation <- renderUI({
     
     # Korelasi terlemah
     "<div style='background: #eaf2f8; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
-    "<strong>🔸 Korelasi Terlemah:</strong><br>",
+    "<strong>Korelasi Terlemah:</strong><br>",
     "• <span style='color: #2980b9; font-weight: bold;'>", weakest_abs$var1, " ↔ ", weakest_abs$var2, "</span><br>",
     "• Nilai: ", round(weakest_abs$correlation, 3), "<br>",
     "• Interpretasi: Hampir tidak ada hubungan linear",
@@ -371,7 +371,7 @@ output$correlation_interpretation <- renderUI({
     
     # Korelasi positif dan negatif terkuat
     "<div style='background: #e8f8f5; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>",
-    "<strong>📊 Ekstrem Korelasi:</strong><br>",
+    "<strong>Ekstrem Korelasi:</strong><br>",
     "• <span style='color: #27ae60;'>Positif terkuat:</span> ", strongest_pos$var1, " ↔ ", strongest_pos$var2, " (", round(strongest_pos$correlation, 3), ")<br>",
     "• <span style='color: #e74c3c;'>Negatif terkuat:</span> ", strongest_neg$var1, " ↔ ", strongest_neg$var2, " (", round(strongest_neg$correlation, 3), ")",
     "</div>",
@@ -386,7 +386,7 @@ output$correlation_interpretation <- renderUI({
     
     # Interpretasi dan rekomendasi
     "<div style='background: #fff3cd; padding: 10px; border-radius: 5px;'>",
-    "<strong>💡 Interpretasi & Rekomendasi:</strong><br>",
+    "<strong>Interpretasi:</strong><br>",
     if(very_strong > 0) {
       "• <span style='color: #856404;'>Perhatian:</span> Ada korelasi sangat kuat yang mungkin menunjukkan multikolinearitas<br>"
     } else "",
