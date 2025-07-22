@@ -474,3 +474,106 @@ analyze_distribution <- function(data, variable) {
   
   return(analysis)
 }
+
+# Fungsi untuk membuat Q-Q plot dengan error handling yang baik
+create_qqplot <- function(data, variable) {
+  # Validasi input
+  if(missing(data) || missing(variable)) {
+    stop("Data dan variable harus disediakan")
+  }
+  
+  if (!variable %in% names(data)) {
+    stop("Variabel tidak ditemukan dalam data")
+  }
+  
+  # Remove missing values
+  clean_data <- data[[variable]]
+  clean_data <- clean_data[!is.na(clean_data)]
+  
+  if(length(clean_data) == 0) {
+    stop("Tidak ada data valid untuk Q-Q plot")
+  }
+  
+  if(length(clean_data) < 3) {
+    stop("Data terlalu sedikit untuk Q-Q plot (minimal 3 observasi)")
+  }
+  
+  tryCatch({
+    # Create Q-Q plot using ggplot2
+    qq_data <- data.frame(
+      sample = clean_data
+    )
+    
+    # Calculate theoretical quantiles
+    n <- length(clean_data)
+    theoretical_quantiles <- qnorm((1:n - 0.5) / n)
+    empirical_quantiles <- sort(clean_data)
+    
+    # Standardize empirical quantiles
+    empirical_standardized <- (empirical_quantiles - mean(empirical_quantiles)) / sd(empirical_quantiles)
+    
+    plot_data <- data.frame(
+      theoretical = theoretical_quantiles,
+      sample = empirical_standardized
+    )
+    
+    # Calculate R-squared for line fit
+    cor_coef <- cor(theoretical_quantiles, empirical_standardized)
+    r_squared <- cor_coef^2
+    
+    # Create the plot
+    p <- ggplot(plot_data, aes(x = theoretical, y = sample)) +
+      geom_point(alpha = 0.6, color = "steelblue", size = 2) +
+      geom_abline(intercept = 0, slope = 1, color = "red", linetype = "dashed", linewidth = 1) +
+      labs(
+        title = paste("Q-Q Plot:", variable),
+        subtitle = paste("Uji Normalitas Visual | R² =", round(r_squared, 3), "| n =", n),
+        x = "Theoretical Quantiles (Normal Distribution)",
+        y = "Standardized Sample Quantiles",
+        caption = "Garis merah: distribusi normal teoretis"
+      ) +
+      theme_minimal() +
+      theme(
+        plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5, size = 10, color = "gray60"),
+        plot.caption = element_text(size = 9, color = "gray50", hjust = 0),
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 10),
+        panel.grid.minor = element_blank()
+      )
+    
+    # Add interpretation text
+    interpretation <- if(r_squared > 0.95) {
+      "Interpretasi: Data mengikuti distribusi normal dengan baik"
+    } else if(r_squared > 0.90) {
+      "Interpretasi: Data mendekati distribusi normal"
+    } else {
+      "Interpretasi: Data menyimpang dari distribusi normal"
+    }
+    
+    p <- p + annotate("text", x = -Inf, y = Inf, 
+                      label = interpretation, 
+                      hjust = -0.05, vjust = 1.5, 
+                      size = 3.5, color = "darkred", fontface = "bold")
+    
+    return(p)
+    
+  }, error = function(e) {
+    # Fallback: Base R Q-Q plot
+    warning("ggplot2 error, menggunakan base R plot")
+    
+    # Use base R for simple Q-Q plot
+    par(mfrow = c(1, 1))
+    qqnorm(clean_data, main = paste("Q-Q Plot:", variable), 
+           xlab = "Theoretical Quantiles", ylab = "Sample Quantiles")
+    qqline(clean_data, col = "red", lwd = 2)
+    
+    # Return a simple ggplot as placeholder
+    simple_plot <- ggplot(data.frame(x = 1, y = 1), aes(x, y)) +
+      geom_text(label = "Q-Q Plot dibuat dengan base R", size = 5) +
+      labs(title = paste("Q-Q Plot:", variable)) +
+      theme_void()
+    
+    return(simple_plot)
+  })
+}

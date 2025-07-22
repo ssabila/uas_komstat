@@ -199,28 +199,55 @@ output$regression_qqplot <- renderPlot({
   
   if (!is.null(model)) {
     tryCatch({
-      par(mfrow = c(1, 2))
+      # Create layout for multiple plots
+      par(mfrow = c(1, 2), mar = c(4, 4, 3, 2))
       
-      # Q-Q Plot
-      plot(model, which = 2, main = "Q-Q Plot Residual", 
-           sub = "Untuk memeriksa normalitas residual")
+      # Q-Q Plot of residuals
+      residuals_data <- residuals(model)
+      qqnorm(residuals_data, 
+             main = "Q-Q Plot Residual", 
+             sub = "Untuk memeriksa normalitas residual",
+             pch = 16, col = "steelblue")
+      qqline(residuals_data, col = "red", lwd = 2)
+      grid(col = "lightgray", lty = "dotted")
+      
+      # Add correlation info
+      n_residuals <- length(residuals_data)
+      theoretical_q <- qnorm(ppoints(n_residuals))
+      empirical_q <- sort(residuals_data)
+      correlation <- cor(theoretical_q, empirical_q)
+      
+      legend("topleft", 
+             legend = paste("r =", round(correlation, 3)),
+             bty = "n", cex = 0.9)
       
       # Histogram residual sebagai tambahan
-      residuals_data <- residuals(model)
-      hist(residuals_data, main = "Histogram Residual", 
-           xlab = "Residual", ylab = "Frekuensi",
-           breaks = 20, col = "lightblue", border = "black")
+      hist(residuals_data, 
+           main = "Histogram Residual", 
+           xlab = "Residual", 
+           ylab = "Frekuensi",
+           breaks = 20, 
+           col = "lightblue", 
+           border = "black")
+      
+      # Add normal curve overlay
+      x_seq <- seq(min(residuals_data), max(residuals_data), length.out = 100)
+      y_seq <- dnorm(x_seq, mean = mean(residuals_data), sd = sd(residuals_data))
+      y_seq <- y_seq * length(residuals_data) * diff(range(residuals_data)) / 20
+      lines(x_seq, y_seq, col = "red", lwd = 2)
       
       par(mfrow = c(1, 1))
+      
     }, error = function(e) {
+      par(mfrow = c(1, 1))
       plot(1, 1, type = "n", main = "Error membuat Q-Q plot")
-      text(1, 1, paste("Error:", e$message))
+      text(1, 1, paste("Error:", e$message), col = "red")
     })
   } else {
     plot(1, 1, type = "n", main = "Model belum dibuat")
     text(1, 1, "Klik 'Bangun Model' terlebih dahulu")
   }
-})
+}, height = 400)
 
 # 4.2 Interpretasi Normalitas Residual
 output$normality_residual_interpretation <- renderPrint({

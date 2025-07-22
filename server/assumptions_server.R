@@ -1,3 +1,18 @@
+check_and_load_packages <- function() {
+  required_packages <- c("ggplot2", "car", "rmarkdown", "knitr")
+  
+  for(pkg in required_packages) {
+    if(!requireNamespace(pkg, quietly = TRUE)) {
+      message(paste("Installing package:", pkg))
+      install.packages(pkg, dependencies = TRUE)
+    }
+    
+    if(!pkg %in% loadedNamespaces()) {
+      library(pkg, character.only = TRUE)
+    }
+  }
+}
+
 # --- 1. UI DINAMIS ---
 output$normality_variable_selector <- renderUI({
   req(processed_data$current)
@@ -211,15 +226,72 @@ Catatan: Hasil ini mendukung penggunaan metode statistik parametrik untuk analis
   }
 })
 
+# Perbaiki output Q-Q plot
 output$qq_plot <- renderPlot({
   req(processed_data$current, input$normality_var)
   
   tryCatch({
+    # Pastikan fungsi create_qqplot tersedia
+    if (!exists("create_qqplot")) {
+      source("modules/visualization_functions.R")
+    }
+    
     create_qqplot(processed_data$current, input$normality_var)
+    
   }, error = function(e) {
-    plot(1, 1, type = "n", main = "Error: Tidak dapat membuat Q-Q plot")
-    text(1, 1, paste("Error:", e$message))
+    # Fallback error handling
+    data_col <- processed_data$current[[input$normality_var]]
+    clean_data <- data_col[!is.na(data_col)]
+    
+    if(length(clean_data) > 0) {
+      # Create simple Q-Q plot
+      par(mfrow = c(1, 1), mar = c(4, 4, 3, 2))
+      qqnorm(clean_data, 
+             main = paste("Q-Q Plot:", input$normality_var),
+             xlab = "Theoretical Quantiles", 
+             ylab = "Sample Quantiles",
+             pch = 16, col = "steelblue")
+      qqline(clean_data, col = "red", lwd = 2)
+      
+      # Add grid
+      grid(col = "lightgray", lty = "dotted")
+      
+      # Add interpretation text
+      cor_test <- cor.test(qnorm(ppoints(length(clean_data))), sort(clean_data))
+      r_value <- cor_test$estimate
+      
+      legend("topleft", 
+             legend = c(
+               paste("n =", length(clean_data)),
+               paste("r =", round(r_value, 3)),
+               if(r_value > 0.95) "Normal" else if(r_value > 0.90) "Mendekati Normal" else "Tidak Normal"
+             ),
+             bty = "n", cex = 0.9)
+      
+    } else {
+      # Show error message
+      plot(1, 1, type = "n", 
+           main = "Error: Tidak dapat membuat Q-Q plot",
+           xlab = "", ylab = "", axes = FALSE)
+      text(1, 1, paste("Error:", e$message), col = "red", cex = 1.2)
+      box()
+    }
   })
+}, height = 400)
+
+# reactive value untuk menyimpan plot
+qq_plot_data <- reactiveVal(NULL)
+
+# Update observeEvent untuk menyimpan plot data
+observeEvent(input$run_normality_test, {
+  req(processed_data$current, input$normality_var)
+  
+  # Simpan data untuk plot
+  qq_plot_data(list(
+    data = processed_data$current,
+    variable = input$normality_var,
+    timestamp = Sys.time()
+  ))
 })
 
 output$homogeneity_test_result <- renderPrint({
@@ -308,47 +380,187 @@ output$homogeneity_validation_status <- renderUI({
 })
 
 # --- 5. LOGIKA UNDUH ---
+# Update download handler untuk mendukung HTML
 output$download_normality_result <- downloadHandler(
   filename = function() { 
-    paste("hasil-uji-normalitas-", Sys.Date(), ".", input$normality_format, sep = "") 
+    ext <- switch(input$normality_format,
+                  "pdf" = "pdf",
+                  "docx" = "docx", 
+                  "html" = "html")
+    paste("hasil-uji-normalitas-", Sys.Date(), ".", ext, sep = "") 
   },
   content = function(file) {
     req(analysis_results$normality)
     
-    # Buat teks yang akan di-render
+    # Buat temporary directory untuk file
+    temp_dir <- tempdir()
+    plot_file <- file.path(temp_dir, "qq_plot.png")
+    
+    # Simpan Q-Q plot sebagai file
+    tryCatch({
+      if (!is.null(qq_plot_data())) {
+        qq_plot <- create_qqplot(qq_plot_data()$data, qq_plot_data()$variable)
+        ggsave(plot_file, plot = qq_plot, width = 10, height = 6, dpi = 300, bg = "white")
+      }
+    }, error = function(e) {
+      # Create simple base R plot if ggplot fails
+      png(plot_file, width = 800, height = 600, res = 150, bg = "white")
+      data_col <- qq_plot_data()$data[[qq_plot_data()$variable]]
+      clean_data <- data_col[!is.na(data_col)]
+      
+      if(length(clean_data) > 0) {
+        qqnorm(clean_data, main = paste("Q-Q Plot:", qq_plot_data()$variable))
+        qqline(clean_data, col = "red", lwd = 2)
+      }
+      dev.off()
+    })
+    
     result <- analysis_results$normality
-    text_content <- paste(
-      "=== HASIL UJI NORMALITAS SHAPIRO-WILK ===",
-      paste("Variabel yang diuji:", input$normality_var),
-      "",
-      "Hipotesis:",
-      "H₀: Data berdistribusi normal",
-      "H₁: Data tidak berdistribusi normal",
-      "Tingkat signifikansi (α): 0.05",
-      "",
-      "Hasil Pengujian:",
-      if (!is.na(result$statistic)) paste("Statistik W:", round(result$statistic, 6)) else "",
-      if (!is.na(result$p_value)) paste("P-value:", round(result$p_value, 6)) else "",
-      "",
-      "Interpretasi:",
-      result$interpretation,
-      sep = "\n"
+    
+    # Tentukan output format berdasarkan pilihan user
+    output_format <- switch(input$normality_format,
+                            "pdf" = "pdf_document",
+                            "docx" = "word_document", 
+                            "html" = "html_document")
+    
+    # Create temporary Rmd file
+    temp_rmd <- tempfile(fileext = ".Rmd")
+    
+    # Konten Rmd yang diperbaiki untuk semua format
+    rmd_content <- paste0(
+      "---\n",
+      "title: 'Hasil Uji Normalitas Shapiro-Wilk'\n",
+      "date: '", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "'\n",
+      "output:\n",
+      if(input$normality_format == "pdf") {
+        "  pdf_document:\n    latex_engine: xelatex\n    toc: true\n    number_sections: true\n"
+      } else if(input$normality_format == "docx") {
+        "  word_document:\n    toc: true\n    number_sections: true\n"
+      } else {
+        "  html_document:\n    theme: flatly\n    toc: true\n    toc_float: true\n    number_sections: true\n    df_print: paged\n"
+      },
+      "---\n\n",
+      
+      # CSS untuk HTML
+      if(input$normality_format == "html") {
+        paste0(
+          "<style>\n",
+          "body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }\n",
+          ".header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }\n",
+          ".result-box { background: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 15px 0; border-radius: 5px; }\n",
+          ".interpretation { background: #d4edda; padding: 15px; border-left: 4px solid #28a745; border-radius: 5px; }\n",
+          ".plot-container { text-align: center; margin: 20px 0; }\n",
+          "img { max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 8px; }\n",
+          "</style>\n\n"
+        )
+      } else "",
+      
+      # Header yang menarik untuk HTML
+      if(input$normality_format == "html") {
+        paste0(
+          "<div class='header'>\n",
+          "<h1 style='margin:0;'>📊 Hasil Uji Normalitas Shapiro-Wilk</h1>\n",
+          "<p style='margin:5px 0 0 0; opacity: 0.9;'>Analisis Statistik - ", format(Sys.time(), "%d %B %Y"), "</p>\n",
+          "</div>\n\n"
+        )
+      } else "",
+      
+      "## 📋 Informasi Uji\n\n",
+      "- **Variabel yang diuji:** ", input$normality_var, "\n",
+      "- **Tanggal analisis:** ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n",
+      "- **Jenis uji:** Shapiro-Wilk Test\n",
+      "- **Software:** R Statistical Computing\n\n",
+      
+      "## 🎯 Hipotesis\n\n",
+      "- **H₀ (Hipotesis Nol):** Data berdistribusi normal\n",
+      "- **H₁ (Hipotesis Alternatif):** Data tidak berdistribusi normal\n",
+      "- **Tingkat signifikansi (α):** 0.05\n\n",
+      
+      if(input$normality_format == "html") "<div class='result-box'>\n" else "",
+      "## 📊 Hasil Pengujian\n\n",
+      if (!is.na(result$statistic)) paste("- **Statistik W:** ", round(result$statistic, 6), "\n") else "",
+      if (!is.na(result$p_value)) paste("- **P-value:** ", round(result$p_value, 6), "\n") else "",
+      "- **Jumlah observasi:** ", length(qq_plot_data()$data[[input$normality_var]][!is.na(qq_plot_data()$data[[input$normality_var]])]), "\n\n",
+      if(input$normality_format == "html") "</div>\n\n" else "",
+      
+      "## 📈 Q-Q Plot\n\n",
+      if(input$normality_format == "html") "<div class='plot-container'>\n" else "",
+      if(file.exists(plot_file)) {
+        if(input$normality_format == "html") {
+          paste0("![Q-Q Plot](", plot_file, "){width=80%}\n\n")
+        } else {
+          paste0("![Q-Q Plot](", plot_file, ")\n\n")
+        }
+      } else "",
+      if(input$normality_format == "html") "</div>\n\n" else "",
+      
+      if(input$normality_format == "html") "<div class='interpretation'>\n" else "",
+      "## 🔍 Interpretasi\n\n",
+      result$interpretation, "\n\n",
+      if(input$normality_format == "html") "</div>\n\n" else "",
+      
+      "## 📝 Kesimpulan\n\n",
+      if(result$p_value < 0.05) {
+        paste0("Berdasarkan hasil uji Shapiro-Wilk dengan **p-value = ", round(result$p_value, 6), 
+               " < 0.05**, keputusan yang diambil adalah **TOLAK H₀**. ",
+               "Dengan tingkat kepercayaan 95%, data variabel '", input$normality_var, "' **TIDAK berdistribusi normal**.\n\n",
+               "**Rekomendasi:**\n",
+               "- Gunakan uji statistik non-parametrik\n",
+               "- Pertimbangkan transformasi data\n",
+               "- Hati-hati dalam interpretasi hasil regresi linear")
+      } else {
+        paste0("Berdasarkan hasil uji Shapiro-Wilk dengan **p-value = ", round(result$p_value, 6), 
+               " ≥ 0.05**, keputusan yang diambil adalah **GAGAL TOLAK H₀**. ",
+               "Dengan tingkat kepercayaan 95%, data variabel '", input$normality_var, "' dapat diasumsikan **berdistribusi normal**.\n\n",
+               "**Rekomendasi:**\n",
+               "- Aman menggunakan uji statistik parametrik\n",
+               "- Dapat melanjutkan dengan analisis regresi linear\n",
+               "- Sesuai untuk uji t-test dan ANOVA")
+      },
+      "\n\n",
+      
+      "---\n\n",
+      "*Laporan ini dibuat secara otomatis oleh SOVI Dashboard pada ", format(Sys.time(), "%d %B %Y pukul %H:%M:%S"), "*"
     )
     
+    # Write Rmd content
+    writeLines(rmd_content, temp_rmd)
+    
+    # Render laporan
     tryCatch({
       rmarkdown::render(
-        input = "text_report.Rmd", 
+        input = temp_rmd,
         output_file = file,
-        output_format = if(input$normality_format == "pdf") "pdf_document" else "word_document",
-        params = list(
-          report_title = "Hasil Uji Normalitas Shapiro-Wilk", 
-          text_output = text_content
-        ),
+        output_format = output_format,
+        quiet = TRUE,
         envir = new.env(parent = globalenv())
       )
+      
+      showNotification("Laporan berhasil dibuat!", type = "success", duration = 3)
+      
     }, error = function(e) {
       showNotification(paste("Error saat membuat laporan:", e$message), type = "error")
+      
+      # Fallback: create simple text file
+      simple_content <- paste(
+        "=== HASIL UJI NORMALITAS SHAPIRO-WILK ===",
+        paste("Variabel yang diuji:", input$normality_var),
+        paste("Tanggal:", Sys.Date()),
+        "",
+        "Hasil Pengujian:",
+        if (!is.na(result$statistic)) paste("Statistik W:", round(result$statistic, 6)) else "",
+        if (!is.na(result$p_value)) paste("P-value:", round(result$p_value, 6)) else "",
+        "",
+        "Interpretasi:",
+        result$interpretation,
+        sep = "\n"
+      )
+      writeLines(simple_content, file)
     })
+    
+    # Clean up temporary files
+    if(file.exists(plot_file)) unlink(plot_file)
+    if(file.exists(temp_rmd)) unlink(temp_rmd)
   }
 )
 
