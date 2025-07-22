@@ -1,4 +1,4 @@
-# ui/beranda_ui.R - Versi yang diperbaiki dengan status valid
+# ui/beranda_ui.R - Versi yang Diperbaiki dengan status valid
 fluidRow(
   # Header dengan informasi utama
   column(12,
@@ -32,7 +32,7 @@ fluidRow(
            value = textOutput("total_districts"),
            subtitle = "Wilayah yang dianalisis",
            icon = icon("map"),
-           color = "lightblue",  # Ganti dari "blue" ke "lightblue"
+           color = "lightblue",
            width = 12,
            fill = TRUE
          )
@@ -43,7 +43,7 @@ fluidRow(
            value = textOutput("total_provinces"),
            subtitle = "Provinsi di Indonesia",
            icon = icon("map-marker-alt"),
-           color = "lime",  # Ganti dari "green" ke "lime"
+           color = "lime",
            width = 12,
            fill = TRUE
          )
@@ -54,7 +54,7 @@ fluidRow(
            value = textOutput("total_population"),
            subtitle = "Jumlah penduduk (juta jiwa)",
            icon = icon("users"),
-           color = "orange",  # Ganti dari "yellow" ke "orange"
+           color = "orange",
            width = 12,
            fill = TRUE
          )
@@ -65,7 +65,7 @@ fluidRow(
            value = textOutput("average_poverty"),
            subtitle = "Persentase kemiskinan nasional",
            icon = icon("chart-line"),
-           color = "maroon",  # Ganti dari "red" ke "maroon"
+           color = "maroon",
            width = 12,
            fill = TRUE
          )
@@ -124,22 +124,75 @@ fluidRow(
   
   # Sidebar dengan visualisasi geografis
   column(6,
-         # Visualisasi geografis
+         # Visualisasi distribusi populasi - PERBAIKAN: Menggunakan plotlyOutput
          box(
-           title = "Distribusi Populasi", 
+           title = "Distribusi Populasi per Wilayah", 
            status = "primary", 
            solidHeader = TRUE,
            width = 12,
-           plotlyOutput("population_pie_chart", height = "400px")
+           height = "450px",
+           div(
+             style = "background: #f8f9fa; padding: 10px; border-radius: 5px; margin-bottom: 10px;",
+             p(icon("info-circle"), " Pie chart menampilkan distribusi populasi berdasarkan wilayah Indonesia", 
+               style = "color: #6c757d; margin: 0; font-size: 14px;")
+           ),
+           plotlyOutput("population_pie_chart", height = "350px")
          ),
          
-         # Quick stats
+         # Quick stats - PERBAIKAN: Box lebih panjang dengan konten yang nyaman dibaca
          box(
            title = "Statistik Cepat",
            status = "secondary",
            solidHeader = TRUE,
            width = 12,
-           verbatimTextOutput("quick_stats")
+           height = "400px",
+           div(
+             style = "background: #f8f9fa; padding: 10px; border-radius: 5px; margin-bottom: 10px;",
+             p(icon("chart-bar"), " Ringkasan statistik utama dataset SOVI 2017", 
+               style = "color: #6c757d; margin: 0; font-size: 14px;")
+           ),
+           div(
+             style = "height: 320px; overflow-y: auto; background: #fff; border: 1px solid #e9ecef; border-radius: 4px; padding: 15px; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.4;",
+             verbatimTextOutput("quick_stats")
+           )
+         ),
+         
+         # Top/Bottom Rankings - PERBAIKAN: Box lebih panjang
+         box(
+           title = "Peringkat Wilayah", 
+           status = "primary", 
+           solidHeader = TRUE,
+           width = 12,
+           height = "400px",
+           div(
+             style = "background: #e8f4f8; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
+             p(icon("trophy"), " Ranking kabupaten/kota berdasarkan indikator utama", 
+               style = "color: #6c757d; margin: 0; font-size: 14px;")
+           ),
+           fluidRow(
+             column(6,
+                    div(
+                      style = "background: #d4edda; padding: 12px; border-radius: 5px; margin-bottom: 12px; text-align: center;",
+                      h5("🏆 Top 5 Populasi Terbesar", 
+                         style = "color: #155724; margin: 0; font-size: 16px; font-weight: bold;")
+                    ),
+                    div(
+                      style = "height: 280px; overflow: hidden;",
+                      DT::dataTableOutput("top_population_table")
+                    )
+             ),
+             column(6,
+                    div(
+                      style = "background: #f8d7da; padding: 12px; border-radius: 5px; margin-bottom: 12px; text-align: center;",
+                      h5("⚠️ Top 5 Kemiskinan Tertinggi", 
+                         style = "color: #721c24; margin: 0; font-size: 16px; font-weight: bold;")
+                    ),
+                    div(
+                      style = "height: 280px; overflow: hidden;",
+                      DT::dataTableOutput("top_poverty_table")
+                    )
+             )
+           )
          )
   )
 )

@@ -14,6 +14,8 @@ library(e1071)
 library(reshape2)
 library(bs4Dash)
 
+source("requirements.R")
+
 # PERBAIKAN: Cek dan install package yang diperlukan
 required_packages <- c("shiny", "shinydashboard", "DT", "plotly", "leaflet", 
                        "dplyr", "ggplot2", "readr", "car", "nortest", "corrplot", 
